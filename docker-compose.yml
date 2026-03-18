@@ -1,0 +1,17 @@
+services:
+  grimoire:
+    build: .
+    container_name: grimoire
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - AUTH_SECRET=${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      - DATABASE_URL=/app/data/data.db
+    volumes:
+      - grimoire-data:/app/data
+
+volumes:
+  grimoire-data:

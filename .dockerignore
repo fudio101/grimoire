@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+drizzle
+.prettierrc.json
+.prettierignore
+eslint.config.mjs
+README.md
+LICENSE

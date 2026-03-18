@@ -55,17 +55,51 @@ npm run dev
 
 ### Scripts
 
-| Command              | Description                   |
-| -------------------- | ----------------------------- |
-| `npm run dev`        | Start dev server              |
-| `npm run build`      | Production build              |
-| `npm run start`      | Start production server       |
-| `npm run lint`       | Run ESLint                    |
-| `npm run lint:fix`   | Run ESLint with auto-fix      |
-| `npm run format`     | Format code with Prettier     |
-| `npm run format:check` | Check formatting (for CI)   |
-| `npm run db:push`    | Push schema changes to SQLite |
-| `npm run db:studio`  | Open Drizzle Studio           |
+| Command                | Description                   |
+| ---------------------- | ----------------------------- |
+| `npm run dev`          | Start dev server              |
+| `npm run build`        | Production build              |
+| `npm run start`        | Start production server       |
+| `npm run lint`         | Run ESLint                    |
+| `npm run lint:fix`     | Run ESLint with auto-fix      |
+| `npm run format`       | Format code with Prettier     |
+| `npm run format:check` | Check formatting (for CI)     |
+| `npm run db:push`      | Push schema changes to SQLite |
+| `npm run db:studio`    | Open Drizzle Studio           |
+
+## Docker
+
+### Docker Compose (recommended)
+
+```bash
+# Copy env and edit credentials
+cp .env.example .env
+
+# Start
+docker compose up -d
+
+# Stop
+docker compose down
+```
+
+### Docker CLI
+
+```bash
+# Build image
+docker build -t grimoire .
+
+# Run container
+docker run -d \
+  -p 3000:3000 \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_PASSWORD=changeme \
+  -e AUTH_SECRET=your-secret-key-at-least-32-chars \
+  -v grimoire-data:/app/data \
+  --name grimoire \
+  grimoire
+```
+
+SQLite database is stored at `/app/data/data.db` inside the container. Use a volume mount to persist data across container restarts.
 
 ## Project Structure
 
