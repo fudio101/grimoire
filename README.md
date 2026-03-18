@@ -92,13 +92,20 @@ src/
 │   ├── dashboard/      # Admin pages
 │   ├── login/          # Auth
 │   └── p/[shareToken]/ # Public shared view
+├── features/
+│   ├── transactions/   # Form, table, filters, add button
+│   └── categories/     # Form, list, copy button
 ├── components/
 │   ├── ui/             # shadcn/ui
-│   └── ...             # Feature components
+│   ├── responsive-modal.tsx
+│   ├── confirm-dialog.tsx
+│   ├── submit-button.tsx
+│   └── currency-input.tsx
 ├── hooks/              # Custom hooks
 └── lib/
     ├── db/             # Schema & queries
     ├── schemas.ts      # Zod schemas
+    ├── types.ts        # Shared types
     ├── auth.ts         # JWT utilities
     └── format.ts       # Currency & datetime
 ```
