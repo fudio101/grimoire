@@ -43,17 +43,17 @@ npm run dev
 
 ## Scripts
 
-| Command              | Description               |
-| -------------------- | ------------------------- |
-| `npm run dev`        | Dev server                |
-| `npm run build`      | Production build          |
-| `npm run start`      | Production server         |
-| `npm run lint`       | ESLint                    |
-| `npm run lint:fix`   | ESLint with auto-fix      |
-| `npm run format`     | Prettier format           |
-| `npm run format:check` | Prettier check (CI)     |
-| `npm run db:push`    | Push schema to SQLite     |
-| `npm run db:studio`  | Open Drizzle Studio       |
+| Command                | Description           |
+| ---------------------- | --------------------- |
+| `npm run dev`          | Dev server            |
+| `npm run build`        | Production build      |
+| `npm run start`        | Production server     |
+| `npm run lint`         | ESLint                |
+| `npm run lint:fix`     | ESLint with auto-fix  |
+| `npm run format`       | Prettier format       |
+| `npm run format:check` | Prettier check (CI)   |
+| `npm run db:push`      | Push schema to SQLite |
+| `npm run db:studio`    | Open Drizzle Studio   |
 
 ## Docker
 

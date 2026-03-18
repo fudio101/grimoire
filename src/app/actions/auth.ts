@@ -8,7 +8,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
 import type { LoginInput } from "@/lib/schemas";
-import type { ActionState } from "@/lib/action-types";
+import type { ActionState } from "@/lib/types";
 
 export async function loginAction(data: LoginInput): Promise<ActionState> {
   if (!data.username || !data.password) {

@@ -1,6 +1,8 @@
 import { getCategories } from "@/lib/db/queries";
-import { CategoryForm } from "@/components/category-form";
-import { CategoryList } from "@/components/category-list";
+import { CategoryForm } from "@/features/categories/category-form";
+import { CategoryList } from "@/features/categories/category-list";
+
+export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
   const categories = await getCategories();

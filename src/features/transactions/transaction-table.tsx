@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2, Pencil } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ResponsiveModal } from "@/components/responsive-modal";
 import {
   Table,
   TableBody,
@@ -12,32 +13,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { TransactionForm } from "@/components/transaction-form";
+import { TransactionForm } from "@/features/transactions/transaction-form";
 import { deleteTransaction } from "@/app/actions/transactions";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { formatVND, formatDateTime } from "@/lib/format";
 import type { Category } from "@/lib/db/schema";
-
-type TransactionRow = {
-  id: string;
-  amount: number;
-  note: string;
-  date: string;
-  categoryId: string;
-  categoryName: string | null;
-};
+import type { TransactionRow } from "@/lib/types";
 
 export function TransactionTable({
   transactions,
@@ -47,21 +27,6 @@ export function TransactionTable({
   categories: Category[];
 }) {
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
-  const editForm = editingTx ? (
-    <TransactionForm
-      categories={categories}
-      defaultValues={{
-        id: editingTx.id,
-        amount: editingTx.amount,
-        note: editingTx.note,
-        date: editingTx.date,
-        categoryId: editingTx.categoryId,
-      }}
-      onSuccess={() => setEditingTx(null)}
-    />
-  ) : null;
 
   if (transactions.length === 0) {
     return (
@@ -129,31 +94,25 @@ export function TransactionTable({
         </Table>
       </div>
 
-      {isDesktop ? (
-        <Dialog
-          open={!!editingTx}
-          onOpenChange={(open) => !open && setEditingTx(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Sửa giao dịch</DialogTitle>
-            </DialogHeader>
-            {editForm}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer
-          open={!!editingTx}
-          onOpenChange={(open) => !open && setEditingTx(null)}
-        >
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Sửa giao dịch</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{editForm}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveModal
+        open={!!editingTx}
+        onOpenChange={(open) => !open && setEditingTx(null)}
+        title="Sửa giao dịch"
+      >
+        {editingTx && (
+          <TransactionForm
+            categories={categories}
+            defaultValues={{
+              id: editingTx.id,
+              amount: editingTx.amount,
+              note: editingTx.note,
+              date: editingTx.date,
+              categoryId: editingTx.categoryId,
+            }}
+            onSuccess={() => setEditingTx(null)}
+          />
+        )}
+      </ResponsiveModal>
     </>
   );
 }

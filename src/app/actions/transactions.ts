@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { transactionSchema, type TransactionInput } from "@/lib/schemas";
-import type { ActionState } from "@/lib/action-types";
+import type { ActionState } from "@/lib/types";
 
 export async function createTransaction(
   data: TransactionInput

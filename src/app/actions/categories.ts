@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { categorySchema, type CategoryInput } from "@/lib/schemas";
-import type { ActionState } from "@/lib/action-types";
+import type { ActionState } from "@/lib/types";
 
 export async function createCategory(
   data: CategoryInput

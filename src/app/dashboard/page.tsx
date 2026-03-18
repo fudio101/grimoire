@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { getCategories, getTransactions } from "@/lib/db/queries";
-import { TransactionTable } from "@/components/transaction-table";
-import { TransactionFilters } from "@/components/transaction-filters";
-import { AddTransactionButton } from "@/components/add-transaction-button";
+import { TransactionTable } from "@/features/transactions/transaction-table";
+import { TransactionFilters } from "@/features/transactions/transaction-filters";
+import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
 import { formatVND } from "@/lib/format";
 
 export default async function DashboardPage({
