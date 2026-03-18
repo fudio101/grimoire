@@ -1,6 +1,6 @@
 services:
   grimoire:
-    build: .
+    image: ghcr.io/fudio101/grimoire:latest
     container_name: grimoire
     restart: unless-stopped
     ports:
