@@ -1,14 +1,25 @@
 "use client";
 
 import { useState, useOptimistic, useTransition } from "react";
-import { Trash2, Pencil, Link as LinkIcon, X } from "lucide-react";
+import {
+  Trash2,
+  Pencil,
+  Link as LinkIcon,
+  X,
+  RefreshCw,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { CategoryForm } from "@/features/categories/category-form";
 import { CopyButton } from "@/features/categories/copy-button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { toggleCategoryPublic, deleteCategory } from "@/app/actions/categories";
+import {
+  toggleCategoryPublic,
+  rotateShareToken,
+  deleteCategory,
+} from "@/app/actions/categories";
 import type { Category } from "@/lib/db/schema";
 
 export function CategoryList({ categories }: { categories: Category[] }) {
@@ -69,8 +80,29 @@ export function CategoryList({ categories }: { categories: Category[] }) {
                       <LinkIcon className="h-3 w-3" />
                       Công khai
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() =>
+                        window.open(`/p/${category.shareToken}`, "_blank")
+                      }
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Button>
                     <CopyButton
                       text={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${category.shareToken}`}
+                    />
+                    <ConfirmDialog
+                      trigger={
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                      title="Đổi link công khai"
+                      description="Link cũ sẽ không còn hoạt động. Bạn có chắc chắn?"
+                      confirmLabel="Đổi link"
+                      onConfirm={() => rotateShareToken(category.id)}
                     />
                   </>
                 )}

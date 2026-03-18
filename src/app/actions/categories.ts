@@ -65,6 +65,27 @@ export async function toggleCategoryPublic(
   return { success: true };
 }
 
+export async function rotateShareToken(
+  categoryId: string
+): Promise<ActionState> {
+  const [category] = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.id, categoryId));
+
+  if (!category) return { success: false, error: "Không tìm thấy danh mục." };
+  if (!category.isPublic)
+    return { success: false, error: "Danh mục chưa công khai." };
+
+  await db
+    .update(categories)
+    .set({ shareToken: nanoid(12) })
+    .where(eq(categories.id, categoryId));
+
+  revalidatePath("/dashboard/categories");
+  return { success: true };
+}
+
 export async function deleteCategory(categoryId: string): Promise<ActionState> {
   const relatedTransactions = await db
     .select({ id: transactions.id })
