@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: New Features
+      labels: [enhancement]
+    - title: Bug Fixes
+      labels: [bug]
+    - title: Performance
+      labels: [performance]
+    - title: Documentation
+      labels: [documentation]
+    - title: Chores
+      labels: [chore]
+    - title: Other Changes
+      labels: ["*"]
