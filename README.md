@@ -76,12 +76,22 @@ SQLite data is persisted at `/app/data/data.db` via volume mount.
 
 ## Releasing
 
+Use `npm version` to keep `package.json` version and git tag in sync:
+
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+# Bump version
+npm version patch   # 1.0.0 → 1.0.1
+npm version minor   # 1.0.0 → 1.1.0
+npm version major   # 1.0.0 → 2.0.0
+
+# Or set an exact version
+npm version 1.0.0
+
+# Push commit + tag
+git push --follow-tags
 ```
 
-GitHub Actions builds and pushes to `ghcr.io/fudio101/grimoire` with tags `1.0.0`, `1.0`, `1`, `latest`.
+`npm version` updates `package.json`, creates a commit, and tags it as `v*`. Pushing the tag triggers GitHub Actions to build and publish the image to `ghcr.io/fudio101/grimoire` with tags `1.0.0`, `1.0`, `1`, and `latest`.
 
 ## Project Structure
 
