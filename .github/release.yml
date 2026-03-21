@@ -1,10 +1,14 @@
 changelog:
   categories:
     - title: New Features
-      labels: [enhancement, feature]
+      labels: [enhancement]
     - title: Bug Fixes
-      labels: [bug, fix]
+      labels: [bug]
+    - title: Performance
+      labels: [performance]
     - title: Documentation
       labels: [documentation]
+    - title: Chores
+      labels: [chore]
     - title: Other Changes
       labels: ["*"]
