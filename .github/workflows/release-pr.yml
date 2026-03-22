@@ -51,24 +51,13 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
           git push -u origin release/v${{ steps.version.outputs.new_version }}
 
-      - name: Create and merge PR
+      - name: Create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_URL=$(gh pr create \
+          gh pr create \
             --title "chore: bump version to ${{ steps.version.outputs.new_version }}" \
             --body "Automated version bump to v${{ steps.version.outputs.new_version }}" \
             --base main \
             --head release/v${{ steps.version.outputs.new_version }} \
-            --label release)
-          
-          echo "Created PR: $PR_URL"
-          
-          # Extract PR number from URL
-          PR_NUMBER=$(echo $PR_URL | grep -oP '\d+$')
-          
-          # Auto-approve (required for auto-merge)
-          gh pr review $PR_NUMBER --approve
-          
-          # Enable auto-merge with squash
-          gh pr merge $PR_NUMBER --squash --auto --delete-branch
+            --label release
