@@ -18,7 +18,7 @@ env:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
 
     permissions:
       contents: write
@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ssh-key: ""
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -35,8 +37,9 @@ jobs:
 
       - name: Configure git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "fudio101"
+          git config user.email "thenguyen1024@gmail.com"
+          git remote set-url origin git@github.com:fudio101/grimoire.git
 
       - name: Bump version
         id: version
