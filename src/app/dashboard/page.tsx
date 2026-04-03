@@ -8,13 +8,18 @@ import { formatVND } from "@/lib/format";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; category?: string }>;
+  searchParams: Promise<{
+    fromMonth?: string;
+    toMonth?: string;
+    category?: string;
+  }>;
 }) {
   const params = await searchParams;
   const [categories, transactions] = await Promise.all([
     getCategories(),
     getTransactions({
-      month: params.month,
+      fromMonth: params.fromMonth,
+      toMonth: params.toMonth,
       categoryId: params.category,
     }),
   ]);

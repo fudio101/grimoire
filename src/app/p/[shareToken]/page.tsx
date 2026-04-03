@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import {
   getCategoryByShareToken,
@@ -22,22 +23,29 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { formatVND, formatDateTime } from "@/lib/format";
+import { PublicFilters } from "@/features/transactions/public-filters";
 
 export default async function PublicView({
   params,
+  searchParams,
 }: {
   params: Promise<{ shareToken: string }>;
+  searchParams: Promise<{ fromMonth?: string; toMonth?: string }>;
 }) {
   const { shareToken } = await params;
+  const filters = await searchParams;
   const category = await getCategoryByShareToken(shareToken);
 
   if (!category) {
     notFound();
   }
 
+  const fromMonth = filters.fromMonth;
+  const toMonth = filters.toMonth;
+
   const [transactions, total] = await Promise.all([
-    getTransactionsByCategoryId(category.id),
-    getCategoryTotal(category.id),
+    getTransactionsByCategoryId(category.id, { fromMonth, toMonth }),
+    getCategoryTotal(category.id, { fromMonth, toMonth }),
   ]);
 
   return (
@@ -55,7 +63,11 @@ export default async function PublicView({
           </div>
         </CardHeader>
         <Separator />
-        <CardContent className="pt-4">
+        <CardContent className="space-y-4 pt-4">
+          <Suspense>
+            <PublicFilters shareToken={shareToken} />
+          </Suspense>
+
           {transactions.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">
               Chưa có giao dịch nào.

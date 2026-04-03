@@ -48,13 +48,13 @@ export function ResponsiveModal({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} modal={false}>
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-6">{children}</div>
+        <div className="overflow-y-auto px-4 pb-6">{children}</div>
       </DrawerContent>
     </Drawer>
   );

@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,38 +10,50 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Category } from "@/lib/db/schema";
+import { MonthRangeFilter } from "./month-range-filter";
 
 export function TransactionFilters({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const updateFilter = useCallback(
-    (key: string, value: string | null) => {
+    (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set(key, value);
-      } else {
-        params.delete(key);
-      }
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
       router.push(`/dashboard?${params.toString()}`);
     },
     [router, searchParams]
   );
 
+  const fromMonth = searchParams.get("fromMonth");
+  const toMonth = searchParams.get("toMonth");
+
   const currentCategory = searchParams.get("category") ?? "all";
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Input
-        type="month"
-        className="w-[180px]"
-        value={searchParams.get("month") ?? ""}
-        onChange={(e) => updateFilter("month", e.target.value || null)}
+      <MonthRangeFilter
+        fromMonth={fromMonth}
+        toMonth={toMonth}
+        onChange={(from, to) => {
+          updateFilter({
+            fromMonth: from,
+            toMonth: to,
+          });
+        }}
       />
 
       <Select
         value={currentCategory}
-        onValueChange={(v) => updateFilter("category", v === "all" ? null : v)}
+        onValueChange={(v) =>
+          updateFilter({ category: v === "all" ? null : v })
+        }
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Tất cả danh mục">

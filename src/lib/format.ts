@@ -1,3 +1,11 @@
+export function getDefaultMonthRange() {
+  const now = new Date();
+  const toMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+  const fromMonth = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}`;
+  return { fromMonth, toMonth };
+}
+
 export function formatVND(amount: number): string {
   return Number(amount).toLocaleString("en-US") + " ₫";
 }

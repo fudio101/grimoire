@@ -4,14 +4,14 @@ changelog:
       - release
   categories:
     - title: New Features
-      labels: [ enhancement ]
+      labels: [enhancement]
     - title: Bug Fixes
-      labels: [ bug ]
+      labels: [bug]
     - title: Performance
-      labels: [ performance ]
+      labels: [performance]
     - title: Documentation
-      labels: [ documentation ]
+      labels: [documentation]
     - title: Chores
-      labels: [ chore ]
+      labels: [chore]
     - title: Other Changes
-      labels: [ "*" ]
+      labels: ["*"]
