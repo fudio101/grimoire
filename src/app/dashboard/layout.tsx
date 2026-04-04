@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LogOut, Receipt, Tags } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 
 export default function DashboardLayout({
