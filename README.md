@@ -9,12 +9,14 @@ A lightweight, self-hosted expense tracker. Vietnamese UI, VNĐ currency, SQLite
 - Single-user admin with JWT session
 - Transaction logging — amount, note, datetime, category
 - Category management with public sharing via secure URLs
-- Mobile-first responsive design
+- Month range filtering for transactions
+- Mobile-first responsive design with drawer/dialog components
 - Client-side validation with react-hook-form + Zod
+- Vietnamese currency input formatting
 
 ## Tech Stack
 
-Next.js 16 · React 19 · Tailwind CSS · shadcn/ui · SQLite · Drizzle ORM · jose · ESLint · Prettier
+Next.js 16 · React 19 · Tailwind CSS 4 · Base UI · SQLite · Drizzle ORM · jose · ESLint · Prettier
 
 ## Quick Start
 
@@ -99,24 +101,26 @@ The `main` branch history stays clean with proper squash-merged PRs.
 ```
 src/
 ├── app/
-│   ├── actions/        # Server actions
-│   ├── dashboard/      # Admin pages
-│   ├── login/          # Auth
-│   └── p/[shareToken]/ # Public shared view
+│   ├── actions/           # Server actions (auth, categories, transactions)
+│   ├── dashboard/         # Admin pages
+│   │   └── categories/    # Category management page
+│   ├── login/             # Authentication
+│   └── p/[shareToken]/    # Public shared category view
 ├── features/
-│   ├── transactions/   # Form, table, filters, add button
-│   └── categories/     # Form, list, copy button
+│   ├── transactions/      # Transaction form, table, filters, add button
+│   │   └── month-range-filter.tsx
+│   └── categories/        # Category form, list, copy button
 ├── components/
-│   ├── ui/             # shadcn/ui
-│   ├── responsive-modal.tsx
-│   ├── confirm-dialog.tsx
-│   ├── submit-button.tsx
-│   └── currency-input.tsx
-├── hooks/              # Custom hooks
+│   ├── ui/                # Base UI components (dialog, select, button, etc.)
+│   ├── responsive-modal.tsx  # Desktop dialog / mobile drawer
+│   ├── confirm-dialog.tsx    # Confirmation dialogs
+│   ├── submit-button.tsx     # Loading state button
+│   └── currency-input.tsx    # VND formatted input
+├── hooks/                 # Custom React hooks
 └── lib/
-    ├── db/             # Schema & queries
-    ├── schemas.ts      # Zod schemas
-    ├── types.ts        # Shared types
-    ├── auth.ts         # JWT utilities
-    └── format.ts       # Currency & datetime
+    ├── db/                # Schema & queries (Drizzle ORM)
+    ├── schemas.ts         # Zod validation schemas
+    ├── types.ts           # Shared TypeScript types
+    ├── auth.ts            # JWT session utilities
+    └── format.ts          # Currency & datetime formatters
 ```
