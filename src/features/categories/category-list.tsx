@@ -31,7 +31,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
         c.id === update.id ? { ...c, isPublic: update.isPublic } : c
       )
   );
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const handleToggle = (category: Category) => {
     startTransition(async () => {
@@ -109,6 +109,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
 
                 <Switch
                   checked={category.isPublic}
+                  disabled={isPending}
                   onCheckedChange={() => handleToggle(category)}
                 />
 

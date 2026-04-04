@@ -4,3 +4,15 @@ drizzle
 *.db
 *.db-wal
 *.db-shm
+*.md
+package-lock.json
+public
+.env*
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+.idea
+.DS_Store
+coverage
+build
+out

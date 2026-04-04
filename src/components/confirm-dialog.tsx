@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
 
 export function ConfirmDialog({
   trigger,
@@ -27,10 +28,17 @@ export function ConfirmDialog({
   onConfirm: () => unknown | Promise<unknown>;
 }) {
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleConfirm = async () => {
-    await onConfirm();
-    setOpen(false);
+  const handleConfirm = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onConfirm();
+      setOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,8 +50,13 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Huỷ</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={handleConfirm}>
+          <AlertDialogCancel disabled={isLoading}>Huỷ</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

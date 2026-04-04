@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut, Receipt, Tags } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 
 export default function DashboardLayout({
   children,
@@ -29,10 +30,10 @@ export default function DashboardLayout({
             </Link>
           </nav>
           <form action={logoutAction}>
-            <Button variant="ghost" size="sm" type="submit">
+            <SubmitButton variant="ghost" size="sm">
               <LogOut className="h-4 w-4" />
               <span className="ml-2 hidden sm:inline">Đăng xuất</span>
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </header>
