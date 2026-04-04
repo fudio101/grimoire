@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.1](https://github.com/fugo101/grimoire/compare/v1.4.0...v1.4.1) (2026-04-04)
+
+
+### 🐛 Bug Fixes
+
+* remove unused Button import from dashboard layout ([#36](https://github.com/fugo101/grimoire/issues/36)) ([25da00f](https://github.com/fugo101/grimoire/commit/25da00fd4ad33569bb4af2f5b72a646a0008f72b))
+* select dropdown in modal ([#33](https://github.com/fugo101/grimoire/issues/33)) ([cf74bf9](https://github.com/fugo101/grimoire/commit/cf74bf98a72204a25c01c4be62bcb3a37e0686d8))
+* update shadcn to 4.1.2 to resolve path-to-regexp vulnerability ([#34](https://github.com/fugo101/grimoire/issues/34)) ([37c1a49](https://github.com/fugo101/grimoire/commit/37c1a49c6b7606dd192236df43f312d54a011332))
+
 ## [1.4.0](https://github.com/fugo101/grimoire/compare/v1.3.0...v1.4.0) (2026-04-04)
 
 
