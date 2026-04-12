@@ -24,6 +24,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatVND, formatDateTime } from "@/lib/format";
 import { PublicFilters } from "@/features/transactions/public-filters";
+import { ExpenseChart } from "@/features/transactions/expense-chart";
 
 export default async function PublicView({
   params,
@@ -67,6 +68,8 @@ export default async function PublicView({
           <Suspense>
             <PublicFilters shareToken={shareToken} />
           </Suspense>
+
+          <ExpenseChart transactions={transactions} />
 
           {transactions.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">

@@ -3,6 +3,7 @@ import { getCategories, getTransactions } from "@/lib/db/queries";
 import { TransactionTable } from "@/features/transactions/transaction-table";
 import { TransactionFilters } from "@/features/transactions/transaction-filters";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
+import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { formatVND } from "@/lib/format";
 
 export default async function DashboardPage({
@@ -41,6 +42,8 @@ export default async function DashboardPage({
       <Suspense>
         <TransactionFilters categories={categories} />
       </Suspense>
+
+      <ExpenseChart transactions={transactions} />
 
       <TransactionTable transactions={transactions} categories={categories} />
     </div>
