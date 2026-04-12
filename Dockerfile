@@ -1,18 +1,19 @@
 FROM node:24-alpine AS base
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
 WORKDIR /app
 
 # --- Dependencies ---
 FROM base AS deps
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts && \
-    npm rebuild better-sqlite3
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile --ignore-scripts && \
+    pnpm rebuild better-sqlite3
 
 # --- Build ---
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run db:push && npm run build
+RUN pnpm run db:push && pnpm run build
 
 # --- Production ---
 FROM base AS runner

@@ -30,10 +30,10 @@ docker compose up -d
 ### Local Development
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env.local   # edit credentials
-npm run db:push
-npm run dev
+pnpm run db:push
+pnpm run dev
 ```
 
 ## Environment Variables
@@ -49,15 +49,15 @@ npm run dev
 
 | Command                | Description           |
 | ---------------------- | --------------------- |
-| `npm run dev`          | Dev server            |
-| `npm run build`        | Production build      |
-| `npm run start`        | Production server     |
-| `npm run lint`         | ESLint                |
-| `npm run lint:fix`     | ESLint with auto-fix  |
-| `npm run format`       | Prettier format       |
-| `npm run format:check` | Prettier check (CI)   |
-| `npm run db:push`      | Push schema to SQLite |
-| `npm run db:studio`    | Open Drizzle Studio   |
+| `pnpm run dev`          | Dev server            |
+| `pnpm run build`        | Production build      |
+| `pnpm run start`        | Production server     |
+| `pnpm run lint`         | ESLint                |
+| `pnpm run lint:fix`     | ESLint with auto-fix  |
+| `pnpm run format`       | Prettier format       |
+| `pnpm run format:check` | Prettier check (CI)   |
+| `pnpm run db:push`      | Push schema to SQLite |
+| `pnpm run db:studio`    | Open Drizzle Studio   |
 
 ## Docker
 
