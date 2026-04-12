@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/fugo101/grimoire/compare/v1.4.1...v1.5.0) (2026-04-12)
+
+
+### 🚀 Features
+
+* **transactions:** add expense bar chart with time granularity ([#41](https://github.com/fugo101/grimoire/issues/41)) ([0d83765](https://github.com/fugo101/grimoire/commit/0d837653a76af61a8aa51b8d75bd876f47f160f7))
+
 ## [1.4.1](https://github.com/fugo101/grimoire/compare/v1.4.0...v1.4.1) (2026-04-04)
 
 
