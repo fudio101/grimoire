@@ -21,8 +21,8 @@ export const shareLinkSchema = z.object({
   code: z
     .string()
     .regex(
-      /^[a-z0-9-]{3,32}$/,
-      "Mã chỉ gồm a-z, 0-9, dấu gạch ngang (3-32 ký tự)"
+      /^[a-zA-Z0-9-]{3,32}$/,
+      "Mã chỉ gồm a-z, A-Z, 0-9, dấu gạch ngang (3-32 ký tự)"
     )
     .optional()
     .or(z.literal("")),
