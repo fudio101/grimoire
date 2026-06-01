@@ -8,6 +8,20 @@ const MIGRATIONS_DIR = path.join(process.cwd(), "drizzle");
 type JournalEntry = { idx: number; when: number; tag: string };
 
 /**
+ * Detects whether a migration's schema change is already present in a
+ * pre-ledger database. Used to baseline legacy DBs at the correct point.
+ *
+ * WHEN ADDING A MIGRATION: add a probe keyed by its tag that returns true once
+ * that migration's schema change exists. Baselining walks these in journal
+ * order and stops at the first missing one, so an absent or stale probe causes
+ * legacy databases to either replay or skip migrations incorrectly.
+ */
+const SCHEMA_PROBES: Record<string, () => boolean> = {
+  "0000_dapper_psylocke": () => tableExists("categories"),
+  "0001_icy_wind_dancer": () => columnExists("categories", "parent_id"),
+};
+
+/**
  * Apply pending Drizzle migrations on startup.
  *
  * Existing deployments predate the migration system (their tables were created
@@ -68,12 +82,19 @@ function stampBaselineIfNeeded(): void {
   // Fresh database → let the migrator create everything from 0000.
   if (!tableExists("categories")) return;
 
-  // Pre-migration database. Mark applied up to the latest migration whose
-  // schema change is already present, so only genuinely missing ones run.
+  // Pre-migration database. Walk migrations in journal order and stamp the
+  // ledger at the last one whose schema change is already present, so only
+  // genuinely missing migrations run. Stop at the first absent/unknown probe.
   // The migrator only compares `created_at`, so a placeholder hash is fine.
-  const lastApplied = columnExists("categories", "parent_id")
-    ? entries[entries.length - 1] // schema already current → skip all
-    : entries[0]; // only baseline present → run the parent_id migration
+  let lastApplied: JournalEntry | undefined;
+  for (const entry of entries) {
+    const probe = SCHEMA_PROBES[entry.tag];
+    if (!probe || !probe()) break;
+    lastApplied = entry;
+  }
+
+  // Baseline schema unrecognizable → let the migrator run everything.
+  if (!lastApplied) return;
 
   sqlite
     .prepare(
