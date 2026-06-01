@@ -87,28 +87,32 @@ type QuickSelector = {
   onClick?: (selector: QuickSelector) => void;
 };
 
-const QUICK_SELECTORS: QuickSelector[] = [
-  {
-    label: "This year",
-    startMonth: new Date(new Date().getFullYear(), 0),
-    endMonth: new Date(new Date().getFullYear(), 11),
-  },
-  {
-    label: "Last year",
-    startMonth: new Date(new Date().getFullYear() - 1, 0),
-    endMonth: new Date(new Date().getFullYear() - 1, 11),
-  },
-  {
-    label: "Last 6 months",
-    startMonth: new Date(addMonths(new Date(), -6)),
-    endMonth: new Date(),
-  },
-  {
-    label: "Last 12 months",
-    startMonth: new Date(addMonths(new Date(), -12)),
-    endMonth: new Date(),
-  },
-];
+const getDefaultQuickSelectors = (): QuickSelector[] => {
+  const now = new Date();
+  const year = now.getFullYear();
+  return [
+    {
+      label: "This year",
+      startMonth: new Date(year, 0),
+      endMonth: new Date(year, 11),
+    },
+    {
+      label: "Last year",
+      startMonth: new Date(year - 1, 0),
+      endMonth: new Date(year - 1, 11),
+    },
+    {
+      label: "Last 6 months",
+      startMonth: addMonths(now, -6),
+      endMonth: now,
+    },
+    {
+      label: "Last 12 months",
+      startMonth: addMonths(now, -12),
+      endMonth: now,
+    },
+  ];
+};
 
 type MonthRangeCalProps = {
   selectedMonthRange?: { start: Date; end: Date };
@@ -192,11 +196,12 @@ function MonthRangeCal({
   variant,
   minDate,
   maxDate,
-  quickSelectors = QUICK_SELECTORS,
+  quickSelectors,
   showQuickSelectors = true,
   onYearBackward,
   onYearForward,
 }: MonthRangeCalProps) {
+  const selectors = quickSelectors ?? getDefaultQuickSelectors();
   const [startYear, setStartYear] = React.useState<number>(
     selectedMonthRange?.start.getFullYear() ?? new Date().getFullYear()
   );
@@ -233,38 +238,32 @@ function MonthRangeCal({
                   <td
                     key={m.number + "-" + m.yearOffset}
                     className={cn(
-                      cn(
-                        cn(
-                          cn(
-                            "[&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent relative h-10 p-0 text-center text-sm focus-within:relative focus-within:z-20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected].day-range-end)]:rounded-r-md",
-                            monthsGrid === MONTHS_DOUBLE ? "w-1/4" : "w-1/4",
-                            (menuYear + m.yearOffset > startYear ||
-                              (menuYear + m.yearOffset == startYear &&
-                                m.number > startMonth)) &&
-                              (menuYear + m.yearOffset < endYear ||
-                                (menuYear + m.yearOffset == endYear &&
-                                  m.number < endMonth)) &&
-                              (rangePending || endLocked) &&
-                              isSelected
-                              ? "text-accent-foreground bg-accent"
-                              : ""
-                          ),
-                          menuYear + m.yearOffset == startYear &&
-                            m.number == startMonth &&
-                            (rangePending || endLocked) &&
-                            isSelected
-                            ? "text-accent-foreground bg-accent rounded-l-md"
-                            : ""
-                        ),
-                        menuYear + m.yearOffset == endYear &&
-                          m.number == endMonth &&
-                          (rangePending || endLocked) &&
-                          isSelected &&
-                          menuYear + m.yearOffset >= startYear &&
-                          m.number >= startMonth
-                          ? "text-accent-foreground bg-accent rounded-r-md"
-                          : ""
-                      ),
+                      "[&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent relative h-10 p-0 text-center text-sm focus-within:relative focus-within:z-20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected].day-range-end)]:rounded-r-md",
+                      "w-1/4",
+                      (menuYear + m.yearOffset > startYear ||
+                        (menuYear + m.yearOffset == startYear &&
+                          m.number > startMonth)) &&
+                        (menuYear + m.yearOffset < endYear ||
+                          (menuYear + m.yearOffset == endYear &&
+                            m.number < endMonth)) &&
+                        (rangePending || endLocked) &&
+                        isSelected
+                        ? "text-accent-foreground bg-accent"
+                        : "",
+                      menuYear + m.yearOffset == startYear &&
+                        m.number == startMonth &&
+                        (rangePending || endLocked) &&
+                        isSelected
+                        ? "text-accent-foreground bg-accent rounded-l-md"
+                        : "",
+                      menuYear + m.yearOffset == endYear &&
+                        m.number == endMonth &&
+                        (rangePending || endLocked) &&
+                        isSelected &&
+                        menuYear + m.yearOffset >= startYear &&
+                        m.number >= startMonth
+                        ? "text-accent-foreground bg-accent rounded-r-md"
+                        : "",
                       monthsGrid === MONTHS_DOUBLE && i == 3 ? "mr-2" : "",
                       monthsGrid === MONTHS_DOUBLE && i == 4 ? "ml-2" : ""
                     )}
@@ -455,7 +454,7 @@ function MonthRangeCal({
 
       {showQuickSelectors ? (
         <div className="mt-4 flex flex-wrap sm:mt-0 sm:flex-col sm:gap-1">
-          {quickSelectors.map((s) => {
+          {selectors.map((s) => {
             return (
               <div key={s.label} className="w-1/2 p-1 sm:w-full sm:p-0">
                 <Button
