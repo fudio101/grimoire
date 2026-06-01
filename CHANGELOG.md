@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/fugo101/grimoire/compare/v1.6.1...v1.7.0) (2026-06-01)
+
+
+### 🚀 Features
+
+* show category parent path, default chart to weekly, allow uppercase link codes ([#56](https://github.com/fugo101/grimoire/issues/56)) ([42dec12](https://github.com/fugo101/grimoire/commit/42dec123cbf1ae1781a8aa58827c98c3dc893562))
+
 ## [1.6.1](https://github.com/fugo101/grimoire/compare/v1.6.0...v1.6.1) (2026-06-01)
 
 
