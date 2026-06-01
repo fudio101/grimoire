@@ -71,8 +71,8 @@ export function getDescendantIds(id: string, flat: CategoryRef[]): string[] {
   return result;
 }
 
-/** Human-readable path from root to the category, e.g. "Ăn uống / Cà phê". */
-export function getCategoryPath(id: string, flat: Category[]): string {
+/** Category names from root → leaf, following parentId recursively. */
+export function getCategoryPathParts(id: string, flat: Category[]): string[] {
   const byId = new Map(flat.map((c) => [c.id, c]));
   const parts: string[] = [];
 
@@ -84,5 +84,10 @@ export function getCategoryPath(id: string, flat: Category[]): string {
     current = current.parentId ? byId.get(current.parentId) : undefined;
   }
 
-  return parts.join(" / ");
+  return parts;
+}
+
+/** Human-readable path from root to the category, e.g. "Ăn uống / Cà phê". */
+export function getCategoryPath(id: string, flat: Category[]): string {
+  return getCategoryPathParts(id, flat).join(" / ");
 }

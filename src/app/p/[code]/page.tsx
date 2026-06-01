@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatVND, formatDateTime } from "@/lib/format";
 import { PublicFilters } from "@/features/transactions/public-filters";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
-import { getCategoryPath } from "@/lib/category-tree";
+import { getCategoryPath, getCategoryPathParts } from "@/lib/category-tree";
 
 export default async function PublicView({
   params,
@@ -119,7 +119,25 @@ export default async function PublicView({
                         {formatDateTime(tx.date)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {tx.categoryName ?? "—"}
+                        {(() => {
+                          const path = getCategoryPathParts(
+                            tx.categoryId,
+                            allCategories
+                          );
+                          if (path.length === 0) return tx.categoryName ?? "—";
+                          const leaf = path[path.length - 1];
+                          const parents = path.slice(0, -1);
+                          return (
+                            <>
+                              {parents.length > 0 && (
+                                <span className="text-muted-foreground">
+                                  {parents.join(" › ")} ›{" "}
+                                </span>
+                              )}
+                              {leaf}
+                            </>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {tx.note || "—"}
