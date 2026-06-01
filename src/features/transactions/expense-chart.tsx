@@ -49,7 +49,7 @@ interface ExpenseChartProps {
 }
 
 export function ExpenseChart({ transactions }: ExpenseChartProps) {
-  const [granularity, setGranularity] = useState<Granularity>("day");
+  const [granularity, setGranularity] = useState<Granularity>("week");
   const isDesktop = useMediaQuery("(min-width: 640px)");
 
   const chartData = useMemo(

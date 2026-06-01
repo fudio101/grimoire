@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2, Pencil } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ResponsiveModal } from "@/components/responsive-modal";
@@ -27,6 +27,26 @@ export function TransactionTable({
   categories: Category[];
 }) {
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
+
+  const categoryById = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories]
+  );
+
+  /** Names from root → leaf for a category, following parentId recursively. */
+  const categoryPath = (categoryId: string | null): string[] => {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    let current = categoryId ? categoryById.get(categoryId) : undefined;
+    while (current && !seen.has(current.id)) {
+      seen.add(current.id);
+      names.unshift(current.name);
+      current = current.parentId
+        ? categoryById.get(current.parentId)
+        : undefined;
+    }
+    return names;
+  };
 
   if (transactions.length === 0) {
     return (
@@ -58,7 +78,24 @@ export function TransactionTable({
                 <TableCell className="max-w-[200px] truncate">
                   {tx.note || "—"}
                 </TableCell>
-                <TableCell>{tx.categoryName ?? "—"}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const path = categoryPath(tx.categoryId);
+                    if (path.length === 0) return tx.categoryName ?? "—";
+                    const leaf = path[path.length - 1];
+                    const parents = path.slice(0, -1);
+                    return (
+                      <span className="whitespace-nowrap">
+                        {parents.length > 0 && (
+                          <span className="text-muted-foreground">
+                            {parents.join(" › ")} ›{" "}
+                          </span>
+                        )}
+                        {leaf}
+                      </span>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatVND(tx.amount)}
                 </TableCell>
