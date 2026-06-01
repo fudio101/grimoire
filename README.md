@@ -32,8 +32,7 @@ docker compose up -d
 ```bash
 pnpm install
 cp .env.example .env.local   # edit credentials
-pnpm run db:push
-pnpm run dev
+pnpm run dev                 # migrations apply automatically on startup
 ```
 
 ## Environment Variables
@@ -56,7 +55,8 @@ pnpm run dev
 | `pnpm run lint:fix`     | ESLint with auto-fix  |
 | `pnpm run format`       | Prettier format       |
 | `pnpm run format:check` | Prettier check (CI)   |
-| `pnpm run db:push`      | Push schema to SQLite |
+| `pnpm run db:generate`  | Generate a migration from schema changes |
+| `pnpm run db:push`      | Push schema directly (local iteration only) |
 | `pnpm run db:studio`    | Open Drizzle Studio   |
 
 ## Docker
@@ -77,6 +77,37 @@ docker build -t grimoire .
 ```
 
 SQLite data is persisted at `/app/data/data.db` via volume mount.
+
+### Upgrading & migrating the database
+
+Schema migrations run **automatically on startup** — no manual steps. Versioned SQL migrations live in [`drizzle/`](drizzle/) and are applied by `src/lib/db/migrate.ts` (wired through `src/instrumentation.ts`) every time the server boots. To upgrade:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+How it handles each database state on boot:
+
+| Database state | Behavior |
+|---|---|
+| Fresh volume (empty) | All migrations run, building the full schema from scratch. |
+| Existing volume from an older image | Auto-baselined, then only the missing migrations run. Your data is preserved. |
+| Already up to date | Nothing runs (idempotent). |
+
+The first boot after introducing migrations auto-baselines pre-existing databases (created by the old `db:push` flow), so you can upgrade in place without `no such column`, `table already exists`, or `duplicate column` errors.
+
+> ⚠️ Still worth backing up the SQLite volume before a major upgrade — migrations add and alter, but a backup is cheap insurance.
+
+#### Changing the schema (for contributors)
+
+Migrations are committed to the repo. After editing `src/lib/db/schema.ts`, generate a new migration and commit it alongside the schema change:
+
+```bash
+pnpm run db:generate   # writes a new drizzle/NNNN_*.sql + meta snapshot
+```
+
+Use `pnpm run db:push` only for quick local iteration; the committed migrations in `drizzle/` are the source of truth that ships in the image.
 
 ## Releasing
 
