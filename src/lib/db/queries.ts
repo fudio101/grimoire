@@ -1,10 +1,21 @@
 import { db } from "@/lib/db";
-import { categories, transactions } from "@/lib/db/schema";
+import {
+  categories,
+  transactions,
+  shareLinks,
+  shareLinkCategories,
+} from "@/lib/db/schema";
 import { eq, and, gte, lt, desc, sql, inArray } from "drizzle-orm";
 import { getDescendantIds } from "@/lib/category-tree";
+import type { ShareLink } from "@/lib/db/schema";
 
 export async function getCategories() {
   return db.select().from(categories).orderBy(categories.name);
+}
+
+/** Expose subtree expansion for callers that resolve a picked category id. */
+export async function expandCategorySubtree(rootId: string): Promise<string[]> {
+  return getSubtreeCategoryIds(rootId);
 }
 
 /**
@@ -63,58 +74,103 @@ export async function getTransactions(filters?: {
   return rows;
 }
 
-export async function getCategoryByShareToken(token: string) {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(
-      and(eq(categories.shareToken, token), eq(categories.isPublic, true))
-    );
+export type ShareLinkWithCategories = ShareLink & {
+  categoryIds: string[];
+  categoryNames: string[];
+};
 
-  return category ?? null;
+/** All share links with their selected category ids and names, for management. */
+export async function getShareLinks(): Promise<ShareLinkWithCategories[]> {
+  const links = await db
+    .select()
+    .from(shareLinks)
+    .orderBy(desc(shareLinks.createdAt));
+
+  const rows = await db
+    .select({
+      shareLinkId: shareLinkCategories.shareLinkId,
+      categoryId: shareLinkCategories.categoryId,
+      categoryName: categories.name,
+    })
+    .from(shareLinkCategories)
+    .leftJoin(categories, eq(shareLinkCategories.categoryId, categories.id));
+
+  return links.map((link) => {
+    const own = rows.filter((r) => r.shareLinkId === link.id);
+    return {
+      ...link,
+      categoryIds: own.map((r) => r.categoryId),
+      categoryNames: own.map((r) => r.categoryName ?? "—"),
+    };
+  });
 }
 
-export async function getTransactionsByCategoryId(
-  categoryId: string,
+/** Enabled share link plus its category ids, resolved from a public code. */
+export async function getShareLinkByCode(
+  code: string
+): Promise<{ link: ShareLink; categoryIds: string[] } | null> {
+  const [link] = await db
+    .select()
+    .from(shareLinks)
+    .where(and(eq(shareLinks.code, code), eq(shareLinks.enabled, true)));
+
+  if (!link) return null;
+
+  const rows = await db
+    .select({ categoryId: shareLinkCategories.categoryId })
+    .from(shareLinkCategories)
+    .where(eq(shareLinkCategories.shareLinkId, link.id));
+
+  return { link, categoryIds: rows.map((r) => r.categoryId) };
+}
+
+function monthConditions(
+  ids: string[],
   filters?: { fromMonth?: string; toMonth?: string }
 ) {
-  const subtreeIds = await getSubtreeCategoryIds(categoryId);
-  const conditions = [inArray(transactions.categoryId, subtreeIds)];
-
+  const conditions = [inArray(transactions.categoryId, ids)];
   if (filters?.fromMonth) {
     conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
   }
-
   if (filters?.toMonth) {
     conditions.push(lt(transactions.date, nextMonthStart(filters.toMonth)));
   }
+  return conditions;
+}
+
+/** Transactions across an explicit set of category ids, with category names. */
+export async function getTransactionsForCategories(
+  ids: string[],
+  filters?: { fromMonth?: string; toMonth?: string }
+) {
+  if (ids.length === 0) return [];
 
   return db
-    .select()
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      note: transactions.note,
+      date: transactions.date,
+      categoryId: transactions.categoryId,
+      categoryName: categories.name,
+      createdAt: transactions.createdAt,
+    })
     .from(transactions)
-    .where(and(...conditions))
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(and(...monthConditions(ids, filters)))
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
 }
 
-export async function getCategoryTotal(
-  categoryId: string,
+export async function getTotalForCategories(
+  ids: string[],
   filters?: { fromMonth?: string; toMonth?: string }
 ): Promise<number> {
-  const subtreeIds = await getSubtreeCategoryIds(categoryId);
-  const conditions = [inArray(transactions.categoryId, subtreeIds)];
-
-  if (filters?.fromMonth) {
-    conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
-  }
-
-  if (filters?.toMonth) {
-    conditions.push(lt(transactions.date, nextMonthStart(filters.toMonth)));
-  }
+  if (ids.length === 0) return 0;
 
   const [result] = await db
     .select({ total: sql<number>`coalesce(sum(${transactions.amount}), 0)` })
     .from(transactions)
-    .where(and(...conditions));
+    .where(and(...monthConditions(ids, filters)));
 
   return result?.total ?? 0;
 }

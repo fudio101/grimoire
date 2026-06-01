@@ -36,10 +36,10 @@ pnpm run dev  # migrations apply automatically on startup (src/instrumentation.t
 
 ### Layers
 
-- **Pages** (`src/app/`) — Next.js App Router. Server-rendered pages fetch data at page level. Protected routes under `/dashboard`, public shared views at `/p/[shareToken]`.
-- **Server Actions** (`src/app/actions/`) — All mutations (auth, transactions, categories) use `"use server"` actions. Return `{ success, error? }` (`ActionState`). Call `revalidatePath()` after writes.
+- **Pages** (`src/app/`) — Next.js App Router. Server-rendered pages fetch data at page level. Protected routes under `/dashboard`, public shared report at `/p/[code]` (a share link covering one or more categories).
+- **Server Actions** (`src/app/actions/`) — All mutations (auth, transactions, categories, share links) use `"use server"` actions. Return `{ success, error? }` (`ActionState`). Call `revalidatePath()` after writes.
 - **Queries** (`src/lib/db/queries.ts`) — Read-only data access functions. Separated from mutations in actions.
-- **Schema** (`src/lib/db/schema.ts`) — Drizzle table definitions: `categories` and `transactions`. Uses UUIDv7 for IDs, nanoid for share tokens.
+- **Schema** (`src/lib/db/schema.ts`) — Drizzle table definitions: `categories`, `transactions`, `shareLinks`, and the `shareLinkCategories` junction. Uses UUIDv7 for IDs, nanoid(12) for auto-generated share-link codes.
 - **Validation** (`src/lib/schemas.ts`) — Zod schemas for transactions, categories, and login. Used with react-hook-form via zodResolver.
 - **Features** (`src/features/`) — Feature-scoped client components (transaction form/table/filters, category form/list).
 - **Components** (`src/components/`) — Reusable UI primitives in `ui/` (shadcn/Base UI). App-level shared components at root: `ResponsiveModal` (dialog on desktop, drawer on mobile), `CurrencyInput` (VND formatting), `SubmitButton` (loading state via `useFormStatus`), `ConfirmDialog`.

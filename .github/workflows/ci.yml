@@ -39,7 +39,13 @@ jobs:
         run: pnpm run lint
 
       - name: Type-check
-        run: pnpm exec tsc --noEmit
+        # The self-hosted runner checks out with `clean: false`, so a previous
+        # run's generated route types in `.next` persist. After a route rename
+        # they still reference the old path and fail tsc. Drop the stale
+        # generated types first; the Build step regenerates them.
+        run: |
+          rm -rf .next/types .next/dev/types
+          pnpm exec tsc --noEmit
 
       - name: Build
         run: pnpm run build
