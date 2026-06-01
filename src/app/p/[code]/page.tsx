@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import {
-  getCategoryByShareToken,
-  getTransactionsByCategoryId,
-  getCategoryTotal,
+  getShareLinkByCode,
+  getTransactionsForCategories,
+  getTotalForCategories,
+  getCategories,
+  expandCategorySubtree,
 } from "@/lib/db/queries";
 import {
   Card,
@@ -25,29 +27,51 @@ import { Separator } from "@/components/ui/separator";
 import { formatVND, formatDateTime } from "@/lib/format";
 import { PublicFilters } from "@/features/transactions/public-filters";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
+import { getCategoryPath } from "@/lib/category-tree";
 
 export default async function PublicView({
   params,
   searchParams,
 }: {
-  params: Promise<{ shareToken: string }>;
-  searchParams: Promise<{ fromMonth?: string; toMonth?: string }>;
+  params: Promise<{ code: string }>;
+  searchParams: Promise<{
+    fromMonth?: string;
+    toMonth?: string;
+    category?: string;
+  }>;
 }) {
-  const { shareToken } = await params;
+  const { code } = await params;
   const filters = await searchParams;
-  const category = await getCategoryByShareToken(shareToken);
+  const result = await getShareLinkByCode(code);
 
-  if (!category) {
+  if (!result) {
     notFound();
   }
+
+  const { link, categoryIds } = result;
+  const linkSet = new Set(categoryIds);
 
   const fromMonth = filters.fromMonth;
   const toMonth = filters.toMonth;
 
-  const [transactions, total] = await Promise.all([
-    getTransactionsByCategoryId(category.id, { fromMonth, toMonth }),
-    getCategoryTotal(category.id, { fromMonth, toMonth }),
+  // Drill-down filter: narrow to one picked category's subtree within the link.
+  let effectiveIds = categoryIds;
+  const picked = filters.category;
+  if (picked && linkSet.has(picked)) {
+    const subtree = await expandCategorySubtree(picked);
+    effectiveIds = subtree.filter((id) => linkSet.has(id));
+  }
+
+  const [allCategories, transactions, total] = await Promise.all([
+    getCategories(),
+    getTransactionsForCategories(effectiveIds, { fromMonth, toMonth }),
+    getTotalForCategories(effectiveIds, { fromMonth, toMonth }),
   ]);
+
+  const filterOptions = categoryIds
+    .map((id) => ({ id, label: getCategoryPath(id, allCategories) }))
+    .filter((o) => o.label)
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -55,7 +79,9 @@ export default async function PublicView({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">{category.name}</CardTitle>
+              <CardTitle className="text-2xl">
+                {link.name || "Báo cáo chi tiêu"}
+              </CardTitle>
               <CardDescription>Báo cáo chi tiêu</CardDescription>
             </div>
             <Badge variant="secondary" className="px-4 py-1 text-lg">
@@ -66,7 +92,7 @@ export default async function PublicView({
         <Separator />
         <CardContent className="space-y-4 pt-4">
           <Suspense>
-            <PublicFilters shareToken={shareToken} />
+            <PublicFilters code={code} categories={filterOptions} />
           </Suspense>
 
           <ExpenseChart transactions={transactions} />
@@ -81,6 +107,7 @@ export default async function PublicView({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Thời gian</TableHead>
+                    <TableHead>Danh mục</TableHead>
                     <TableHead>Ghi chú</TableHead>
                     <TableHead className="text-right">Số tiền</TableHead>
                   </TableRow>
@@ -91,7 +118,10 @@ export default async function PublicView({
                       <TableCell className="whitespace-nowrap">
                         {formatDateTime(tx.date)}
                       </TableCell>
-                      <TableCell className="max-w-[250px] truncate">
+                      <TableCell className="whitespace-nowrap">
+                        {tx.categoryName ?? "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
                         {tx.note || "—"}
                       </TableCell>
                       <TableCell className="text-right font-medium">

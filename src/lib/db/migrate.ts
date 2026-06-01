@@ -19,6 +19,7 @@ type JournalEntry = { idx: number; when: number; tag: string };
 const SCHEMA_PROBES: Record<string, () => boolean> = {
   "0000_dapper_psylocke": () => tableExists("categories"),
   "0001_icy_wind_dancer": () => columnExists("categories", "parent_id"),
+  "0002_glamorous_gambit": () => tableExists("share_links"),
 };
 
 /**

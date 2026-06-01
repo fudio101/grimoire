@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -101,50 +100,6 @@ export async function updateCategory(
 
   revalidatePath("/dashboard/categories");
   revalidatePath("/dashboard");
-  return { success: true };
-}
-
-export async function toggleCategoryPublic(
-  categoryId: string
-): Promise<ActionState> {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, categoryId));
-
-  if (!category) return { success: false, error: "Không tìm thấy danh mục." };
-
-  const newIsPublic = !category.isPublic;
-  await db
-    .update(categories)
-    .set({
-      isPublic: newIsPublic,
-      shareToken: newIsPublic ? nanoid(12) : null,
-    })
-    .where(eq(categories.id, categoryId));
-
-  revalidatePath("/dashboard/categories");
-  return { success: true };
-}
-
-export async function rotateShareToken(
-  categoryId: string
-): Promise<ActionState> {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, categoryId));
-
-  if (!category) return { success: false, error: "Không tìm thấy danh mục." };
-  if (!category.isPublic)
-    return { success: false, error: "Danh mục chưa công khai." };
-
-  await db
-    .update(categories)
-    .set({ shareToken: nanoid(12) })
-    .where(eq(categories.id, categoryId));
-
-  revalidatePath("/dashboard/categories");
   return { success: true };
 }
 

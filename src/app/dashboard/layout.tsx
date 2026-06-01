@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Receipt, Tags } from "lucide-react";
+import { LogOut, Receipt, Tags, Share2 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -26,6 +26,13 @@ export default function DashboardLayout({
             >
               <Tags className="h-4 w-4" />
               <span className="hidden sm:inline">Danh mục</span>
+            </Link>
+            <Link
+              href="/dashboard/links"
+              className="hover:bg-accent flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Link công khai</span>
             </Link>
           </nav>
           <form action={logoutAction}>
