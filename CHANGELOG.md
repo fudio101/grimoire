@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/fugo101/grimoire/compare/v1.7.0...v1.8.0) (2026-06-01)
+
+
+### 🚀 Features
+
+* show category parent path in public shared report ([#58](https://github.com/fugo101/grimoire/issues/58)) ([c9042fb](https://github.com/fugo101/grimoire/commit/c9042fb6fa5cc009d3981d88e50a84305265ec32))
+
 ## [1.7.0](https://github.com/fugo101/grimoire/compare/v1.6.1...v1.7.0) (2026-06-01)
 
 
