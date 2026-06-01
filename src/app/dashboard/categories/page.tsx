@@ -16,7 +16,7 @@ export default async function CategoriesPage() {
         </p>
       </div>
 
-      <CategoryForm />
+      <CategoryForm categories={categories} />
 
       <CategoryList categories={categories} />
     </div>

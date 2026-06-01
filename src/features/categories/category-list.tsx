@@ -20,6 +20,7 @@ import {
   rotateShareToken,
   deleteCategory,
 } from "@/app/actions/categories";
+import { flattenWithDepth } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 
 export function CategoryList({ categories }: { categories: Category[] }) {
@@ -57,15 +58,21 @@ export function CategoryList({ categories }: { categories: Category[] }) {
 
   return (
     <div className="space-y-2">
-      {optimisticCategories.map((category) => (
+      {flattenWithDepth(optimisticCategories).map(({ category, depth }) => (
         <div
           key={category.id}
           className="flex items-center gap-3 rounded-lg border p-3"
+          style={{ marginLeft: depth * 24 }}
         >
           {editingId === category.id ? (
             <div className="flex-1">
               <CategoryForm
-                defaultValues={{ id: category.id, name: category.name }}
+                categories={optimisticCategories}
+                defaultValues={{
+                  id: category.id,
+                  name: category.name,
+                  parentId: category.parentId,
+                }}
                 onSuccess={() => setEditingId(null)}
               />
             </div>

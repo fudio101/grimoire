@@ -2,10 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { transactions } from "@/lib/db/schema";
+import { categories, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { transactionSchema, type TransactionInput } from "@/lib/schemas";
+import { isLeaf } from "@/lib/category-tree";
 import type { ActionState } from "@/lib/types";
+
+/** Transactions may only sit on leaf categories (those without children). */
+async function categoryIsLeaf(categoryId: string): Promise<boolean> {
+  const all = await db
+    .select({ id: categories.id, parentId: categories.parentId })
+    .from(categories);
+  return isLeaf(categoryId, all);
+}
 
 export async function createTransaction(
   data: TransactionInput
@@ -13,6 +22,13 @@ export async function createTransaction(
   const parsed = transactionSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  if (!(await categoryIsLeaf(parsed.data.categoryId))) {
+    return {
+      success: false,
+      error: "Vui lòng chọn danh mục cụ thể (không phải danh mục cha).",
+    };
   }
 
   await db.insert(transactions).values(parsed.data);
@@ -29,6 +45,13 @@ export async function updateTransaction(
   const parsed = transactionSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  if (!(await categoryIsLeaf(parsed.data.categoryId))) {
+    return {
+      success: false,
+      error: "Vui lòng chọn danh mục cụ thể (không phải danh mục cha).",
+    };
   }
 
   await db.update(transactions).set(parsed.data).where(eq(transactions.id, id));

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { flattenWithDepth } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
@@ -66,9 +67,10 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Tất cả danh mục</SelectItem>
-          {categories.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.name}
+          {flattenWithDepth(categories).map(({ category, depth }) => (
+            <SelectItem key={category.id} value={category.id}>
+              {"  ".repeat(depth)}
+              {category.name}
             </SelectItem>
           ))}
         </SelectContent>

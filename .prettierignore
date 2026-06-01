@@ -6,6 +6,7 @@ drizzle
 *.db-shm
 *.md
 package-lock.json
+pnpm-lock.yaml
 public
 .env*
 .vercel

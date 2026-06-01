@@ -11,6 +11,7 @@ export type TransactionInput = z.infer<typeof transactionSchema>;
 
 export const categorySchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên danh mục").max(100),
+  parentId: z.string().nullable().optional(),
 });
 
 export type CategoryInput = z.infer<typeof categorySchema>;
