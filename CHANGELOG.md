@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/fugo101/grimoire/compare/v1.6.0...v1.6.1) (2026-06-01)
+
+
+### 🐛 Bug Fixes
+
+* include drizzle migrations in Docker build context ([#54](https://github.com/fugo101/grimoire/issues/54)) ([91a920a](https://github.com/fugo101/grimoire/commit/91a920ae79842d1584988f826c66930d031f6773))
+
 ## [1.6.0](https://github.com/fugo101/grimoire/compare/v1.5.0...v1.6.0) (2026-06-01)
 
 
