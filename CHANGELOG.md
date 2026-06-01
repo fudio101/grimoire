@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.6.0](https://github.com/fugo101/grimoire/compare/v1.5.0...v1.6.0) (2026-06-01)
+
+
+### 🚀 Features
+
+* add nested category hierarchy with automatic DB migrations ([#51](https://github.com/fugo101/grimoire/issues/51)) ([09a6ff1](https://github.com/fugo101/grimoire/commit/09a6ff15d3b25e94667d8c4e65af998a96bf6b56))
+* **share-links:** support multi-category public share links ([#52](https://github.com/fugo101/grimoire/issues/52)) ([9ee7c3e](https://github.com/fugo101/grimoire/commit/9ee7c3e3bb3e290b7ffe603c3899b4e34fd003e8))
+
+
+### 🐛 Bug Fixes
+
+* prevent share link actions overlapping info on mobile ([#53](https://github.com/fugo101/grimoire/issues/53)) ([44f0b75](https://github.com/fugo101/grimoire/commit/44f0b7592e7c71f5e334babd05d4908c25d736d0))
+
+
+### 📚 Documentation
+
+* clarify proxy middleware, CI, and date handling in CLAUDE.md ([#49](https://github.com/fugo101/grimoire/issues/49)) ([48e7557](https://github.com/fugo101/grimoire/commit/48e7557daa4c98e3fa7e3737fb8a5a9ca1b22b9e))
+
 ## [1.5.0](https://github.com/fugo101/grimoire/compare/v1.4.1...v1.5.0) (2026-04-12)
 
 
