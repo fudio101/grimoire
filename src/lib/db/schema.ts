@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
@@ -7,6 +13,7 @@ export const categories = sqliteTable("categories", {
     .primaryKey()
     .$defaultFn(() => uuidv7()),
   name: text("name").notNull(),
+  parentId: text("parent_id").references((): AnySQLiteColumn => categories.id),
   isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
   shareToken: text("share_token").unique(),
   createdAt: text("created_at")

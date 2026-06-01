@@ -18,6 +18,7 @@ import {
   updateTransaction,
 } from "@/app/actions/transactions";
 import { transactionSchema, type TransactionInput } from "@/lib/schemas";
+import { isLeaf, getCategoryPath } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 
 function nowLocalString() {
@@ -60,6 +61,9 @@ export function TransactionForm({
       categoryId: defaultValues?.categoryId ?? "",
     },
   });
+
+  // Transactions attach to leaf categories only; show the full path for context.
+  const leafCategories = categories.filter((c) => isLeaf(c.id, categories));
 
   const onSubmit = async (data: TransactionInput) => {
     const result = defaultValues
@@ -133,15 +137,16 @@ export function TransactionForm({
                 <SelectValue placeholder="Chọn danh mục">
                   {(value) => {
                     if (!value) return "Chọn danh mục";
-                    const cat = categories.find((c) => c.id === value);
-                    return cat?.name ?? "Chọn danh mục";
+                    return (
+                      getCategoryPath(value, categories) || "Chọn danh mục"
+                    );
                   }}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
+                {leafCategories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
+                    {getCategoryPath(cat.id, categories)}
                   </SelectItem>
                 ))}
               </SelectContent>

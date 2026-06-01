@@ -1,9 +1,21 @@
 import { db } from "@/lib/db";
 import { categories, transactions } from "@/lib/db/schema";
-import { eq, and, gte, lt, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lt, desc, sql, inArray } from "drizzle-orm";
+import { getDescendantIds } from "@/lib/category-tree";
 
 export async function getCategories() {
   return db.select().from(categories).orderBy(categories.name);
+}
+
+/**
+ * Expand a category id to itself plus all descendants. Transactions only ever
+ * sit on leaf categories, so filtering by a parent rolls up the whole subtree.
+ */
+async function getSubtreeCategoryIds(rootId: string): Promise<string[]> {
+  const all = await db
+    .select({ id: categories.id, parentId: categories.parentId })
+    .from(categories);
+  return [rootId, ...getDescendantIds(rootId, all)];
 }
 
 function nextMonthStart(month: string): string {
@@ -21,7 +33,8 @@ export async function getTransactions(filters?: {
   const conditions = [];
 
   if (filters?.categoryId) {
-    conditions.push(eq(transactions.categoryId, filters.categoryId));
+    const subtreeIds = await getSubtreeCategoryIds(filters.categoryId);
+    conditions.push(inArray(transactions.categoryId, subtreeIds));
   }
 
   if (filters?.fromMonth) {
@@ -65,7 +78,8 @@ export async function getTransactionsByCategoryId(
   categoryId: string,
   filters?: { fromMonth?: string; toMonth?: string }
 ) {
-  const conditions = [eq(transactions.categoryId, categoryId)];
+  const subtreeIds = await getSubtreeCategoryIds(categoryId);
+  const conditions = [inArray(transactions.categoryId, subtreeIds)];
 
   if (filters?.fromMonth) {
     conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
@@ -86,7 +100,8 @@ export async function getCategoryTotal(
   categoryId: string,
   filters?: { fromMonth?: string; toMonth?: string }
 ): Promise<number> {
-  const conditions = [eq(transactions.categoryId, categoryId)];
+  const subtreeIds = await getSubtreeCategoryIds(categoryId);
+  const conditions = [inArray(transactions.categoryId, subtreeIds)];
 
   if (filters?.fromMonth) {
     conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
