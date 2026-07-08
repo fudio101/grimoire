@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.2](https://github.com/fugo101/grimoire/compare/v1.9.1...v1.9.2) (2026-07-08)
+
+
+### 🐛 Bug Fixes
+
+* correct ghcr image org name to fugo101 ([#70](https://github.com/fugo101/grimoire/issues/70)) ([5c09265](https://github.com/fugo101/grimoire/commit/5c09265c85d21cc6ba93f2fad76cd61593e525b0))
+
+
+### 📚 Documentation
+
+* add MIT license ([#68](https://github.com/fugo101/grimoire/issues/68)) ([beb2c1e](https://github.com/fugo101/grimoire/commit/beb2c1ef63e4c25dcace14c0b87a95a69d42cb1e))
+
 ## [1.9.1](https://github.com/fugo101/grimoire/compare/v1.9.0...v1.9.1) (2026-07-08)
 
 
