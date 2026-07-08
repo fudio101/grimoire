@@ -5,7 +5,7 @@ WORKDIR /app
 
 # --- Dependencies ---
 FROM base AS deps
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts && \
     pnpm rebuild better-sqlite3
 
