@@ -39,9 +39,9 @@ pnpm run dev  # migrations apply automatically on startup (src/instrumentation.t
 - **Pages** (`src/app/`) — Next.js App Router. Server-rendered pages fetch data at page level. Protected routes under `/dashboard`, public shared report at `/p/[code]` (a share link covering one or more categories).
 - **Server Actions** (`src/app/actions/`) — All mutations (auth, transactions, categories, share links) use `"use server"` actions. Return `{ success, error? }` (`ActionState`). Call `revalidatePath()` after writes.
 - **Queries** (`src/lib/db/queries.ts`) — Read-only data access functions. Separated from mutations in actions.
-- **Schema** (`src/lib/db/schema.ts`) — Drizzle table definitions: `categories`, `transactions`, `shareLinks`, and the `shareLinkCategories` junction. Uses UUIDv7 for IDs, nanoid(12) for auto-generated share-link codes.
+- **Schema** (`src/lib/db/schema.ts`) — Drizzle table definitions: `categories` (self-referential `parentId` for nested hierarchy), `transactions`, `shareLinks`, and the `shareLinkCategories` junction. Uses UUIDv7 for IDs, nanoid(12) for auto-generated share-link codes.
 - **Validation** (`src/lib/schemas.ts`) — Zod schemas for transactions, categories, and login. Used with react-hook-form via zodResolver.
-- **Features** (`src/features/`) — Feature-scoped client components (transaction form/table/filters, category form/list).
+- **Features** (`src/features/`) — Feature-scoped client components: `transactions/` (form, table, filters, `expense-chart.tsx` built on Recharts), `categories/` (form, list, nested tree), `share-links/` (form, list, `category-tree-select.tsx` for picking multiple categories incl. descendants).
 - **Components** (`src/components/`) — Reusable UI primitives in `ui/` (shadcn/Base UI). App-level shared components at root: `ResponsiveModal` (dialog on desktop, drawer on mobile), `CurrencyInput` (VND formatting), `SubmitButton` (loading state via `useFormStatus`), `ConfirmDialog`.
 
 ### Auth
