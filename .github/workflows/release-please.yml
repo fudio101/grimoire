@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         with:
           # PAT required so that the release event triggers downstream
           # workflows (docker-publish). GITHUB_TOKEN cannot trigger
