@@ -220,7 +220,8 @@ function MonthRangeCal({
   const [isSelected, setIsSelected] =
     React.useState<boolean>(!!selectedMonthRange);
 
-  if (minDate && maxDate && minDate > maxDate) minDate = maxDate;
+  const effectiveMinDate =
+    minDate && maxDate && minDate > maxDate ? maxDate : minDate;
 
   const renderMonthTable = (monthsGrid: Month[][]) => (
     <table
@@ -329,11 +330,12 @@ function MonthRangeCal({
                               maxDate?.getFullYear() &&
                               m.number > maxDate.getMonth())
                           : false) ||
-                        (minDate
-                          ? menuYear + m.yearOffset < minDate?.getFullYear() ||
+                        (effectiveMinDate
+                          ? menuYear + m.yearOffset <
+                              effectiveMinDate?.getFullYear() ||
                             (menuYear + m.yearOffset ==
-                              minDate?.getFullYear() &&
-                              m.number < minDate.getMonth())
+                              effectiveMinDate?.getFullYear() &&
+                              m.number < effectiveMinDate.getMonth())
                           : false)
                       }
                       className={cn(
