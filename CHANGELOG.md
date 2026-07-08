@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/fugo101/grimoire/compare/v1.8.0...v1.9.0) (2026-07-08)
+
+
+### 🚀 Features
+
+* **deps:** bump pnpm version ([#60](https://github.com/fugo101/grimoire/issues/60)) ([95d579b](https://github.com/fugo101/grimoire/commit/95d579b9d30f0ac0f0f6d97d8024036521e8ea62))
+
 ## [1.8.0](https://github.com/fugo101/grimoire/compare/v1.7.0...v1.8.0) (2026-06-01)
 
 
