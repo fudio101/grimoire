@@ -70,7 +70,7 @@ docker run -d -p 3000:3000 \
   -e ADMIN_PASSWORD=changeme \
   -e AUTH_SECRET=your-secret-key-at-least-32-chars \
   -v grimoire-data:/app/data \
-  ghcr.io/fudio101/grimoire:latest
+  ghcr.io/fugo101/grimoire:latest
 
 # Or build locally
 docker build -t grimoire .
