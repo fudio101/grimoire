@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.1](https://github.com/fugo101/grimoire/compare/v1.9.0...v1.9.1) (2026-07-08)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** force patched postcss and esbuild via pnpm overrides ([#66](https://github.com/fugo101/grimoire/issues/66)) ([2984c6c](https://github.com/fugo101/grimoire/commit/2984c6c445f853c1d6123062028c47c7cb89bdaa))
+* **docker:** stop copying removed .npmrc in deps stage ([#64](https://github.com/fugo101/grimoire/issues/64)) ([8d41f3c](https://github.com/fugo101/grimoire/commit/8d41f3ce9b28e502b5408d6875c32ae91b463ad0))
+
 ## [1.9.0](https://github.com/fugo101/grimoire/compare/v1.8.0...v1.9.0) (2026-07-08)
 
 
