@@ -16,6 +16,7 @@ jobs:
   docker:
     name: Build & Push Docker Image
     runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
 
     permissions:
       contents: read
@@ -46,7 +47,7 @@ jobs:
             type=semver,pattern={{version}},value=${{ github.event.release.tag_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.release.tag_name }}
             type=semver,pattern={{major}},value=${{ github.event.release.tag_name }}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
 
       - name: Build and push
         uses: docker/build-push-action@v7

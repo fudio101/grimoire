@@ -8,10 +8,15 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release-please:
     name: Create Release
     runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
 
     steps:
       - uses: googleapis/release-please-action@v4
