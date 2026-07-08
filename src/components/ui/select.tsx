@@ -84,11 +84,9 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
-  const [container, setContainer] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    setContainer(document.body);
-  }, []);
+  const [container] = React.useState<HTMLElement | null>(() =>
+    typeof document !== "undefined" ? document.body : null
+  );
 
   return (
     <SelectPrimitive.Portal container={container}>
