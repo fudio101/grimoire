@@ -23,10 +23,11 @@ export { sqlite };
 function enableWalMode(db: Database.Database, attempts = 10, delayMs = 100) {
   for (let i = 0; i < attempts; i++) {
     try {
-      const rows = db.pragma("journal_mode = WAL") as Array<{
-        journal_mode: string;
-      }>;
-      if (rows[0]?.journal_mode.toLowerCase() === "wal") return;
+      // A completed pragma is authoritative: it returns "wal" on success, or
+      // another mode when WAL is unsupported here (e.g. an in-memory db).
+      // Neither changes on retry — only a thrown SQLITE_BUSY is worth retrying.
+      db.pragma("journal_mode = WAL");
+      return;
     } catch (err) {
       if (!isBusyError(err) || i === attempts - 1) throw err;
     }
