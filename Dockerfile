@@ -1,6 +1,8 @@
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN corepack enable
+# Node 25+ no longer bundles corepack, so install it before enabling.
+# corepack honours the `packageManager` pin in package.json.
+RUN npm i -g corepack@latest && corepack enable
 WORKDIR /app
 
 # --- Dependencies ---
