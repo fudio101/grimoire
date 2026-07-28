@@ -115,7 +115,7 @@ export function CategoryForm({
                 field.handleChange(v === ROOT_VALUE ? null : v)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Cấp gốc —">
                   {(value) => {
                     if (!value || value === ROOT_VALUE) return "— Cấp gốc —";
@@ -125,10 +125,12 @@ export function CategoryForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ROOT_VALUE}>— Cấp gốc —</SelectItem>
-                {parentOptions.map(({ category, depth }) => (
+                {/* Full path rather than an indented name: repeated spaces
+                    collapse in HTML, so depth was invisible and the option read
+                    as a root while the trigger showed the path once picked. */}
+                {parentOptions.map(({ category }) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {" ".repeat(depth)}
-                    {category.name}
+                    {getCategoryPath(category.id, categories)}
                   </SelectItem>
                 ))}
               </SelectContent>

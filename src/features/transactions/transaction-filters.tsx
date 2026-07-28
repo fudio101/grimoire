@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { flattenWithDepth } from "@/lib/category-tree";
+import { flattenWithDepth, getCategoryPath } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
@@ -45,21 +45,24 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
           })
         }
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="min-w-[180px]">
           <SelectValue placeholder="Tất cả danh mục">
             {(value) => {
               if (!value || value === "all") return "Tất cả danh mục";
-              const cat = categories.find((c) => c.id === value);
-              return cat?.name ?? "Tất cả danh mục";
+              return (
+                getCategoryPath(String(value), categories) || "Tất cả danh mục"
+              );
             }}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Tất cả danh mục</SelectItem>
-          {flattenWithDepth(categories).map(({ category: cat, depth }) => (
+          {/* Full path rather than an indented name: repeated spaces collapse in
+              HTML, so depth was invisible and a child read as a root. This also
+              matches the trigger, which shows the path. */}
+          {flattenWithDepth(categories).map(({ category: cat }) => (
             <SelectItem key={cat.id} value={cat.id}>
-              {"  ".repeat(depth)}
-              {cat.name}
+              {getCategoryPath(cat.id, categories)}
             </SelectItem>
           ))}
         </SelectContent>

@@ -55,7 +55,7 @@ export function PublicFilters({
             })
           }
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="min-w-[180px]">
             <SelectValue placeholder="Tất cả danh mục">
               {(value) => {
                 if (!value || value === ALL_VALUE) return "Tất cả danh mục";

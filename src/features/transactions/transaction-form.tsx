@@ -157,7 +157,7 @@ export function TransactionForm({
               value={field.state.value}
               onValueChange={(v) => field.handleChange(v ?? "")}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn danh mục">
                   {(value) => {
                     if (!value) return "Chọn danh mục";
