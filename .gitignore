@@ -18,6 +18,11 @@
 /.vite/
 /.tanstack/
 
+# Leftovers from before the TanStack Start migration — nothing produces these
+# any more, but old checkouts still have them and they should stay invisible.
+/.next/
+next-env.d.ts
+
 # production
 /build
 
