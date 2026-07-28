@@ -8,6 +8,7 @@ import {
   getTransactionsForCategories,
 } from "@/lib/db/queries";
 import { getCategoryPath, getCategoryPathParts } from "@/lib/category-tree";
+import type { TransactionTableRow } from "@/lib/types";
 
 export const publicReportSchema = z.object({
   code: z.string().min(1),
@@ -21,20 +22,10 @@ export type PublicReportSearch = Omit<
   "code"
 >;
 
-export type PublicReportRow = {
-  id: string;
-  amount: number;
-  note: string;
-  date: string;
-  categoryId: string;
-  categoryName: string | null;
-  /** Resolved server-side so the category tree never crosses the wire. */
-  categoryPathParts: string[];
-};
-
 export type PublicReport = {
   linkName: string | null;
-  transactions: PublicReportRow[];
+  /** categoryPathParts is resolved here so the category tree never ships. */
+  transactions: TransactionTableRow[];
   total: number;
   filterOptions: { id: string; label: string }[];
 };
@@ -92,6 +83,7 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
         date: row.date,
         categoryId: row.categoryId,
         categoryName: row.categoryName,
+        createdAt: row.createdAt,
         categoryPathParts: getCategoryPathParts(row.categoryId, allCategories),
       })),
     };

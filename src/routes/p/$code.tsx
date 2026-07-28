@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -9,18 +10,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { formatDateTime, formatVND } from "@/lib/format";
+import { formatVND } from "@/lib/format";
 import { PublicFilters } from "@/features/transactions/public-filters";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
+import { TransactionDataTable } from "@/features/transactions/transaction-data-table";
+import { transactionColumns } from "@/features/transactions/columns";
 import { publicReportQueryOptions } from "@/lib/query-options";
 
 const searchSchema = z.object({
@@ -64,6 +59,10 @@ function PublicView() {
     publicReportQueryOptions(code, search)
   );
 
+  // No handlers passed, so the actions column has nothing to render and is
+  // hidden below — one column definition, two routes.
+  const columns = useMemo(() => transactionColumns(), []);
+
   // The loader already raised notFound() for this; the guard is for types.
   if (!report) return null;
 
@@ -91,58 +90,12 @@ function PublicView() {
 
           <ExpenseChart transactions={transactions} />
 
-          {transactions.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">
-              Chưa có giao dịch nào.
-            </p>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Thời gian</TableHead>
-                    <TableHead>Danh mục</TableHead>
-                    <TableHead>Ghi chú</TableHead>
-                    <TableHead className="text-right">Số tiền</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((tx) => {
-                    const path = tx.categoryPathParts;
-                    const leaf = path[path.length - 1];
-                    const parents = path.slice(0, -1);
-                    return (
-                      <TableRow key={tx.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDateTime(tx.date)}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {path.length === 0 ? (
-                            (tx.categoryName ?? "—")
-                          ) : (
-                            <>
-                              {parents.length > 0 && (
-                                <span className="text-muted-foreground">
-                                  {parents.join(" › ")} ›{" "}
-                                </span>
-                              )}
-                              {leaf}
-                            </>
-                          )}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {tx.note || "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatVND(tx.amount)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <TransactionDataTable
+            data={transactions}
+            columns={columns}
+            showActions={false}
+            emptyMessage="Chưa có giao dịch nào."
+          />
         </CardContent>
       </Card>
     </div>
