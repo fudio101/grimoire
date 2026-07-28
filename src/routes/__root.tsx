@@ -1,5 +1,6 @@
 import {
   HeadContent,
+  Link,
   Outlet,
   Scripts,
   createRootRouteWithContext,
@@ -23,7 +24,45 @@ export const Route = createRootRouteWithContext<{
     ],
   }),
   component: RootLayout,
+  // Next.js shipped default error and 404 pages; TanStack Start does not, and
+  // without these the router logs "this error wasn't caught by any route".
+  errorComponent: RootError,
+  notFoundComponent: RootNotFound,
 });
+
+function Centered({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 px-4 py-24 text-center">
+      <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+      <p className="text-sm text-muted-foreground">{children}</p>
+      <Link to="/dashboard" className="text-sm underline">
+        Về trang chủ
+      </Link>
+    </div>
+  );
+}
+
+function RootError() {
+  return (
+    <Centered title="Đã xảy ra lỗi">
+      Không thể tải trang này. Vui lòng thử lại.
+    </Centered>
+  );
+}
+
+function RootNotFound() {
+  return (
+    <Centered title="Không tìm thấy trang">
+      Trang bạn tìm không tồn tại.
+    </Centered>
+  );
+}
 
 function RootLayout() {
   return (
