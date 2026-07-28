@@ -42,6 +42,11 @@ export default defineConfig({
   environments: {
     // better-sqlite3 is a native addon — it must stay a runtime import rather
     // than being inlined into the server bundle.
+    //
+    // Everything else stays externalized (Vite's SSR default), so the runtime
+    // image ships node_modules. Setting noExternal: true would shrink that a
+    // lot, but it inflates the SSR chunks and starts pulling optional peers
+    // (react-redux via recharts) into resolution — not worth the risk here.
     ssr: { resolve: { external: ["better-sqlite3"] } },
   },
   // tanstackStart() emits JSX that viteReact() then transforms, so order matters.

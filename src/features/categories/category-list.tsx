@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Trash2, Pencil, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

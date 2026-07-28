@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore, useCallback } from "react";
 
 export function useMediaQuery(query: string): boolean {
