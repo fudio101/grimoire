@@ -3,8 +3,8 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
-  msw: false
 
 overrides:
-  postcss@<8.5.10: ">=8.5.10"
+  postcss@<8.5.18: ">=8.5.18"
   esbuild@<0.25.0: ">=0.25.0"
+  sharp@<0.35.0: ">=0.35.0"
