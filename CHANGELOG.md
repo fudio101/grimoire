@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/fugo101/grimoire/compare/v1.9.2...v2.0.0) (2026-07-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate from Next.js to TanStack Start ([#79](https://github.com/fugo101/grimoire/issues/79))
+
+### 🚀 Features
+
+* migrate from Next.js to TanStack Start ([#79](https://github.com/fugo101/grimoire/issues/79)) ([7696002](https://github.com/fugo101/grimoire/commit/76960027bd586ac11bfcd12c6819e6ea1adbb9ad))
+
 ## [1.9.2](https://github.com/fugo101/grimoire/compare/v1.9.1...v1.9.2) (2026-07-08)
 
 
