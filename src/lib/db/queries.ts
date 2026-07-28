@@ -1,3 +1,4 @@
+import "@tanstack/react-start/server-only";
 import { db } from "@/lib/db";
 import {
   categories,
