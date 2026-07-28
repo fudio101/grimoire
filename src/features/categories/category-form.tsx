@@ -86,7 +86,7 @@ export function CategoryForm({
       </div>
 
       <div className="space-y-1">
-        <Label className="text-muted-foreground text-xs">Danh mục cha</Label>
+        <Label className="text-xs text-muted-foreground">Danh mục cha</Label>
         <Controller
           name="parentId"
           control={control}
@@ -118,10 +118,10 @@ export function CategoryForm({
       </div>
 
       {errors.name && (
-        <p className="text-destructive text-sm">{errors.name.message}</p>
+        <p className="text-sm text-destructive">{errors.name.message}</p>
       )}
       {errors.root && (
-        <p className="text-destructive text-sm">{errors.root.message}</p>
+        <p className="text-sm text-destructive">{errors.root.message}</p>
       )}
     </form>
   );

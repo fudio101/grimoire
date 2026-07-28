@@ -62,17 +62,17 @@ export function ShareLinkForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1 space-y-1">
-          <Label className="text-muted-foreground text-xs">Tên link</Label>
+          <Label className="text-xs text-muted-foreground">Tên link</Label>
           <Input placeholder="Tên link (tuỳ chọn)" {...register("name")} />
         </div>
         <div className="flex-1 space-y-1">
-          <Label className="text-muted-foreground text-xs">Mã link</Label>
+          <Label className="text-xs text-muted-foreground">Mã link</Label>
           <Input placeholder="Để trống = tự tạo" {...register("code")} />
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label className="text-muted-foreground text-xs">Danh mục</Label>
+        <Label className="text-xs text-muted-foreground">Danh mục</Label>
         <Controller
           name="categoryIds"
           control={control}
@@ -87,13 +87,13 @@ export function ShareLinkForm({
       </div>
 
       {errors.code && (
-        <p className="text-destructive text-sm">{errors.code.message}</p>
+        <p className="text-sm text-destructive">{errors.code.message}</p>
       )}
       {errors.categoryIds && (
-        <p className="text-destructive text-sm">{errors.categoryIds.message}</p>
+        <p className="text-sm text-destructive">{errors.categoryIds.message}</p>
       )}
       {errors.root && (
-        <p className="text-destructive text-sm">{errors.root.message}</p>
+        <p className="text-sm text-destructive">{errors.root.message}</p>
       )}
 
       <SubmitButton isLoading={isSubmitting}>

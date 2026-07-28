@@ -21,7 +21,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
 
   if (categories.length === 0) {
     return (
-      <div className="text-muted-foreground py-12 text-center">
+      <div className="py-12 text-center text-muted-foreground">
         Chưa có danh mục nào. Hãy tạo danh mục đầu tiên!
       </div>
     );
@@ -66,7 +66,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive h-8 w-8"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

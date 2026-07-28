@@ -50,7 +50,7 @@ export function TransactionTable({
 
   if (transactions.length === 0) {
     return (
-      <div className="text-muted-foreground py-12 text-center">
+      <div className="py-12 text-center text-muted-foreground">
         Chưa có giao dịch nào. Hãy thêm giao dịch đầu tiên!
       </div>
     );
@@ -114,7 +114,7 @@ export function TransactionTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive h-8 w-8"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

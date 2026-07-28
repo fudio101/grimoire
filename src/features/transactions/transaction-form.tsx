@@ -101,7 +101,7 @@ export function TransactionForm({
           )}
         />
         {errors.amount && (
-          <p className="text-destructive text-sm">{errors.amount.message}</p>
+          <p className="text-sm text-destructive">{errors.amount.message}</p>
         )}
       </div>
 
@@ -119,7 +119,7 @@ export function TransactionForm({
         <Label htmlFor="date">Thời gian</Label>
         <Input id="date" type="datetime-local" {...register("date")} />
         {errors.date && (
-          <p className="text-destructive text-sm">{errors.date.message}</p>
+          <p className="text-sm text-destructive">{errors.date.message}</p>
         )}
       </div>
 
@@ -154,14 +154,14 @@ export function TransactionForm({
           )}
         />
         {errors.categoryId && (
-          <p className="text-destructive text-sm">
+          <p className="text-sm text-destructive">
             {errors.categoryId.message}
           </p>
         )}
       </div>
 
       {errors.root && (
-        <p className="text-destructive text-sm">{errors.root.message}</p>
+        <p className="text-sm text-destructive">{errors.root.message}</p>
       )}
 
       <SubmitButton className="w-full" isLoading={isSubmitting}>

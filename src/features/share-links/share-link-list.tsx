@@ -52,7 +52,7 @@ export function ShareLinkList({
 
   if (optimisticLinks.length === 0) {
     return (
-      <div className="text-muted-foreground py-12 text-center">
+      <div className="py-12 text-center text-muted-foreground">
         Chưa có link công khai nào. Hãy tạo link đầu tiên!
       </div>
     );
@@ -92,7 +92,7 @@ export function ShareLinkList({
                   <span className="min-w-0 font-medium break-words">
                     {link.name || link.code}
                   </span>
-                  <code className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-xs break-all">
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs break-all text-muted-foreground">
                     /p/{link.code}
                   </code>
                 </div>
@@ -156,7 +156,7 @@ export function ShareLinkList({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-destructive hover:text-destructive h-8 w-8"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
