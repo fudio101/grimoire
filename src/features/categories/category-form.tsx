@@ -1,7 +1,6 @@
-"use client";
-
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,15 +11,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
-import { createCategory, updateCategory } from "@/app/actions/categories";
-import { categorySchema, type CategoryInput } from "@/lib/schemas";
+import { createCategory, updateCategory } from "@/server/categories.functions";
+import { categorySchema, type CategoryFormValues } from "@/lib/schemas";
 import {
   flattenWithDepth,
-  getDescendantIds,
   getCategoryPath,
+  getDescendantIds,
 } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 
+// The Select cannot hold null, so root level travels through a sentinel.
 const ROOT_VALUE = "__root__";
 
 export function CategoryForm({
@@ -32,18 +32,34 @@ export function CategoryForm({
   defaultValues?: { id: string; name: string; parentId: string | null };
   onSuccess?: () => void;
 }) {
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<CategoryInput>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: defaultValues?.name ?? "",
-      parentId: defaultValues?.parentId ?? null,
+  const queryClient = useQueryClient();
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const initialValues: CategoryFormValues = {
+    name: defaultValues?.name ?? "",
+    parentId: defaultValues?.parentId ?? null,
+  };
+
+  const form = useForm({
+    defaultValues: initialValues,
+    validators: { onSubmit: categorySchema },
+    onSubmit: async ({ value }) => {
+      const result = defaultValues
+        ? await updateCategory({ data: { id: defaultValues.id, data: value } })
+        : await createCategory({ data: value });
+
+      if (!result.success) {
+        setServerError(result.error ?? null);
+        return;
+      }
+
+      // Category names appear in the transaction table, so both caches go.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      ]);
+      form.reset({ name: "", parentId: null });
+      onSuccess?.();
     },
   });
 
@@ -58,44 +74,48 @@ export function CategoryForm({
     ({ category }) => !excluded.has(category.id)
   );
 
-  const onSubmit = async (data: CategoryInput) => {
-    const result = defaultValues
-      ? await updateCategory(defaultValues.id, data)
-      : await createCategory(data);
-
-    if (!result.success) {
-      setError("root", { message: result.error });
-      return;
-    }
-
-    reset({ name: "", parentId: null });
-    onSuccess?.();
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+    <form
+      className="space-y-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setServerError(null);
+        void form.handleSubmit();
+      }}
+    >
       <div className="flex gap-2">
-        <Input
-          placeholder="Tên danh mục"
-          className="flex-1"
-          {...register("name")}
-        />
-        <SubmitButton isLoading={isSubmitting}>
-          {defaultValues ? "Cập nhật" : "Thêm"}
-        </SubmitButton>
+        <form.Field name="name">
+          {(field) => (
+            <Input
+              name={field.name}
+              placeholder="Tên danh mục"
+              className="flex-1"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+          )}
+        </form.Field>
+        <form.Subscribe selector={(s) => s.isSubmitting}>
+          {(isSubmitting) => (
+            <SubmitButton isLoading={isSubmitting}>
+              {defaultValues ? "Cập nhật" : "Thêm"}
+            </SubmitButton>
+          )}
+        </form.Subscribe>
       </div>
 
       <div className="space-y-1">
-        <Label className="text-muted-foreground text-xs">Danh mục cha</Label>
-        <Controller
-          name="parentId"
-          control={control}
-          render={({ field }) => (
+        <Label className="text-xs text-muted-foreground">Danh mục cha</Label>
+        <form.Field name="parentId">
+          {(field) => (
             <Select
-              value={field.value ?? ROOT_VALUE}
-              onValueChange={(v) => field.onChange(v === ROOT_VALUE ? null : v)}
+              value={field.state.value ?? ROOT_VALUE}
+              onValueChange={(v) =>
+                field.handleChange(v === ROOT_VALUE ? null : v)
+              }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Cấp gốc —">
                   {(value) => {
                     if (!value || value === ROOT_VALUE) return "— Cấp gốc —";
@@ -105,24 +125,30 @@ export function CategoryForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ROOT_VALUE}>— Cấp gốc —</SelectItem>
-                {parentOptions.map(({ category, depth }) => (
+                {/* Full path rather than an indented name: repeated spaces
+                    collapse in HTML, so depth was invisible and the option read
+                    as a root while the trigger showed the path once picked. */}
+                {parentOptions.map(({ category }) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {" ".repeat(depth)}
-                    {category.name}
+                    {getCategoryPath(category.id, categories)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
-        />
+        </form.Field>
       </div>
 
-      {errors.name && (
-        <p className="text-destructive text-sm">{errors.name.message}</p>
-      )}
-      {errors.root && (
-        <p className="text-destructive text-sm">{errors.root.message}</p>
-      )}
+      <form.Field name="name">
+        {(field) =>
+          field.state.meta.errors[0] ? (
+            <p className="text-sm text-destructive">
+              {field.state.meta.errors[0].message}
+            </p>
+          ) : null
+        }
+      </form.Field>
+      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
     </form>
   );
 }

@@ -1,7 +1,6 @@
-"use client";
-
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,9 +15,9 @@ import { CurrencyInput } from "@/components/currency-input";
 import {
   createTransaction,
   updateTransaction,
-} from "@/app/actions/transactions";
-import { transactionSchema, type TransactionInput } from "@/lib/schemas";
-import { isLeaf, getCategoryPath } from "@/lib/category-tree";
+} from "@/server/transactions.functions";
+import { transactionSchema } from "@/lib/schemas";
+import { getCategoryPath, isLeaf } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 
 function nowLocalString() {
@@ -45,95 +44,120 @@ export function TransactionForm({
   defaultValues,
   onSuccess,
 }: TransactionFormProps) {
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<TransactionInput>({
-    resolver: zodResolver(transactionSchema),
+  const queryClient = useQueryClient();
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const emptyValues = {
+    amount: 0,
+    note: "",
+    date: nowLocalString(),
+    categoryId: "",
+  };
+
+  const form = useForm({
     defaultValues: {
       amount: defaultValues?.amount ?? 0,
       note: defaultValues?.note ?? "",
       date: defaultValues?.date?.slice(0, 16) ?? nowLocalString(),
       categoryId: defaultValues?.categoryId ?? "",
     },
+    validators: { onSubmit: transactionSchema },
+    onSubmit: async ({ value }) => {
+      const result = defaultValues
+        ? await updateTransaction({
+            data: { id: defaultValues.id, data: value },
+          })
+        : await createTransaction({ data: value });
+
+      if (!result.success) {
+        setServerError(result.error ?? null);
+        return;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      form.reset(emptyValues);
+      onSuccess?.();
+    },
   });
 
   // Transactions attach to leaf categories only; show the full path for context.
   const leafCategories = categories.filter((c) => isLeaf(c.id, categories));
 
-  const onSubmit = async (data: TransactionInput) => {
-    const result = defaultValues
-      ? await updateTransaction(defaultValues.id, data)
-      : await createTransaction(data);
-
-    if (!result.success) {
-      setError("root", { message: result.error });
-      return;
-    }
-
-    reset({
-      amount: 0,
-      note: "",
-      date: nowLocalString(),
-      categoryId: "",
-    });
-    onSuccess?.();
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="amount">Số tiền</Label>
-        <Controller
-          name="amount"
-          control={control}
-          render={({ field }) => (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setServerError(null);
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="amount">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor={field.name}>Số tiền</Label>
             <CurrencyInput
-              id="amount"
-              value={field.value}
-              onChange={field.onChange}
+              id={field.name}
+              value={field.state.value}
+              onChange={field.handleChange}
               placeholder="0"
             />
-          )}
-        />
-        {errors.amount && (
-          <p className="text-destructive text-sm">{errors.amount.message}</p>
+            {field.state.meta.errors[0] && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors[0].message}
+              </p>
+            )}
+          </div>
         )}
-      </div>
+      </form.Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="note">Ghi chú</Label>
-        <Input
-          id="note"
-          type="text"
-          placeholder="Chi tiêu cho gì?"
-          {...register("note")}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="date">Thời gian</Label>
-        <Input id="date" type="datetime-local" {...register("date")} />
-        {errors.date && (
-          <p className="text-destructive text-sm">{errors.date.message}</p>
+      <form.Field name="note">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor={field.name}>Ghi chú</Label>
+            <Input
+              id={field.name}
+              name={field.name}
+              type="text"
+              placeholder="Chi tiêu cho gì?"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+          </div>
         )}
-      </div>
+      </form.Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="categoryId">Danh mục</Label>
-        <Controller
-          name="categoryId"
-          control={control}
-          render={({ field }) => (
+      <form.Field name="date">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor={field.name}>Thời gian</Label>
+            <Input
+              id={field.name}
+              name={field.name}
+              type="datetime-local"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+            {field.state.meta.errors[0] && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors[0].message}
+              </p>
+            )}
+          </div>
+        )}
+      </form.Field>
+
+      <form.Field name="categoryId">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor={field.name}>Danh mục</Label>
             <Select
-              value={field.value}
-              onValueChange={(v) => field.onChange(v ?? "")}
+              value={field.state.value}
+              onValueChange={(v) => field.handleChange(v ?? "")}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn danh mục">
                   {(value) => {
                     if (!value) return "Chọn danh mục";
@@ -151,22 +175,24 @@ export function TransactionForm({
                 ))}
               </SelectContent>
             </Select>
-          )}
-        />
-        {errors.categoryId && (
-          <p className="text-destructive text-sm">
-            {errors.categoryId.message}
-          </p>
+            {field.state.meta.errors[0] && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors[0].message}
+              </p>
+            )}
+          </div>
         )}
-      </div>
+      </form.Field>
 
-      {errors.root && (
-        <p className="text-destructive text-sm">{errors.root.message}</p>
-      )}
+      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
 
-      <SubmitButton className="w-full" isLoading={isSubmitting}>
-        {defaultValues ? "Cập nhật" : "Thêm giao dịch"}
-      </SubmitButton>
+      <form.Subscribe selector={(s) => s.isSubmitting}>
+        {(isSubmitting) => (
+          <SubmitButton className="w-full" isLoading={isSubmitting}>
+            {defaultValues ? "Cập nhật" : "Thêm giao dịch"}
+          </SubmitButton>
+        )}
+      </form.Subscribe>
     </form>
   );
 }

@@ -1,4 +1,3 @@
-"use client";
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button, buttonVariants } from "./button";
@@ -239,7 +238,7 @@ function MonthRangeCal({
                   <td
                     key={m.number + "-" + m.yearOffset}
                     className={cn(
-                      "[&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent relative h-10 p-0 text-center text-sm focus-within:relative focus-within:z-20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected].day-range-end)]:rounded-r-md",
+                      "relative h-10 p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
                       "w-1/4",
                       (menuYear + m.yearOffset > startYear ||
                         (menuYear + m.yearOffset == startYear &&
@@ -249,13 +248,13 @@ function MonthRangeCal({
                             m.number < endMonth)) &&
                         (rangePending || endLocked) &&
                         isSelected
-                        ? "text-accent-foreground bg-accent"
+                        ? "bg-accent text-accent-foreground"
                         : "",
                       menuYear + m.yearOffset == startYear &&
                         m.number == startMonth &&
                         (rangePending || endLocked) &&
                         isSelected
-                        ? "text-accent-foreground bg-accent rounded-l-md"
+                        ? "rounded-l-md bg-accent text-accent-foreground"
                         : "",
                       menuYear + m.yearOffset == endYear &&
                         m.number == endMonth &&
@@ -263,7 +262,7 @@ function MonthRangeCal({
                         isSelected &&
                         menuYear + m.yearOffset >= startYear &&
                         m.number >= startMonth
-                        ? "text-accent-foreground bg-accent rounded-r-md"
+                        ? "rounded-r-md bg-accent text-accent-foreground"
                         : "",
                       monthsGrid === MONTHS_DOUBLE && i == 3 ? "mr-2" : "",
                       monthsGrid === MONTHS_DOUBLE && i == 4 ? "ml-2" : ""
@@ -361,7 +360,7 @@ function MonthRangeCal({
                                 !rangePending)) &&
                             isSelected
                           )
-                          ? "ring-primary/50 text-primary font-semibold ring-1"
+                          ? "font-semibold text-primary ring-1 ring-primary/50"
                           : ""
                       )}
                     >

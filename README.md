@@ -11,12 +11,13 @@ A lightweight, self-hosted expense tracker. Vietnamese UI, VNĐ currency, SQLite
 - Category management with public sharing via secure URLs
 - Month range filtering for transactions
 - Mobile-first responsive design with drawer/dialog components
-- Client-side validation with react-hook-form + Zod
+- Sortable, virtualized transaction table
+- Client-side validation with TanStack Form + Zod
 - Vietnamese currency input formatting
 
 ## Tech Stack
 
-Next.js 16 · React 19 · Tailwind CSS 4 · Base UI · SQLite · Drizzle ORM · jose · ESLint · Prettier
+TanStack Start · TanStack Router · TanStack Query · TanStack Table · TanStack Form · TanStack Virtual · Vite · React 19 · Tailwind CSS 4 · Base UI · SQLite · Drizzle ORM · jose · ESLint · Prettier
 
 ## Quick Start
 
@@ -80,7 +81,7 @@ SQLite data is persisted at `/app/data/data.db` via volume mount.
 
 ### Upgrading & migrating the database
 
-Schema migrations run **automatically on startup** — no manual steps. Versioned SQL migrations live in [`drizzle/`](drizzle/) and are applied by `src/lib/db/migrate.ts` (wired through `src/instrumentation.ts`) every time the server boots. To upgrade:
+Schema migrations run **automatically on startup** — no manual steps. Versioned SQL migrations live in [`drizzle/`](drizzle/) and are applied by `src/lib/db/migrate.ts` (called from `src/server.ts`) every time the server boots. To upgrade:
 
 ```bash
 docker compose pull

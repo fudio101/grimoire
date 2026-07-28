@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
@@ -86,7 +84,7 @@ export function ExpenseChart({ transactions }: ExpenseChartProps) {
       </CardHeader>
       <CardContent>
         {chartData.length === 0 ? (
-          <div className="text-muted-foreground flex h-[220px] items-center justify-center text-sm">
+          <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
             Không có dữ liệu để hiển thị biểu đồ.
           </div>
         ) : (

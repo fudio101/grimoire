@@ -1,7 +1,4 @@
-"use client";
-
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { MonthRangeFilter } from "./month-range-filter";
 import {
   Select,
@@ -13,47 +10,36 @@ import {
 
 const ALL_VALUE = "__all__";
 
+const routeApi = getRouteApi("/p/$code");
+
 interface CategoryOption {
   id: string;
   label: string;
 }
 
 export function PublicFilters({
-  code,
   categories,
 }: {
-  code: string;
   categories: CategoryOption[];
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const updateFilters = useCallback(
-    (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      });
-      router.push(`/p/${code}?${params.toString()}`);
-    },
-    [router, searchParams, code]
-  );
-
-  const fromMonth = searchParams.get("fromMonth");
-  const toMonth = searchParams.get("toMonth");
-  const category = searchParams.get("category");
+  const { fromMonth, toMonth, category } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
 
   return (
     <div className="flex flex-wrap gap-2">
       <MonthRangeFilter
-        fromMonth={fromMonth}
-        toMonth={toMonth}
+        fromMonth={fromMonth ?? null}
+        toMonth={toMonth ?? null}
         onChange={(from, to) => {
-          updateFilters({ fromMonth: from, toMonth: to });
+          // undefined drops the key from the URL, matching the old
+          // URLSearchParams.delete() behaviour.
+          void navigate({
+            search: (prev) => ({
+              ...prev,
+              fromMonth: from ?? undefined,
+              toMonth: to ?? undefined,
+            }),
+          });
         }}
       />
 
@@ -61,10 +47,15 @@ export function PublicFilters({
         <Select
           value={category ?? ALL_VALUE}
           onValueChange={(v) =>
-            updateFilters({ category: v === ALL_VALUE ? null : v })
+            void navigate({
+              search: (prev) => ({
+                ...prev,
+                category: v === ALL_VALUE ? undefined : (v ?? undefined),
+              }),
+            })
           }
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="min-w-[180px]">
             <SelectValue placeholder="Tất cả danh mục">
               {(value) => {
                 if (!value || value === ALL_VALUE) return "Tất cả danh mục";

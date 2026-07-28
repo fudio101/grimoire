@@ -43,17 +43,27 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
+      - name: Format check
+        run: pnpm run format:check
+
       - name: Type-check
-        # The self-hosted runner checks out with `clean: false`, so a previous
-        # run's generated route types in `.next` persist. After a route rename
-        # they still reference the old path and fail tsc. Drop the stale
-        # generated types first; the Build step regenerates them.
-        run: |
-          rm -rf .next/types .next/dev/types
-          pnpm exec tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: Build
+        # No DATABASE_URL: `next build` used to evaluate page modules and open
+        # SQLite, but `vite build` never evaluates application code. If this
+        # step ever fails on the database, something is being run at build time
+        # that should not be.
         run: pnpm run build
-        env:
-          # Use a temp SQLite DB for CI build — better-sqlite3 auto-creates it
-          DATABASE_URL: ./ci-build.db
+
+      - name: Route tree is up to date
+        # src/routeTree.gen.ts is generated but committed, so that tsc can run
+        # before the build on a clean checkout. The build regenerates it, so
+        # diffing afterwards catches a route added or renamed without the tree
+        # committed alongside — otherwise tsc passes against a stale tree.
+        #
+        # This has to use the build rather than the standalone `tsr generate`
+        # CLI: the CLI omits the `declare module "@tanstack/react-start"` block
+        # that the Start plugin appends, so its output differs from the
+        # committed file even when nothing changed.
+        run: git diff --exit-code src/routeTree.gen.ts

@@ -1,7 +1,4 @@
-"use client";
-
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import {
   Select,
   SelectContent,
@@ -9,68 +6,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { flattenWithDepth } from "@/lib/category-tree";
+import { flattenWithDepth, getCategoryPath } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
+const routeApi = getRouteApi("/dashboard/");
+
 export function TransactionFilters({ categories }: { categories: Category[] }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const updateFilter = useCallback(
-    (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value) {
-          params.set(key, value);
-        } else {
-          params.delete(key);
-        }
-      });
-      router.push(`/dashboard?${params.toString()}`);
-    },
-    [router, searchParams]
-  );
-
-  const fromMonth = searchParams.get("fromMonth");
-  const toMonth = searchParams.get("toMonth");
-
-  const currentCategory = searchParams.get("category") ?? "all";
+  const { fromMonth, toMonth, category } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
 
   return (
     <div className="flex flex-wrap gap-2">
       <MonthRangeFilter
-        fromMonth={fromMonth}
-        toMonth={toMonth}
+        fromMonth={fromMonth ?? null}
+        toMonth={toMonth ?? null}
         onChange={(from, to) => {
-          updateFilter({
-            fromMonth: from,
-            toMonth: to,
+          // undefined drops the key from the URL, matching the old
+          // URLSearchParams.delete() behaviour.
+          void navigate({
+            search: (prev) => ({
+              ...prev,
+              fromMonth: from ?? undefined,
+              toMonth: to ?? undefined,
+            }),
           });
         }}
       />
 
       <Select
-        value={currentCategory}
+        value={category ?? "all"}
         onValueChange={(v) =>
-          updateFilter({ category: v === "all" ? null : v })
+          void navigate({
+            search: (prev) => ({
+              ...prev,
+              category: !v || v === "all" ? undefined : v,
+            }),
+          })
         }
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="min-w-[180px]">
           <SelectValue placeholder="Tất cả danh mục">
             {(value) => {
               if (!value || value === "all") return "Tất cả danh mục";
-              const cat = categories.find((c) => c.id === value);
-              return cat?.name ?? "Tất cả danh mục";
+              return (
+                getCategoryPath(String(value), categories) || "Tất cả danh mục"
+              );
             }}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Tất cả danh mục</SelectItem>
-          {flattenWithDepth(categories).map(({ category, depth }) => (
-            <SelectItem key={category.id} value={category.id}>
-              {"  ".repeat(depth)}
-              {category.name}
+          {/* Full path rather than an indented name: repeated spaces collapse in
+              HTML, so depth was invisible and a child read as a root. This also
+              matches the trigger, which shows the path. */}
+          {flattenWithDepth(categories).map(({ category: cat }) => (
+            <SelectItem key={cat.id} value={cat.id}>
+              {getCategoryPath(cat.id, categories)}
             </SelectItem>
           ))}
         </SelectContent>

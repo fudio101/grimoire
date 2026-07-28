@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { flattenWithDepth, getDescendantIds } from "@/lib/category-tree";
@@ -27,7 +25,7 @@ export function CategoryTreeSelect({
 
   if (rows.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         Chưa có danh mục nào. Hãy tạo danh mục trước.
       </p>
     );
@@ -57,7 +55,7 @@ export function CategoryTreeSelect({
         return (
           <label
             key={category.id}
-            className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm"
+            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
             style={{ marginLeft: depth * 20 }}
           >
             <Checkbox
