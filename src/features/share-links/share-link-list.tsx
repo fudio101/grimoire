@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
+import { useState } from "react";
 import { Trash2, Pencil, X, ExternalLink, RefreshCw } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,8 @@ import {
   toggleShareLinkEnabled,
   rotateShareLinkCode,
   deleteShareLink,
-} from "@/app/actions/share-links";
+} from "@/server/share-links.functions";
+import { shareLinksQueryOptions } from "@/lib/query-options";
 import type { Category } from "@/lib/db/schema";
 import type { ShareLinkWithCategories } from "@/lib/db/queries";
 
@@ -24,33 +26,53 @@ export function ShareLinkList({
   categories: Category[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [optimisticLinks, setEnabled] = useOptimistic(
-    links,
-    (
-      state: ShareLinkWithCategories[],
-      update: { id: string; enabled: boolean }
-    ) =>
-      state.map((l) =>
-        l.id === update.id ? { ...l, enabled: update.enabled } : l
-      )
-  );
-  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+  const linksKey = shareLinksQueryOptions().queryKey;
 
-  const handleToggle = (link: ShareLinkWithCategories) => {
-    startTransition(async () => {
-      setEnabled({ id: link.id, enabled: !link.enabled });
-      await toggleShareLinkEnabled(link.id);
-    });
-  };
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["shareLinks"] });
 
-  const handleDelete = async (id: string) => {
-    const result = await deleteShareLink(id);
-    if (!result.success) {
-      alert(result.error);
-    }
-  };
+  /**
+   * Replaces useOptimistic + useTransition. Writing straight into the query
+   * cache and rolling back on failure gives the same instant toggle, but keeps
+   * the optimistic value and the cached value as one thing instead of two that
+   * can disagree.
+   */
+  const toggle = useMutation({
+    mutationFn: (id: string) => toggleShareLinkEnabled({ data: { id } }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: linksKey });
+      const previous =
+        queryClient.getQueryData<ShareLinkWithCategories[]>(linksKey);
+      queryClient.setQueryData<ShareLinkWithCategories[]>(linksKey, (current) =>
+        current?.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(linksKey, ctx.previous);
+    },
+    onSettled: invalidate,
+  });
 
-  if (optimisticLinks.length === 0) {
+  const rotate = useMutation({
+    mutationFn: (id: string) => rotateShareLinkCode({ data: { id } }),
+    onSuccess: invalidate,
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteShareLink({ data: { id } }),
+    onSuccess: async (result) => {
+      // Kept as an alert to preserve existing behaviour.
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      await invalidate();
+    },
+  });
+
+  if (links.length === 0) {
     return (
       <div className="py-12 text-center text-muted-foreground">
         Chưa có link công khai nào. Hãy tạo link đầu tiên!
@@ -60,7 +82,7 @@ export function ShareLinkList({
 
   return (
     <div className="space-y-2">
-      {optimisticLinks.map((link) => (
+      {links.map((link) => (
         <div key={link.id} className="rounded-lg border p-3">
           {editingId === link.id ? (
             <div className="flex items-start gap-2">
@@ -133,13 +155,13 @@ export function ShareLinkList({
                   title="Đổi mã link"
                   description="Mã mới sẽ được tạo tự động. Link cũ sẽ không còn hoạt động. Bạn có chắc chắn?"
                   confirmLabel="Đổi mã"
-                  onConfirm={() => rotateShareLinkCode(link.id)}
+                  onConfirm={() => rotate.mutate(link.id)}
                 />
 
                 <Switch
                   checked={link.enabled}
-                  disabled={isPending}
-                  onCheckedChange={() => handleToggle(link)}
+                  disabled={toggle.isPending}
+                  onCheckedChange={() => toggle.mutate(link.id)}
                 />
 
                 <Button
@@ -163,7 +185,7 @@ export function ShareLinkList({
                   }
                   title="Xoá link công khai"
                   description={`Bạn có chắc chắn muốn xoá link "${link.name || link.code}"? Link sẽ ngừng hoạt động.`}
-                  onConfirm={() => handleDelete(link.id)}
+                  onConfirm={() => remove.mutate(link.id)}
                 />
               </div>
             </div>

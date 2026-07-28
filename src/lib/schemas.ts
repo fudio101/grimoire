@@ -16,6 +16,13 @@ export const categorySchema = z.object({
 
 export type CategoryInput = z.infer<typeof categorySchema>;
 
+/**
+ * TanStack Form matches a Standard Schema against its form data invariantly, so
+ * a form's values must be typed as the schema's *input* rather than its output.
+ * These differ wherever a field is optional.
+ */
+export type CategoryFormValues = z.input<typeof categorySchema>;
+
 export const shareLinkSchema = z.object({
   name: z.string().max(100).optional(),
   code: z
@@ -30,6 +37,8 @@ export const shareLinkSchema = z.object({
 });
 
 export type ShareLinkInput = z.infer<typeof shareLinkSchema>;
+
+export type ShareLinkFormValues = z.input<typeof shareLinkSchema>;
 
 export const loginSchema = z.object({
   username: z.string().min(1, "Vui lòng nhập tên đăng nhập"),

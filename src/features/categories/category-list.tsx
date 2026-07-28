@@ -2,22 +2,35 @@
 
 import { useState } from "react";
 import { Trash2, Pencil, X } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { CategoryForm } from "@/features/categories/category-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { deleteCategory } from "@/app/actions/categories";
+import { deleteCategory } from "@/server/categories.functions";
 import { flattenWithDepth } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 
 export function CategoryList({ categories }: { categories: Category[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const handleDelete = async (id: string) => {
-    const result = await deleteCategory(id);
-    if (!result.success) {
-      alert(result.error);
-    }
-  };
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteCategory({ data: { id } }),
+    onSuccess: async (result) => {
+      // Kept as an alert to preserve existing behaviour; it is the only place
+      // in the app that reports an error this way.
+      if (!result.success) {
+        alert(result.error);
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      ]);
+    },
+  });
+
+  const handleDelete = (id: string) => remove.mutate(id);
 
   if (categories.length === 0) {
     return (

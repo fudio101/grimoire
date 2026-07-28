@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Trash2, Pencil } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ResponsiveModal } from "@/components/responsive-modal";
 import {
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/features/transactions/transaction-form";
-import { deleteTransaction } from "@/app/actions/transactions";
+import { deleteTransaction } from "@/server/transactions.functions";
 import { formatVND, formatDateTime } from "@/lib/format";
 import type { Category } from "@/lib/db/schema";
 import type { TransactionRow } from "@/lib/types";
@@ -27,6 +28,13 @@ export function TransactionTable({
   categories: Category[];
 }) {
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteTransaction({ data: { id } }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+  });
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -121,7 +129,7 @@ export function TransactionTable({
                       }
                       title="Xoá giao dịch"
                       description="Bạn có chắc chắn muốn xoá giao dịch này?"
-                      onConfirm={() => deleteTransaction(tx.id)}
+                      onConfirm={() => remove.mutate(tx.id)}
                     />
                   </div>
                 </TableCell>
