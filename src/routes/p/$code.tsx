@@ -1,18 +1,13 @@
 import { useMemo } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CategoryBreakdown } from "@/features/overview/category-breakdown";
 import { CategoryPickerField } from "@/features/categories/category-picker";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
@@ -172,6 +167,10 @@ function ReportBody({
   onMonthChange: (month: string | null) => void;
   onCategoryChange: (category: string | null) => void;
 }) {
+  // Collapsed on a phone, where an open chart pushes the entries off screen;
+  // open from md, where there is room for both.
+  const isWide = useMediaQuery("(min-width: 768px)");
+
   /**
    * Spending per top-level category, rolled up in the browser.
    *
@@ -241,36 +240,23 @@ function ReportBody({
       )}
 
       <div className="grid gap-6 md:grid-cols-2 md:items-start">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <CategoryBreakdown items={byCategory} total={total} />
 
           {/*
-           * The chart is secondary here — the numbers answer the question. It
-           * stays closed on a phone where it would push the entries off screen,
-           * and open from md where there is room for it.
+           * One frame, not two. The chart card collapses itself on a phone —
+           * wrapping it in a separate collapsible produced a button and then a
+           * visibly separate card below it, and Recharts measured its width
+           * while that wrapper was still at zero height, which pushed the page
+           * sideways when it opened.
+           *
+           * One instance, not one per breakpoint: two would mount two Recharts
+           * trees and leave one of them measuring a hidden container.
            */}
-          <Collapsible defaultOpen={false} className="md:hidden">
-            <CollapsibleTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="h-12 w-full justify-between"
-                >
-                  <span>Xem biểu đồ theo thời gian</span>
-                  <ChevronDown className="size-5" />
-                </Button>
-              }
-            />
-            <CollapsibleContent className="pt-4">
-              <ExpenseChart transactions={transactions} />
-            </CollapsibleContent>
-          </Collapsible>
-          <div className="hidden md:block">
-            <ExpenseChart transactions={transactions} />
-          </div>
+          <ExpenseChart transactions={transactions} collapsible={!isWide} />
         </div>
 
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           <h2 className="font-semibold tracking-tight">Từng khoản chi</h2>
           <PublicTransactionList transactions={transactions} />
         </section>
