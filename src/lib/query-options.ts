@@ -10,6 +10,7 @@ import {
   fetchPublicReport,
   type PublicReportSearch,
 } from "@/server/public.functions";
+import { fetchThemePreference } from "@/server/theme.functions";
 
 /**
  * Query keys double as the invalidation map that replaces revalidatePath.
@@ -22,6 +23,21 @@ export const sessionQueryOptions = () =>
     queryKey: ["session"] as const,
     queryFn: () => fetchSession(),
     // One round-trip per page load rather than per client-side navigation.
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+
+/**
+ * Same shape as `sessionQueryOptions`, and for the same reason: the root route
+ * needs this on every navigation, and it only ever changes when this tab writes
+ * the cookie itself. Caching it forever keeps client-side navigation free of an
+ * extra round-trip; `persistTheme` updates the DOM directly, so nothing has to
+ * re-read it to stay correct.
+ */
+export const themeQueryOptions = () =>
+  queryOptions({
+    queryKey: ["theme"] as const,
+    queryFn: () => fetchThemePreference(),
     staleTime: Infinity,
     gcTime: Infinity,
   });

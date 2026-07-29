@@ -23,10 +23,9 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   type Granularity,
-  formatCompactVND,
   groupTransactionsByGranularity,
 } from "@/lib/chart-utils";
-import { formatVND } from "@/lib/format";
+import { formatCompactVND, formatVND } from "@/lib/format";
 
 const chartConfig = {
   total: {

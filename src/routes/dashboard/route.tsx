@@ -7,6 +7,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { LogOut, Receipt, Share2, Tags } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { sessionQueryOptions } from "@/lib/query-options";
 import { logout } from "@/server/auth.functions";
 
@@ -51,21 +52,20 @@ function DashboardLayout() {
               <span className="hidden sm:inline">Link công khai</span>
             </Link>
           </nav>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              signOut.mutate();
-            }}
-          >
-            <SubmitButton
-              variant="ghost"
-              size="sm"
-              isLoading={signOut.isPending}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                signOut.mutate();
+              }}
             >
-              <LogOut className="h-4 w-4" />
-              <span className="ml-2 hidden sm:inline">Đăng xuất</span>
-            </SubmitButton>
-          </form>
+              <SubmitButton variant="ghost" isLoading={signOut.isPending}>
+                <LogOut />
+                <span className="hidden sm:inline">Đăng xuất</span>
+              </SubmitButton>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-6">

@@ -22,10 +22,14 @@ import type { TransactionTableRow } from "@/lib/types";
 // and nowrap so a two-level path stays on one line as it did before — the
 // container scrolls horizontally rather than letting rows grow taller.
 const GRID_TEMPLATE = "130px minmax(80px, 1fr) 210px 120px";
-const GRID_TEMPLATE_WITH_ACTIONS = `${GRID_TEMPLATE} 84px`;
+// The actions column holds two icon buttons at `gap-1`. Those buttons are now
+// width-responsive (44px touch below `md`, 40px from `md` up), so the column has
+// to clear the wider case: 44 + 4 + 44 = 92. Row height follows for the same
+// reason — 44px controls do not fit in a 45px row.
+const GRID_TEMPLATE_WITH_ACTIONS = `${GRID_TEMPLATE} 100px`;
 const MIN_TABLE_WIDTH = 620;
 
-const ROW_HEIGHT = 45;
+const ROW_HEIGHT = 52;
 
 export function TransactionDataTable({
   data,
