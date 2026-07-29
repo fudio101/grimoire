@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.1](https://github.com/fugo101/grimoire/compare/v2.1.0...v2.1.1) (2026-07-29)
+
+
+### 🐛 Bug Fixes
+
+* harden the auth boundary and close the database on shutdown ([#87](https://github.com/fugo101/grimoire/issues/87)) ([c603075](https://github.com/fugo101/grimoire/commit/c60307583fe2120367ddffec88e9816b70745094))
+
+
+### ⚡ Performance
+
+* index the transactions table and stop re-reading categories ([#88](https://github.com/fugo101/grimoire/issues/88)) ([c1962b2](https://github.com/fugo101/grimoire/commit/c1962b248ea4596d2e07c7f9bf052d6aec5a0f2f))
+
 ## [2.1.0](https://github.com/fugo101/grimoire/compare/v2.0.0...v2.1.0) (2026-07-29)
 
 
