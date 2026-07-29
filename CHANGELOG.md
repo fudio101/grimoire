@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.0](https://github.com/fugo101/grimoire/compare/v2.0.0...v2.1.0) (2026-07-29)
+
+
+### 🚀 Features
+
+* **dashboard:** add overview screen and thumb-reach navigation ([#84](https://github.com/fugo101/grimoire/issues/84)) ([cb803c0](https://github.com/fugo101/grimoire/commit/cb803c072ca569ebdd15f82578b934066063e171))
+* **public:** rebuild the shared report around reading it ([#86](https://github.com/fugo101/grimoire/issues/86)) ([bff3df8](https://github.com/fugo101/grimoire/commit/bff3df87b1ee25059e0a435bb665f35b3e996b9c))
+* **transactions:** replace the table and category select on mobile ([#85](https://github.com/fugo101/grimoire/issues/85)) ([26b5de0](https://github.com/fugo101/grimoire/commit/26b5de0aeafc221e3de2ee9496681c5436a2c482))
+* **ui:** rebuild design system foundation for mobile and dark mode ([#82](https://github.com/fugo101/grimoire/issues/82)) ([16dc510](https://github.com/fugo101/grimoire/commit/16dc5103889b69ab126754411439b5624e064ddb))
+
 ## [2.0.0](https://github.com/fugo101/grimoire/compare/v1.9.2...v2.0.0) (2026-07-28)
 
 
