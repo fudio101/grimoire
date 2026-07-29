@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { formatVND } from "@/lib/format";
 import { PublicFilters } from "@/features/transactions/public-filters";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
@@ -70,6 +71,15 @@ function PublicView() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
+      {/*
+       * The reader of a shared link never signs in, so this is their only way
+       * to control the theme. Labelled rather than icon-only: this page is read
+       * by people who should not have to infer what a sun glyph does.
+       */}
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <span className="text-sm text-muted-foreground">Giao diện</span>
+        <ThemeToggle />
+      </div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

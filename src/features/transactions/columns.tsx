@@ -93,19 +93,18 @@ export function transactionColumns(
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
               onClick={() => handlers.onEdit(row.original)}
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil />
             </Button>
             <ConfirmDialog
               trigger={
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 />
                 </Button>
               }
               title="Xoá giao dịch"

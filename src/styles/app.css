@@ -12,14 +12,17 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "Roboto Variable", sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -50,73 +53,104 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Neutrals carry a small warm chroma (~0.005 at hue 78) rather than being
+ * achromatic. Long reading sessions on a pure-grey field feel colder than they
+ * need to, and the public report is read at length by people who did not choose
+ * to be here. Foregrounds stay nearer neutral so text does not read as ochre.
+ *
+ * Every foreground/background pair below was checked against WCAG AA (4.5:1)
+ * using the worst-case surface it can land on, not just `background`. That
+ * distinction is the whole point: stock shadcn's `muted-foreground` (L 0.556)
+ * measures 4.73:1 on white and passes, but 4.34:1 on `muted` — and muted text
+ * on a muted surface is exactly what card footers and table headers render.
+ * Dropping it to L 0.47 takes that worst case to 6.18:1.
+ *
+ * The chart ramp is sequential (one hue family, L descending), not categorical.
+ * Magnitude is carried by bar length and every bar is labelled, so hue never has
+ * to distinguish one category from another — which also keeps the ramp safe for
+ * red-green colour blindness. If a future chart needs true categorical colour,
+ * this ramp is the wrong tool and should be replaced rather than extended.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  --background: oklch(0.985 0.004 78);
+  --foreground: oklch(0.17 0.006 68);
+  --card: oklch(1 0.001 78);
+  --card-foreground: oklch(0.17 0.006 68);
+  --popover: oklch(1 0.001 78);
+  --popover-foreground: oklch(0.17 0.006 68);
+  /* Single brand hue. --primary aliases it so every registry component that
+     reaches for bg-primary picks it up without being touched. */
+  --brand: oklch(0.48 0.095 195);
+  --brand-foreground: oklch(0.99 0.005 195);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.965 0.006 78);
+  --secondary-foreground: oklch(0.22 0.008 68);
+  --muted: oklch(0.965 0.006 78);
+  --muted-foreground: oklch(0.47 0.012 70);
+  --accent: oklch(0.965 0.006 78);
+  --accent-foreground: oklch(0.22 0.008 68);
+  --destructive: oklch(0.48 0.2 27);
+  --destructive-foreground: oklch(0.99 0.01 27);
+  --success: oklch(0.5 0.13 150);
+  --success-foreground: oklch(0.99 0.01 150);
+  /* Amber cannot reach 4.5:1 against white at any usable saturation, so warning
+     is the one semantic pair that inverts: dark text on a light fill. */
+  --warning: oklch(0.8 0.15 82);
+  --warning-foreground: oklch(0.28 0.05 82);
+  --info: oklch(0.5 0.15 255);
+  --info-foreground: oklch(0.99 0.01 255);
+  --border: oklch(0.915 0.006 78);
+  --input: oklch(0.915 0.006 78);
+  --ring: var(--brand);
+  --chart-1: oklch(0.55 0.1 195);
+  --chart-2: oklch(0.6 0.11 215);
+  --chart-3: oklch(0.55 0.13 245);
+  --chart-4: oklch(0.5 0.14 270);
+  --chart-5: oklch(0.45 0.12 290);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.155 0.005 75);
+  --foreground: oklch(0.975 0.003 78);
+  --card: oklch(0.205 0.006 75);
+  --card-foreground: oklch(0.975 0.003 78);
+  --popover: oklch(0.205 0.006 75);
+  --popover-foreground: oklch(0.975 0.003 78);
+  --brand: oklch(0.72 0.11 195);
+  --brand-foreground: oklch(0.19 0.03 195);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.265 0.007 75);
+  --secondary-foreground: oklch(0.975 0.003 78);
+  --muted: oklch(0.265 0.007 75);
+  --muted-foreground: oklch(0.72 0.01 78);
+  --accent: oklch(0.265 0.007 75);
+  --accent-foreground: oklch(0.975 0.003 78);
+  --destructive: oklch(0.72 0.17 25);
+  --destructive-foreground: oklch(0.19 0.04 25);
+  --success: oklch(0.75 0.15 150);
+  --success-foreground: oklch(0.19 0.04 150);
+  --warning: oklch(0.82 0.15 82);
+  --warning-foreground: oklch(0.26 0.05 82);
+  --info: oklch(0.72 0.13 255);
+  --info-foreground: oklch(0.19 0.04 255);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: var(--brand);
+  /*
+   * Re-tuned for dark rather than shared with light. The stock file reused one
+   * ramp for both modes; its darkest steps (L 0.42) sat almost on top of the
+   * dark background and the lightest glowed. These lift the whole ramp into
+   * L 0.66-0.74 so all five stay separable against L 0.155.
+   */
+  --chart-1: oklch(0.72 0.11 195);
+  --chart-2: oklch(0.74 0.11 215);
+  --chart-3: oklch(0.7 0.13 245);
+  --chart-4: oklch(0.68 0.14 270);
+  --chart-5: oklch(0.66 0.13 290);
 }
 
 @layer base {

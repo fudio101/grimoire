@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { loginSchema } from "@/lib/schemas";
 import { login } from "@/server/auth.functions";
 
@@ -41,7 +42,12 @@ function LoginPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      {/* Same reason as /p/$code: the dashboard header is unreachable here, so
+          without this there is no way to change theme while signed out. */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Grimoire</CardTitle>

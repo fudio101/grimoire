@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { CategoryForm } from "@/features/categories/category-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { toastError } from "@/lib/toast";
 import { deleteCategory } from "@/server/categories.functions";
 import { flattenWithDepth } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
@@ -15,10 +16,8 @@ export function CategoryList({ categories }: { categories: Category[] }) {
   const remove = useMutation({
     mutationFn: (id: string) => deleteCategory({ data: { id } }),
     onSuccess: async (result) => {
-      // Kept as an alert to preserve existing behaviour; it is the only place
-      // in the app that reports an error this way.
       if (!result.success) {
-        alert(result.error);
+        toastError(result.error);
         return;
       }
       await Promise.all([
@@ -66,10 +65,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
                   onClick={() => setEditingId(category.id)}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil />
                 </Button>
 
                 <ConfirmDialog
@@ -77,9 +75,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 />
                     </Button>
                   }
                   title="Xoá danh mục"
@@ -94,10 +92,9 @@ export function CategoryList({ categories }: { categories: Category[] }) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
               onClick={() => setEditingId(null)}
             >
-              <X className="h-3.5 w-3.5" />
+              <X />
             </Button>
           )}
         </div>

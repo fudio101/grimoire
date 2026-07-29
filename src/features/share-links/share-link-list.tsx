@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { toastError } from "@/lib/toast";
 import { CopyButton } from "@/features/categories/copy-button";
 import { ShareLinkForm } from "@/features/share-links/share-link-form";
 import {
@@ -61,9 +62,8 @@ export function ShareLinkList({
   const remove = useMutation({
     mutationFn: (id: string) => deleteShareLink({ data: { id } }),
     onSuccess: async (result) => {
-      // Kept as an alert to preserve existing behaviour.
       if (!result.success) {
-        alert(result.error);
+        toastError(result.error);
         return;
       }
       await invalidate();
@@ -99,10 +99,9 @@ export function ShareLinkList({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
                 onClick={() => setEditingId(null)}
               >
-                <X className="h-3.5 w-3.5" />
+                <X />
               </Button>
             </div>
           ) : (
@@ -135,10 +134,9 @@ export function ShareLinkList({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
                   onClick={() => window.open(`/p/${link.code}`, "_blank")}
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <ExternalLink />
                 </Button>
                 <CopyButton
                   text={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${link.code}`}
@@ -146,13 +144,16 @@ export function ShareLinkList({
 
                 <ConfirmDialog
                   trigger={
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <RefreshCw className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="icon">
+                      <RefreshCw />
                     </Button>
                   }
                   title="Đổi mã link"
                   description="Mã mới sẽ được tạo tự động. Link cũ sẽ không còn hoạt động. Bạn có chắc chắn?"
                   confirmLabel="Đổi mã"
+                  // Rotating a code is not a deletion — it should not be styled
+                  // like one now that ConfirmDialog can say so.
+                  variant="default"
                   onConfirm={() => rotate.mutate(link.id)}
                 />
 
@@ -165,10 +166,9 @@ export function ShareLinkList({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
                   onClick={() => setEditingId(link.id)}
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil />
                 </Button>
 
                 <ConfirmDialog
@@ -176,9 +176,9 @@ export function ShareLinkList({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 />
                     </Button>
                   }
                   title="Xoá link công khai"
