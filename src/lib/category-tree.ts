@@ -12,6 +12,26 @@ export type CategoryNode = Category & { children: CategoryNode[] };
 export type CategoryLike = Pick<Category, "id" | "name" | "parentId">;
 
 /**
+ * A category lookup, either as the flat list or as an already-built index.
+ *
+ * The lookup functions below are called once per transaction row, and building
+ * the map inside each of them made that O(rows × categories) in allocations.
+ * Accepting a prebuilt index lets a caller with a loop hoist the map out of it,
+ * while callers with a single question keep passing the array.
+ */
+export type CategorySource<T extends CategoryLike> =
+  readonly T[] | ReadonlyMap<string, T>;
+
+/** Build the index a hot loop should hoist and reuse. */
+export function indexCategories<T extends CategoryLike>(
+  source: CategorySource<T>
+): ReadonlyMap<string, T> {
+  return source instanceof Map
+    ? source
+    : new Map((source as readonly T[]).map((c) => [c.id, c]));
+}
+
+/**
  * Build a nested tree from a flat category list. Preserves the input order of
  * `flat` (which getCategories() sorts by name) within each level.
  */
@@ -88,9 +108,9 @@ export function getDescendantIds(id: string, flat: CategoryRef[]): string[] {
  */
 export function getRootCategory(
   id: string,
-  flat: Category[]
+  flat: CategorySource<Category>
 ): Category | undefined {
-  const byId = new Map(flat.map((c) => [c.id, c]));
+  const byId = indexCategories(flat);
   let current = byId.get(id);
   const guard = new Set<string>();
   while (current?.parentId && !guard.has(current.id)) {
@@ -105,9 +125,9 @@ export function getRootCategory(
 /** Category names from root → leaf, following parentId recursively. */
 export function getCategoryPathParts(
   id: string,
-  flat: CategoryLike[]
+  flat: CategorySource<CategoryLike>
 ): string[] {
-  const byId = new Map(flat.map((c) => [c.id, c]));
+  const byId = indexCategories(flat);
   const parts: string[] = [];
 
   let current = byId.get(id);
