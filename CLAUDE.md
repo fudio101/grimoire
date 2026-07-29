@@ -35,6 +35,8 @@ Accepted exceptions: **recharts** (what shadcn's chart is built on — TanStack 
 
 There is no test framework configured. CI (`.github/workflows/ci.yml`) runs lint, `format:check`, type-check, build, and a route-tree drift check on a self-hosted Linux runner. Fork PRs are blocked from CI.
 
+Those checks prove the code compiles and is formatted — nothing more. **Behaviour has to be verified by running it**, and a check that something is now rejected means little on its own: pair it with a control that must still pass, or a broken build looks identical to a working guard. Migrations especially need exercising against a copy of a real `data.db`, not just a fresh one — the fresh path is the one that cannot break.
+
 Node version is pinned to 26 by `.nvmrc`, and CI plus the Docker image match it.
 
 ## Setup
@@ -66,7 +68,16 @@ Route loaders call `context.queryClient.ensureQueryData(...)`; components read t
 
 **Any route reading search params must declare `loaderDeps`.** Loaders are keyed on the parsed pathname plus `loaderDeps` only. Without it, changing a filter updates the URL and the `useSearch()` value but never re-runs the loader — the page still shows correct data, fetched on the client after hydration, so SSR is silently lost. It does not error; it is just wrong. `@tanstack/eslint-plugin-router`'s `create-route-property-order` and `@tanstack/eslint-plugin-query`'s `exhaustive-deps` guard the related mistakes.
 
-Mutations invalidate rather than revalidate a path: transactions → `["transactions"]`; categories → `["categories"]` **and** `["transactions"]` (category names render inside the transaction table); share links → `["shareLinks"]`. The bare prefix covers every filter combination.
+Mutations invalidate rather than revalidate a path. The bare prefix covers every filter combination:
+
+| Mutation | Invalidates |
+|---|---|
+| transactions | `["transactions"]`, `["overview"]`, `["recentCategories"]` |
+| categories | `["categories"]`, `["transactions"]`, `["overview"]`, `["recentCategories"]` |
+| share links | `["shareLinks"]` |
+| login / logout | `["session"]` |
+
+Categories reach into `["transactions"]` because category names render inside the transaction table, and into `["overview"]`/`["recentCategories"]` because both roll up by category. Sign-out must invalidate `["session"]` explicitly: that query is cached with `staleTime`/`gcTime` of `Infinity`, and `logout` redirects client-side, so the cache would otherwise survive it.
 
 ### Auth
 
@@ -75,7 +86,9 @@ Single-admin JWT (HS256, 7-day expiry, `sub: "admin"`) in an httpOnly `session` 
 Two distinct layers, and the distinction matters:
 
 - **`beforeLoad` on `src/routes/dashboard/route.tsx`** is a UX guard. It keeps signed-out visitors off the screen and, unlike middleware, also runs on client-side navigation.
-- **`requireAdmin` in `src/server/auth.functions.ts`** is the security boundary. Server functions are RPC endpoints under `/_serverFn/*` that no route guard covers, so **every server function reading or writing private data must carry this middleware.** The public exceptions are `login`, `logout`, `fetchSession` and `fetchPublicReport`.
+- **`requireAdmin` in `src/server/auth.functions.ts`** is the security boundary. Server functions are RPC endpoints under `/_serverFn/*` that no route guard covers, so **every server function reading or writing private data must carry this middleware.** The public exceptions are `login`, `logout`, `fetchSession`, `fetchPublicReport` and `fetchThemePreference` — the last reads only the caller's own theme cookie, and `/p/$code` needs it for readers who never sign in.
+
+`AUTH_SECRET` must be at least 32 characters; `assertAuthSecret()` runs from `src/server.ts` so a weak secret fails at startup rather than at the first login.
 
 Do **not** add `src/start.ts`. Start installs CSRF protection for server functions automatically, but only while that file is absent.
 

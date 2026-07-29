@@ -38,6 +38,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template, which setup tells you to copy. `.env*` had been
+# swallowing it, so `cp .env.example .env.local` failed on a fresh clone.
+!.env.example
 
 # database
 *.db

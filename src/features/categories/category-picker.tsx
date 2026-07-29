@@ -101,7 +101,7 @@ export type CategoryPickerProps = {
  * with its ancestors shown *beneath* the name (so the distinguishing part is
  * never the part that is cut), and the chips cover the common case in one tap.
  */
-export function CategoryPicker({
+function CategoryPicker({
   title = "Chọn danh mục",
   trigger,
   open,
