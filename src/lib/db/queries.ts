@@ -106,6 +106,32 @@ export async function getTotalsByMonth(
     .orderBy(monthExpr);
 }
 
+/**
+ * The categories used most in recent history, for the quick-pick chips.
+ *
+ * Ranked by frequency first and recency second: the point is to surface the
+ * handful of categories that cover most entries, so one tap replaces opening
+ * the picker at all. Restricted to a trailing window so a category used heavily
+ * a year ago and abandoned since does not hold a slot forever.
+ */
+export async function getRecentCategories(
+  limit = 8,
+  windowDays = 90
+): Promise<{ id: string; name: string }[]> {
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  return db
+    .select({ id: categories.id, name: categories.name })
+    .from(transactions)
+    .innerJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(gte(transactions.date, since))
+    .groupBy(categories.id, categories.name)
+    .orderBy(desc(sql`count(*)`), desc(sql`max(${transactions.date})`))
+    .limit(limit);
+}
+
 export type ShareLinkWithCategories = ShareLink & {
   categoryIds: string[];
   categoryNames: string[];

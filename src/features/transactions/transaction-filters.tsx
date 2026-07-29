@@ -1,12 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { flattenWithDepth, getCategoryPath } from "@/lib/category-tree";
+import { CategoryPickerField } from "@/features/categories/category-picker";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
@@ -17,7 +10,7 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
   const navigate = routeApi.useNavigate();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
       <MonthRangeFilter
         fromMonth={fromMonth ?? null}
         toMonth={toMonth ?? null}
@@ -34,39 +27,24 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
         }}
       />
 
-      <Select
-        value={category ?? "all"}
-        onValueChange={(v) =>
+      {/*
+       * Any node is selectable here, not just leaves: filtering by a parent
+       * means its whole subtree, which is what getTransactions already does.
+       */}
+      <CategoryPickerField
+        categories={categories}
+        value={category ?? null}
+        onChange={(id) =>
           void navigate({
-            search: (prev) => ({
-              ...prev,
-              category: !v || v === "all" ? undefined : v,
-            }),
+            search: (prev) => ({ ...prev, category: id ?? undefined }),
           })
         }
-      >
-        <SelectTrigger className="min-w-[180px]">
-          <SelectValue placeholder="Tất cả danh mục">
-            {(value) => {
-              if (!value || value === "all") return "Tất cả danh mục";
-              return (
-                getCategoryPath(String(value), categories) || "Tất cả danh mục"
-              );
-            }}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tất cả danh mục</SelectItem>
-          {/* Full path rather than an indented name: repeated spaces collapse in
-              HTML, so depth was invisible and a child read as a root. This also
-              matches the trigger, which shows the path. */}
-          {flattenWithDepth(categories).map(({ category: cat }) => (
-            <SelectItem key={cat.id} value={cat.id}>
-              {getCategoryPath(cat.id, categories)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        selectable="all"
+        clearLabel="Tất cả danh mục"
+        placeholder="Tất cả danh mục"
+        title="Lọc theo danh mục"
+        className="sm:w-[240px]"
+      />
     </div>
   );
 }

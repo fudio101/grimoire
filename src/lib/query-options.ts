@@ -3,6 +3,7 @@ import { fetchSession } from "@/server/auth.functions";
 import {
   fetchCategories,
   fetchOverview,
+  fetchRecentCategories,
   fetchShareLinks,
   fetchTransactions,
   type TransactionFilters,
@@ -64,6 +65,13 @@ export const overviewQueryOptions = (month: string) =>
   queryOptions({
     queryKey: ["overview", month] as const,
     queryFn: () => fetchOverview({ data: { month } }),
+  });
+
+/** Invalidated by the bare ["recentCategories"] key on any transaction write. */
+export const recentCategoriesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["recentCategories"] as const,
+    queryFn: () => fetchRecentCategories(),
   });
 
 export const shareLinksQueryOptions = () =>

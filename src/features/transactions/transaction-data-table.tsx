@@ -8,7 +8,16 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Receipt } from "lucide-react";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { TransactionCardList } from "@/features/transactions/transaction-card-list";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import type { TransactionTableRow } from "@/lib/types";
 
@@ -18,16 +27,8 @@ import type { TransactionTableRow } from "@/lib/types";
  * content. `table`, `thead`, `tbody` and `tr` are switched to grid to keep the
  * header and body aligned; the elements stay semantic.
  */
-// Order: date, note, category, amount [, actions]. The category column is wide
-// and nowrap so a two-level path stays on one line as it did before — the
-// container scrolls horizontally rather than letting rows grow taller.
-const GRID_TEMPLATE = "130px minmax(80px, 1fr) 210px 120px";
-// The actions column holds two icon buttons at `gap-1`. Those buttons are now
-// width-responsive (44px touch below `md`, 40px from `md` up), so the column has
-// to clear the wider case: 44 + 4 + 44 = 92. Row height follows for the same
-// reason — 44px controls do not fit in a 45px row.
+const GRID_TEMPLATE = "150px minmax(120px, 1fr) 210px 130px";
 const GRID_TEMPLATE_WITH_ACTIONS = `${GRID_TEMPLATE} 100px`;
-const MIN_TABLE_WIDTH = 620;
 
 const ROW_HEIGHT = 52;
 
@@ -36,13 +37,26 @@ export function TransactionDataTable({
   columns,
   showActions,
   emptyMessage,
+  onEdit,
+  onDelete,
 }: {
   data: TransactionTableRow[];
   columns: ColumnDef<TransactionTableRow>[];
   showActions: boolean;
   emptyMessage: string;
+  onEdit?: (row: TransactionTableRow) => void;
+  onDelete?: (id: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * One table instance drives both presentations, so sorting applies to the
+   * cards too. The swap happens after hydration (getServerSnapshot is false, so
+   * the server renders the card branch) — acceptable here because this sits
+   * below the fold and both branches show the same rows in the same order,
+   * unlike the app navigation which is switched with CSS for that reason.
+   */
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   // Mirrors the SQL ordering the server already applies, so the first paint
   // does not reshuffle.
@@ -51,7 +65,7 @@ export function TransactionDataTable({
   const table = useReactTable({
     data,
     columns,
-    state: { columnVisibility: { actions: showActions } },
+    state: { columnVisibility: { actions: showActions && isDesktop } },
     initialState: { sorting: initialSorting },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -64,13 +78,35 @@ export function TransactionDataTable({
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 12,
+    // Same reason as the card list: the scroll element is null during SSR, and
+    // the default zero rect means no rows are emitted server-side at all.
+    initialRect: { width: 0, height: 700 },
   });
 
-  const template = showActions ? GRID_TEMPLATE_WITH_ACTIONS : GRID_TEMPLATE;
+  const template =
+    showActions && isDesktop ? GRID_TEMPLATE_WITH_ACTIONS : GRID_TEMPLATE;
 
   if (data.length === 0) {
     return (
-      <p className="py-8 text-center text-muted-foreground">{emptyMessage}</p>
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Receipt />
+          </EmptyMedia>
+          <EmptyTitle>Chưa có giao dịch</EmptyTitle>
+          <EmptyDescription>{emptyMessage}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  if (!isDesktop) {
+    return (
+      <TransactionCardList
+        rows={rows.map((r) => r.original)}
+        onEdit={showActions ? onEdit : undefined}
+        onDelete={showActions ? onDelete : undefined}
+      />
     );
   }
 
@@ -79,10 +115,7 @@ export function TransactionDataTable({
       ref={scrollRef}
       className="relative max-h-[70vh] overflow-auto rounded-md border"
     >
-      <table
-        className="grid w-full caption-bottom text-sm"
-        style={{ minWidth: MIN_TABLE_WIDTH }}
-      >
+      <table className="grid w-full caption-bottom text-sm">
         <thead className="sticky top-0 z-10 grid bg-background">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr
@@ -93,27 +126,51 @@ export function TransactionDataTable({
               {headerGroup.headers.map((header) => {
                 const sortable = header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
+                const label = flexRender(
+                  header.column.columnDef.header,
+                  header.getContext()
+                );
                 return (
                   <th
                     key={header.id}
-                    className={cn(
-                      "flex h-10 items-center gap-1 px-2 text-left align-middle font-medium text-muted-foreground",
-                      header.column.id === "amount" && "justify-end",
-                      sortable && "cursor-pointer select-none"
-                    )}
-                    onClick={
-                      sortable
-                        ? header.column.getToggleSortingHandler()
-                        : undefined
+                    /* aria-sort belongs on the header cell; the control that
+                       changes it has to be a real button, or the column cannot
+                       be sorted from the keyboard at all. */
+                    aria-sort={
+                      !sortable
+                        ? undefined
+                        : sorted === "asc"
+                          ? "ascending"
+                          : sorted === "desc"
+                            ? "descending"
+                            : "none"
                     }
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
+                    className={cn(
+                      "flex h-10 items-center align-middle font-medium text-muted-foreground",
+                      header.column.id === "amount" && "justify-end"
                     )}
-                    {sorted === "asc" && <ChevronUp className="h-3.5 w-3.5" />}
-                    {sorted === "desc" && (
-                      <ChevronDown className="h-3.5 w-3.5" />
+                  >
+                    {sortable ? (
+                      <button
+                        type="button"
+                        onClick={header.column.getToggleSortingHandler()}
+                        className={cn(
+                          "flex h-full w-full items-center gap-1 px-2 text-left hover:text-foreground",
+                          "rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          header.column.id === "amount" && "justify-end"
+                        )}
+                      >
+                        {label}
+                        {sorted === "asc" ? (
+                          <ChevronUp className="size-3.5" />
+                        ) : sorted === "desc" ? (
+                          <ChevronDown className="size-3.5" />
+                        ) : (
+                          <ChevronsUpDown className="size-3.5 opacity-40" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="px-2">{label}</span>
                     )}
                   </th>
                 );
