@@ -8,6 +8,7 @@ import {
   getTransactionsForCategories,
 } from "@/lib/db/queries";
 import { getCategoryPath, getCategoryPathParts } from "@/lib/category-tree";
+import { addMonths } from "@/lib/format";
 import type { TransactionTableRow } from "@/lib/types";
 
 export const publicReportSchema = z.object({
@@ -27,6 +28,14 @@ export type PublicReport = {
   /** categoryPathParts is resolved here so the category tree never ships. */
   transactions: TransactionTableRow[];
   total: number;
+  /**
+   * The same scope one month earlier, for the comparison line.
+   *
+   * null when the view is not a single month: "more than last month" has no
+   * meaning against a six-month range, and showing a number anyway would be
+   * worse than showing nothing.
+   */
+  previousTotal: number | null;
   filterOptions: { id: string; label: string }[];
 };
 
@@ -61,10 +70,21 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
 
     const range = { fromMonth: data.fromMonth, toMonth: data.toMonth };
 
-    const [allCategories, rows, total] = await Promise.all([
+    // Only a single-month view has a meaningful "previous month".
+    const singleMonth =
+      data.fromMonth && data.fromMonth === data.toMonth ? data.fromMonth : null;
+    const previousMonth = singleMonth ? addMonths(singleMonth, -1) : null;
+
+    const [allCategories, rows, total, previousTotal] = await Promise.all([
       getCategories(),
       getTransactionsForCategories(effectiveIds, range),
       getTotalForCategories(effectiveIds, range),
+      previousMonth
+        ? getTotalForCategories(effectiveIds, {
+            fromMonth: previousMonth,
+            toMonth: previousMonth,
+          })
+        : Promise.resolve(null),
     ]);
 
     const filterOptions = categoryIds
@@ -75,6 +95,7 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
     return {
       linkName: link.name,
       total,
+      previousTotal,
       filterOptions,
       transactions: rows.map((row) => ({
         id: row.id,

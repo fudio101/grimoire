@@ -28,9 +28,9 @@ type ActionHandlers = {
 };
 
 /**
- * Shared by the dashboard and the public report. The public report simply hides
- * the `actions` column, which is what lets both use one definition instead of
- * two hand-written tables that drifted apart.
+ * The dashboard table's columns. The public report used to share this
+ * definition and hide the `actions` column; it now renders its own card list,
+ * so this serves one screen and the column order is free again.
  */
 export function transactionColumns(
   handlers?: ActionHandlers
@@ -50,9 +50,6 @@ export function transactionColumns(
         a.original.date.localeCompare(b.original.date) ||
         a.original.createdAt.localeCompare(b.original.createdAt),
     },
-    // Note before category, matching the dashboard table this replaces. The
-    // public report used the opposite order; sharing one definition means one
-    // of the two had to move, and the daily-use screen keeps its layout.
     {
       id: "note",
       accessorKey: "note",

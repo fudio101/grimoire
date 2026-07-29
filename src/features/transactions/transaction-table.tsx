@@ -57,7 +57,6 @@ export function TransactionTable({
       <TransactionDataTable
         data={rows}
         columns={columns}
-        showActions
         onEdit={setEditingTx}
         onDelete={remove.mutate}
         emptyMessage="Hãy thêm khoản chi đầu tiên để bắt đầu theo dõi."
