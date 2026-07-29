@@ -25,6 +25,7 @@ export function TransactionTable({
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["recentCategories"] }),
       ]),
   });
 
@@ -57,7 +58,9 @@ export function TransactionTable({
         data={rows}
         columns={columns}
         showActions
-        emptyMessage="Chưa có giao dịch nào. Hãy thêm giao dịch đầu tiên!"
+        onEdit={setEditingTx}
+        onDelete={remove.mutate}
+        emptyMessage="Hãy thêm khoản chi đầu tiên để bắt đầu theo dõi."
       />
 
       <ResponsiveModal

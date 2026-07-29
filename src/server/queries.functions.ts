@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   getCategories,
   getShareLinks,
+  getRecentCategories,
   getTotalsByMonth,
   getTransactions,
 } from "@/lib/db/queries";
@@ -36,6 +37,11 @@ export const fetchTransactions = createServerFn({ method: "GET" })
 export const fetchShareLinks = createServerFn({ method: "GET" })
   .middleware([requireAdmin])
   .handler(async () => getShareLinks());
+
+/** Quick-pick chips for the transaction form. Private data — requireAdmin. */
+export const fetchRecentCategories = createServerFn({ method: "GET" })
+  .middleware([requireAdmin])
+  .handler(async () => getRecentCategories());
 
 /** How many months the overview trend covers, including the selected one. */
 const SERIES_MONTHS = 6;

@@ -45,7 +45,7 @@ export function CategoryTreeSelect({
   };
 
   return (
-    <div className="max-h-72 space-y-1 overflow-y-auto rounded-md border p-2">
+    <div className="max-h-80 space-y-0.5 overflow-y-auto rounded-md border p-2">
       {rows.map(({ category, depth }) => {
         const ids = subtreeOf(category.id);
         const count = ids.filter((i) => selected.has(i)).length;
@@ -55,8 +55,8 @@ export function CategoryTreeSelect({
         return (
           <label
             key={category.id}
-            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
-            style={{ marginLeft: depth * 20 }}
+            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm hover:bg-accent md:min-h-10"
+            style={{ marginLeft: depth * 16 }}
           >
             <Checkbox
               checked={checked}

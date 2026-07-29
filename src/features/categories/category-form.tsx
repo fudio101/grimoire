@@ -3,25 +3,12 @@ import { useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SubmitButton } from "@/components/submit-button";
+import { CategoryPickerField } from "@/features/categories/category-picker";
 import { createCategory, updateCategory } from "@/server/categories.functions";
 import { categorySchema, type CategoryFormValues } from "@/lib/schemas";
-import {
-  flattenWithDepth,
-  getCategoryPath,
-  getDescendantIds,
-} from "@/lib/category-tree";
+import { getDescendantIds } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
-
-// The Select cannot hold null, so root level travels through a sentinel.
-const ROOT_VALUE = "__root__";
 
 export function CategoryForm({
   categories,
@@ -58,6 +45,7 @@ export function CategoryForm({
         queryClient.invalidateQueries({ queryKey: ["categories"] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["recentCategories"] }),
       ]);
       form.reset({ name: "", parentId: null });
       onSuccess?.();
@@ -70,9 +58,6 @@ export function CategoryForm({
     defaultValues
       ? [defaultValues.id, ...getDescendantIds(defaultValues.id, categories)]
       : []
-  );
-  const parentOptions = flattenWithDepth(categories).filter(
-    ({ category }) => !excluded.has(category.id)
   );
 
   return (
@@ -110,32 +95,17 @@ export function CategoryForm({
         <Label className="text-xs text-muted-foreground">Danh mục cha</Label>
         <form.Field name="parentId">
           {(field) => (
-            <Select
-              value={field.state.value ?? ROOT_VALUE}
-              onValueChange={(v) =>
-                field.handleChange(v === ROOT_VALUE ? null : v)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="— Cấp gốc —">
-                  {(value) => {
-                    if (!value || value === ROOT_VALUE) return "— Cấp gốc —";
-                    return getCategoryPath(value, categories);
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ROOT_VALUE}>— Cấp gốc —</SelectItem>
-                {/* Full path rather than an indented name: repeated spaces
-                    collapse in HTML, so depth was invisible and the option read
-                    as a root while the trigger showed the path once picked. */}
-                {parentOptions.map(({ category }) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {getCategoryPath(category.id, categories)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CategoryPickerField
+              categories={categories}
+              value={field.state.value ?? null}
+              onChange={(id) => field.handleChange(id)}
+              // Any node can be a parent, not just leaves.
+              selectable="all"
+              excludeIds={excluded}
+              clearLabel="— Cấp gốc —"
+              placeholder="— Cấp gốc —"
+              title="Chọn danh mục cha"
+            />
           )}
         </form.Field>
       </div>
