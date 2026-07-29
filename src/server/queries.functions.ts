@@ -10,10 +10,9 @@ import {
 import { requireAdmin } from "@/server/auth.functions";
 import { addMonths } from "@/lib/format";
 import { getRootCategory } from "@/lib/category-tree";
+import { monthRangeSchema, monthSchema } from "@/lib/schemas";
 
-export const transactionFilterSchema = z.object({
-  fromMonth: z.string().optional(),
-  toMonth: z.string().optional(),
+export const transactionFilterSchema = monthRangeSchema.extend({
   category: z.string().optional(),
 });
 
@@ -47,7 +46,7 @@ export const fetchRecentCategories = createServerFn({ method: "GET" })
 const SERIES_MONTHS = 6;
 
 export const overviewSchema = z.object({
-  month: z.string().regex(/^\d{4}-\d{2}$/, "Tháng không hợp lệ"),
+  month: monthSchema,
 });
 
 export type OverviewData = {

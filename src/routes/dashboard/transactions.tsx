@@ -10,10 +10,9 @@ import {
   categoriesQueryOptions,
   transactionsQueryOptions,
 } from "@/lib/query-options";
+import { monthRangeSearchSchema } from "@/lib/schemas";
 
-const searchSchema = z.object({
-  fromMonth: z.string().optional(),
-  toMonth: z.string().optional(),
+const searchSchema = monthRangeSearchSchema.extend({
   category: z.string().optional(),
 });
 
