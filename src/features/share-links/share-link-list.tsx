@@ -1,11 +1,25 @@
 import { useState } from "react";
-import { Trash2, Pencil, ExternalLink, RefreshCw, Share2 } from "lucide-react";
+import {
+  Trash2,
+  Pencil,
+  ExternalLink,
+  MoreHorizontal,
+  RefreshCw,
+  Share2,
+} from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ResponsiveModal } from "@/components/responsive-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyDescription,
@@ -33,6 +47,17 @@ export function ShareLinkList({
   categories: Category[];
 }) {
   const [editing, setEditing] = useState<ShareLinkWithCategories | null>(null);
+  /**
+   * Confirmations are hoisted out of the menu. A ConfirmDialog whose trigger is
+   * a menu item is unmounted the moment the menu closes, taking the dialog with
+   * it — so the menu only records the intent and one controlled dialog renders
+   * below. Named `pendingConfirm` rather than `confirm`, which would shadow
+   * window.confirm and silently typecheck.
+   */
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    kind: "rotate" | "delete";
+    link: ShareLinkWithCategories;
+  } | null>(null);
   const queryClient = useQueryClient();
   const linksKey = shareLinksQueryOptions().queryKey;
 
@@ -123,61 +148,74 @@ export function ShareLinkList({
               )}
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 sm:flex-nowrap sm:gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => window.open(`/p/${link.code}`, "_blank")}
-              >
-                <ExternalLink />
-              </Button>
+            {/*
+             * Two everyday actions stay visible; the rest move behind a menu.
+             * Six 32px icon buttons wrapping onto two rows was a row of
+             * unlabelled guesses, and the enabled state had no signal at all
+             * beyond the switch position — it now says which it is.
+             */}
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+              <label className="mr-1 flex cursor-pointer items-center gap-2">
+                <Switch
+                  checked={link.enabled}
+                  disabled={toggle.isPending}
+                  onCheckedChange={() => toggle.mutate(link.id)}
+                />
+                <span
+                  className={
+                    link.enabled ? "text-sm" : "text-sm text-muted-foreground"
+                  }
+                >
+                  {link.enabled ? "Đang bật" : "Đã tắt"}
+                </span>
+              </label>
+
               <CopyButton
                 text={`${typeof window !== "undefined" ? window.location.origin : ""}/p/${link.code}`}
               />
 
-              <ConfirmDialog
-                trigger={
-                  <Button variant="ghost" size="icon">
-                    <RefreshCw />
-                  </Button>
-                }
-                title="Đổi mã link"
-                description="Mã mới sẽ được tạo tự động. Link cũ sẽ không còn hoạt động. Bạn có chắc chắn?"
-                confirmLabel="Đổi mã"
-                // Rotating a code is not a deletion — it should not be styled
-                // like one now that ConfirmDialog can say so.
-                variant="default"
-                onConfirm={() => rotate.mutate(link.id)}
-              />
-
-              <Switch
-                checked={link.enabled}
-                disabled={toggle.isPending}
-                onCheckedChange={() => toggle.mutate(link.id)}
-              />
-
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setEditing(link)}
+                aria-label={`Mở ${link.name || link.code} trong tab mới`}
+                onClick={() => window.open(`/p/${link.code}`, "_blank")}
               >
-                <Pencil />
+                <ExternalLink />
               </Button>
 
-              <ConfirmDialog
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Tuỳ chọn khác cho ${link.name || link.code}`}
+                    >
+                      <MoreHorizontal />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditing(link)}>
+                    <Pencil />
+                    Sửa
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setPendingConfirm({ kind: "rotate", link })}
+                  >
+                    <RefreshCw />
+                    Đổi mã link
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setPendingConfirm({ kind: "delete", link })}
                   >
                     <Trash2 />
-                  </Button>
-                }
-                title="Xoá link công khai"
-                description={`Bạn có chắc chắn muốn xoá link "${link.name || link.code}"? Link sẽ ngừng hoạt động.`}
-                onConfirm={() => remove.mutate(link.id)}
-              />
+                    Xoá
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -187,6 +225,30 @@ export function ShareLinkList({
        * Same as the category list: editing opens a modal rather than replacing
        * the row, so the list does not reflow under the reader mid-edit.
        */}
+      <ConfirmDialog
+        open={pendingConfirm !== null}
+        onOpenChange={(open) => !open && setPendingConfirm(null)}
+        title={
+          pendingConfirm?.kind === "rotate"
+            ? "Đổi mã link"
+            : "Xoá link công khai"
+        }
+        description={
+          pendingConfirm?.kind === "rotate"
+            ? "Mã mới sẽ được tạo tự động. Link cũ sẽ không còn hoạt động. Bạn có chắc chắn?"
+            : `Bạn có chắc chắn muốn xoá link "${pendingConfirm?.link.name || pendingConfirm?.link.code}"? Link sẽ ngừng hoạt động.`
+        }
+        confirmLabel={pendingConfirm?.kind === "rotate" ? "Đổi mã" : "Xoá"}
+        // Rotating a code is not a deletion and should not be styled like one.
+        variant={pendingConfirm?.kind === "rotate" ? "default" : "destructive"}
+        onConfirm={() => {
+          if (!pendingConfirm) return;
+          if (pendingConfirm.kind === "rotate")
+            rotate.mutate(pendingConfirm.link.id);
+          else remove.mutate(pendingConfirm.link.id);
+        }}
+      />
+
       <ResponsiveModal
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}

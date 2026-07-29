@@ -9,30 +9,23 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CategoryBreakdown } from "@/features/overview/category-breakdown";
+import { CategoryPickerField } from "@/features/categories/category-picker";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
 import { PublicTransactionList } from "@/features/public-report/public-transaction-list";
 import { publicReportQueryOptions } from "@/lib/query-options";
 import type { TransactionTableRow } from "@/lib/types";
+import type { CategoryLike } from "@/lib/category-tree";
 
 const searchSchema = z.object({
   fromMonth: z.string().optional(),
   toMonth: z.string().optional(),
   category: z.string().optional(),
 });
-
-const ALL_VALUE = "__all__";
 
 export const Route = createFileRoute("/p/$code")({
   validateSearch: searchSchema,
@@ -119,7 +112,7 @@ function PublicView() {
   // The loader already raised notFound() for this; the guard is for types.
   if (!report) return null;
 
-  const { linkName, transactions, total, previousTotal, filterOptions } =
+  const { linkName, transactions, total, previousTotal, filterCategories } =
     report;
 
   // A single month is expressed as fromMonth === toMonth, which keeps the URL
@@ -136,7 +129,7 @@ function PublicView() {
         transactions={transactions}
         total={total}
         previousTotal={previousTotal}
-        filterOptions={filterOptions}
+        filterCategories={filterCategories}
         month={month}
         category={search.category}
         onMonthChange={(next) =>
@@ -163,7 +156,7 @@ function ReportBody({
   transactions,
   total,
   previousTotal,
-  filterOptions,
+  filterCategories,
   month,
   category,
   onMonthChange,
@@ -173,7 +166,7 @@ function ReportBody({
   transactions: TransactionTableRow[];
   total: number;
   previousTotal: number | null;
-  filterOptions: { id: string; label: string }[];
+  filterCategories: CategoryLike[];
   month: string | null;
   category: string | undefined;
   onMonthChange: (month: string | null) => void;
@@ -223,36 +216,27 @@ function ReportBody({
         count={transactions.length}
       />
 
-      {/* Only worth showing when the link actually spans more than one. */}
-      {filterOptions.length > 1 && (
+      {/*
+       * The same drill-down picker the dashboard uses, driven by the scoped
+       * tree the server ships. It replaces a flat select whose every option
+       * repeated its whole "A / B / C" path — the one control on this page that
+       * had not been brought up to the rest.
+       */}
+      {filterCategories.length > 1 && (
         <div className="space-y-1.5">
-          <Label htmlFor="public-category">Xem theo nhóm</Label>
-          <Select
-            value={category ?? ALL_VALUE}
-            onValueChange={(v) =>
-              onCategoryChange(!v || v === ALL_VALUE ? null : v)
-            }
-          >
-            <SelectTrigger id="public-category" className="h-12 w-full">
-              <SelectValue placeholder="Tất cả các nhóm">
-                {(value) => {
-                  if (!value || value === ALL_VALUE) return "Tất cả các nhóm";
-                  return (
-                    filterOptions.find((c) => c.id === value)?.label ??
-                    "Tất cả các nhóm"
-                  );
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_VALUE}>Tất cả các nhóm</SelectItem>
-              {filterOptions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Xem theo nhóm</Label>
+          <CategoryPickerField
+            categories={filterCategories}
+            value={category ?? null}
+            onChange={(id) => onCategoryChange(id)}
+            // Picking a parent means its whole subtree, intersected server-side
+            // with what this link is allowed to show.
+            selectable="all"
+            clearLabel="Tất cả các nhóm"
+            placeholder="Tất cả các nhóm"
+            title="Xem theo nhóm"
+            className="h-12"
+          />
         </div>
       )}
 

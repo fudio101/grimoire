@@ -3,6 +3,15 @@ import type { Category } from "@/lib/db/schema";
 export type CategoryNode = Category & { children: CategoryNode[] };
 
 /**
+ * The minimum a category needs to be placed in a tree and named.
+ *
+ * The public report ships exactly this and no more — no timestamps, no rows
+ * outside the link's own scope — so the same picker can drive it without the
+ * full table crossing the wire to an anonymous visitor.
+ */
+export type CategoryLike = Pick<Category, "id" | "name" | "parentId">;
+
+/**
  * Build a nested tree from a flat category list. Preserves the input order of
  * `flat` (which getCategories() sorts by name) within each level.
  */
@@ -94,7 +103,10 @@ export function getRootCategory(
 }
 
 /** Category names from root → leaf, following parentId recursively. */
-export function getCategoryPathParts(id: string, flat: Category[]): string[] {
+export function getCategoryPathParts(
+  id: string,
+  flat: CategoryLike[]
+): string[] {
   const byId = new Map(flat.map((c) => [c.id, c]));
   const parts: string[] = [];
 
@@ -110,6 +122,6 @@ export function getCategoryPathParts(id: string, flat: Category[]): string[] {
 }
 
 /** Human-readable path from root to the category, e.g. "Ăn uống / Cà phê". */
-export function getCategoryPath(id: string, flat: Category[]): string {
+export function getCategoryPath(id: string, flat: CategoryLike[]): string {
   return getCategoryPathParts(id, flat).join(" / ");
 }

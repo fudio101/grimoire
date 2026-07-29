@@ -23,6 +23,7 @@ export default defineConfig({
       "@base-ui/react/collapsible",
       "@base-ui/react/dialog",
       "@base-ui/react/input",
+      "@base-ui/react/menu",
       "@base-ui/react/merge-props",
       "@base-ui/react/popover",
       "@base-ui/react/select",
