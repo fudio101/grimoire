@@ -19,7 +19,16 @@ type JournalEntry = { idx: number; when: number; tag: string };
 const SCHEMA_PROBES: Record<string, () => boolean> = {
   "0000_dapper_psylocke": () => tableExists("categories"),
   "0001_icy_wind_dancer": () => columnExists("categories", "parent_id"),
+  /**
+   * 0002 both creates share_links and drops categories.is_public/share_token,
+   * so it is tempting to probe for both halves. Don't: baselining is
+   * all-or-nothing per migration, and a probe that answers false because only
+   * the drops are missing makes the migrator *replay* the migration, which
+   * dies on "table share_link_categories already exists" and takes the server
+   * down at startup. Probe the half whose replay is fatal.
+   */
   "0002_glamorous_gambit": () => tableExists("share_links"),
+  "0003_modern_jazinda": () => indexExists("transactions_date_idx"),
 };
 
 /**
@@ -43,6 +52,14 @@ function tableExists(name: string): boolean {
   return Boolean(
     sqlite
       .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(name)
+  );
+}
+
+function indexExists(name: string): boolean {
+  return Boolean(
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?")
       .get(name)
   );
 }
