@@ -27,22 +27,19 @@ import type { TransactionTableRow } from "@/lib/types";
  * content. `table`, `thead`, `tbody` and `tr` are switched to grid to keep the
  * header and body aligned; the elements stay semantic.
  */
-const GRID_TEMPLATE = "150px minmax(120px, 1fr) 210px 130px";
-const GRID_TEMPLATE_WITH_ACTIONS = `${GRID_TEMPLATE} 100px`;
+const GRID_TEMPLATE = "150px minmax(120px, 1fr) 210px 130px 100px";
 
 const ROW_HEIGHT = 52;
 
 export function TransactionDataTable({
   data,
   columns,
-  showActions,
   emptyMessage,
   onEdit,
   onDelete,
 }: {
   data: TransactionTableRow[];
   columns: ColumnDef<TransactionTableRow>[];
-  showActions: boolean;
   emptyMessage: string;
   onEdit?: (row: TransactionTableRow) => void;
   onDelete?: (id: string) => void;
@@ -65,7 +62,6 @@ export function TransactionDataTable({
   const table = useReactTable({
     data,
     columns,
-    state: { columnVisibility: { actions: showActions && isDesktop } },
     initialState: { sorting: initialSorting },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -82,9 +78,6 @@ export function TransactionDataTable({
     // the default zero rect means no rows are emitted server-side at all.
     initialRect: { width: 0, height: 700 },
   });
-
-  const template =
-    showActions && isDesktop ? GRID_TEMPLATE_WITH_ACTIONS : GRID_TEMPLATE;
 
   if (data.length === 0) {
     return (
@@ -104,8 +97,8 @@ export function TransactionDataTable({
     return (
       <TransactionCardList
         rows={rows.map((r) => r.original)}
-        onEdit={showActions ? onEdit : undefined}
-        onDelete={showActions ? onDelete : undefined}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }
@@ -121,7 +114,7 @@ export function TransactionDataTable({
             <tr
               key={headerGroup.id}
               className="grid border-b"
-              style={{ gridTemplateColumns: template }}
+              style={{ gridTemplateColumns: GRID_TEMPLATE }}
             >
               {headerGroup.headers.map((header) => {
                 const sortable = header.column.getCanSort();
@@ -191,7 +184,7 @@ export function TransactionDataTable({
                 ref={(el) => virtualizer.measureElement(el)}
                 className="absolute grid w-full border-b hover:bg-muted/50"
                 style={{
-                  gridTemplateColumns: template,
+                  gridTemplateColumns: GRID_TEMPLATE,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >

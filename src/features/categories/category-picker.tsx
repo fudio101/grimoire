@@ -10,7 +10,7 @@ import { ResponsiveModal } from "@/components/responsive-modal";
 import { getCategoryPath, isLeaf } from "@/lib/category-tree";
 import { matchesVi } from "@/lib/text";
 import { cn } from "@/lib/utils";
-import type { Category } from "@/lib/db/schema";
+import type { CategoryLike } from "@/lib/category-tree";
 
 /**
  * What every call site actually wants: a button showing the current selection
@@ -56,7 +56,7 @@ export function CategoryPickerField({
 }
 
 type Row = {
-  category: Category;
+  category: CategoryLike;
   hasChildren: boolean;
   selectable: boolean;
   /** Only set while searching — the ancestor path, shown muted under the name. */
@@ -64,7 +64,7 @@ type Row = {
 };
 
 export type CategoryPickerProps = {
-  categories: Category[];
+  categories: CategoryLike[];
   value: string | null;
   onChange: (id: string | null) => void;
   /**
@@ -161,7 +161,7 @@ function PickerBody({
 
   const byId = useMemo(() => new Map(visible.map((c) => [c.id, c])), [visible]);
   const childrenOf = useMemo(() => {
-    const map = new Map<string | null, Category[]>();
+    const map = new Map<string | null, CategoryLike[]>();
     for (const c of visible) {
       const key = c.parentId ?? null;
       const list = map.get(key);
@@ -171,7 +171,7 @@ function PickerBody({
     return map;
   }, [visible]);
 
-  const canSelect = (c: Category) =>
+  const canSelect = (c: CategoryLike) =>
     selectable === "all" || isLeaf(c.id, categories);
 
   const searching = query.trim().length > 0;
@@ -216,7 +216,7 @@ function PickerBody({
     if (!recentIds?.length || searching || parentId !== null) return [];
     return recentIds
       .map((id) => byId.get(id))
-      .filter((c): c is Category => Boolean(c) && canSelect(c!));
+      .filter((c): c is CategoryLike => Boolean(c) && canSelect(c!));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recentIds, byId, searching, parentId, categories, selectable]);
 

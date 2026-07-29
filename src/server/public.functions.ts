@@ -7,7 +7,8 @@ import {
   getTotalForCategories,
   getTransactionsForCategories,
 } from "@/lib/db/queries";
-import { getCategoryPath, getCategoryPathParts } from "@/lib/category-tree";
+import { getCategoryPathParts, type CategoryLike } from "@/lib/category-tree";
+import { addMonths } from "@/lib/format";
 import type { TransactionTableRow } from "@/lib/types";
 
 export const publicReportSchema = z.object({
@@ -27,7 +28,26 @@ export type PublicReport = {
   /** categoryPathParts is resolved here so the category tree never ships. */
   transactions: TransactionTableRow[];
   total: number;
-  filterOptions: { id: string; label: string }[];
+  /**
+   * The same scope one month earlier, for the comparison line.
+   *
+   * null when the view is not a single month: "more than last month" has no
+   * meaning against a six-month range, and showing a number anyway would be
+   * worse than showing nothing.
+   */
+  previousTotal: number | null;
+  /**
+   * The link's own categories, shaped so the same drill-down picker the
+   * dashboard uses can render them.
+   *
+   * `parentId` points at the nearest ancestor that is *also* in scope, or null.
+   * That keeps the tree self-contained: a category whose parent was not shared
+   * appears as a root here rather than dangling at a name the visitor is not
+   * entitled to. No category outside the link's scope is named, and the paths
+   * this reconstructs are the same ones the previous `label` field already
+   * spelled out — so this ships no information the old shape did not.
+   */
+  filterCategories: CategoryLike[];
 };
 
 /**
@@ -61,21 +81,50 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
 
     const range = { fromMonth: data.fromMonth, toMonth: data.toMonth };
 
-    const [allCategories, rows, total] = await Promise.all([
+    // Only a single-month view has a meaningful "previous month".
+    const singleMonth =
+      data.fromMonth && data.fromMonth === data.toMonth ? data.fromMonth : null;
+    const previousMonth = singleMonth ? addMonths(singleMonth, -1) : null;
+
+    const [allCategories, rows, total, previousTotal] = await Promise.all([
       getCategories(),
       getTransactionsForCategories(effectiveIds, range),
       getTotalForCategories(effectiveIds, range),
+      previousMonth
+        ? getTotalForCategories(effectiveIds, {
+            fromMonth: previousMonth,
+            toMonth: previousMonth,
+          })
+        : Promise.resolve(null),
     ]);
 
-    const filterOptions = categoryIds
-      .map((id) => ({ id, label: getCategoryPath(id, allCategories) }))
-      .filter((o) => o.label)
-      .sort((a, b) => a.label.localeCompare(b.label));
+    const byId = new Map(allCategories.map((c) => [c.id, c]));
+    const nearestInScopeAncestor = (id: string): string | null => {
+      let current = byId.get(id)?.parentId ?? null;
+      const guard = new Set<string>();
+      while (current && !guard.has(current)) {
+        if (linkSet.has(current)) return current;
+        guard.add(current);
+        current = byId.get(current)?.parentId ?? null;
+      }
+      return null;
+    };
+
+    const filterCategories: CategoryLike[] = categoryIds
+      .map((id) => byId.get(id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        parentId: nearestInScopeAncestor(c.id),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "vi"));
 
     return {
       linkName: link.name,
       total,
-      filterOptions,
+      previousTotal,
+      filterCategories,
       transactions: rows.map((row) => ({
         id: row.id,
         amount: row.amount,

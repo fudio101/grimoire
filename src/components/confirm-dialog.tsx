@@ -12,8 +12,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 
+/**
+ * Works two ways.
+ *
+ * Uncontrolled (pass `trigger`) is the common case: the button that opens it
+ * lives inside. Controlled (pass `open` + `onOpenChange`, no trigger) exists for
+ * callers whose trigger cannot host the dialog — a dropdown menu item unmounts
+ * when the menu closes, taking an inline dialog with it.
+ */
 export function ConfirmDialog({
   trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
   title = "Xác nhận",
   description = "Bạn có chắc chắn muốn thực hiện hành động này?",
   confirmLabel = "Xoá",
@@ -21,7 +31,9 @@ export function ConfirmDialog({
   variant = "destructive",
   onConfirm,
 }: {
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title?: string;
   description?: string;
   confirmLabel?: string;
@@ -30,7 +42,13 @@ export function ConfirmDialog({
   variant?: React.ComponentProps<typeof AlertDialogAction>["variant"];
   onConfirm: () => unknown | Promise<unknown>;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) setControlledOpen?.(next);
+    else setUncontrolledOpen(next);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +80,7 @@ export function ConfirmDialog({
         if (!next) setError(null);
       }}
     >
-      <AlertDialogTrigger render={trigger as React.ReactElement} />
+      {trigger && <AlertDialogTrigger render={trigger as React.ReactElement} />}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
