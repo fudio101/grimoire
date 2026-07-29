@@ -57,6 +57,7 @@ export function CategoryForm({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["categories"] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
       ]);
       form.reset({ name: "", parentId: null });
       onSuccess?.();

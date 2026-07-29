@@ -71,6 +71,28 @@ export function getDescendantIds(id: string, flat: CategoryRef[]): string[] {
   return result;
 }
 
+/**
+ * The top-level ancestor of a category, or the category itself when it is
+ * already a root. Overview rolls spending up to this level: "Ăn uống" is a
+ * useful answer to "what did the money go on"; "Ăn uống › Nhà hàng › Cơm trưa"
+ * is not, and there can be dozens of those.
+ */
+export function getRootCategory(
+  id: string,
+  flat: Category[]
+): Category | undefined {
+  const byId = new Map(flat.map((c) => [c.id, c]));
+  let current = byId.get(id);
+  const guard = new Set<string>();
+  while (current?.parentId && !guard.has(current.id)) {
+    guard.add(current.id);
+    const parent = byId.get(current.parentId);
+    if (!parent) break;
+    current = parent;
+  }
+  return current;
+}
+
 /** Category names from root → leaf, following parentId recursively. */
 export function getCategoryPathParts(id: string, flat: Category[]): string[] {
   const byId = new Map(flat.map((c) => [c.id, c]));

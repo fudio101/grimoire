@@ -1,61 +1,85 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { TransactionTable } from "@/features/transactions/transaction-table";
-import { TransactionFilters } from "@/features/transactions/transaction-filters";
-import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
-import { ExpenseChart } from "@/features/transactions/expense-chart";
-import { formatVND } from "@/lib/format";
-import {
-  categoriesQueryOptions,
-  transactionsQueryOptions,
-} from "@/lib/query-options";
+import { MonthStepper } from "@/features/overview/month-stepper";
+import { TotalCard, StatTile } from "@/features/overview/summary-cards";
+import { CategoryBreakdown } from "@/features/overview/category-breakdown";
+import { MonthlyTrendChart } from "@/features/overview/monthly-trend-chart";
+import { formatVND, getCurrentMonth } from "@/lib/format";
+import { overviewQueryOptions } from "@/lib/query-options";
 
 const searchSchema = z.object({
-  fromMonth: z.string().optional(),
-  toMonth: z.string().optional(),
-  category: z.string().optional(),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional(),
 });
 
 export const Route = createFileRoute("/dashboard/")({
   validateSearch: searchSchema,
-  // Without this the loader is keyed on the pathname alone, so changing a
-  // filter would update the URL while the loader quietly never re-ran.
+  // Loaders are keyed on the parsed pathname plus loaderDeps only. Without this
+  // the month would change in the URL while the loader never re-ran — the page
+  // would still show correct data, fetched on the client after hydration, so
+  // SSR would be silently lost rather than visibly broken.
   loaderDeps: ({ search }) => search,
   loader: ({ context, deps }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(categoriesQueryOptions()),
-      context.queryClient.ensureQueryData(transactionsQueryOptions(deps)),
-    ]),
-  component: DashboardPage,
+    context.queryClient.ensureQueryData(
+      overviewQueryOptions(deps.month ?? getCurrentMonth())
+    ),
+  component: OverviewPage,
 });
 
-function DashboardPage() {
+function OverviewPage() {
   const search = Route.useSearch();
-  const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
-  const { data: transactions } = useSuspenseQuery(
-    transactionsQueryOptions(search)
-  );
+  const navigate = useNavigate({ from: Route.fullPath });
+  const month = search.month ?? getCurrentMonth();
 
-  const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const { data } = useSuspenseQuery(overviewQueryOptions(month));
+
+  const daysElapsed = daysToCountFor(month);
+  const perDay = daysElapsed > 0 ? Math.round(data.total / daysElapsed) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Giao dịch</h1>
-          <p className="text-sm text-muted-foreground">
-            Tổng cộng: {formatVND(total)}
-          </p>
+    <div className="space-y-4">
+      <MonthStepper
+        month={month}
+        onChange={(next) => navigate({ search: { month: next } })}
+      />
+
+      {/* One column on a phone; the summary row goes horizontal as soon as
+          there is width for it, so desktop is not a stretched phone. */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <TotalCard
+            total={data.total}
+            previousTotal={data.previousTotal}
+            count={data.count}
+          />
         </div>
-        <AddTransactionButton categories={categories} />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-1">
+          <StatTile label="Trung bình mỗi ngày" value={formatVND(perDay)} />
+          <StatTile label="Số khoản chi" value={String(data.count)} />
+        </div>
       </div>
 
-      <TransactionFilters categories={categories} />
-
-      <ExpenseChart transactions={transactions} />
-
-      <TransactionTable transactions={transactions} categories={categories} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <CategoryBreakdown items={data.byRootCategory} total={data.total} />
+        <MonthlyTrendChart series={data.monthlySeries} />
+      </div>
     </div>
   );
+}
+
+/**
+ * Days to divide by for the daily average.
+ *
+ * For a past month that is the whole month; for the current one it is only the
+ * days that have happened. Dividing this month's spending by 31 on the 3rd
+ * would report an average that is wrong by an order of magnitude.
+ */
+function daysToCountFor(month: string, now = new Date()): number {
+  const [year, mon] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const isCurrent = now.getFullYear() === year && now.getMonth() + 1 === mon;
+  return isCurrent ? now.getDate() : daysInMonth;
 }
