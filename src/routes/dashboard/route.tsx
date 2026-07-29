@@ -4,7 +4,11 @@ import {
   createFileRoute,
   redirect,
 } from "@tanstack/react-router";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { LayoutGrid, LogOut, Receipt, Settings } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -61,7 +65,22 @@ const NAV: {
  * to header on every desktop page load.
  */
 function DashboardLayout() {
-  const signOut = useMutation({ mutationFn: () => logout() });
+  const queryClient = useQueryClient();
+
+  /**
+   * `logout` throws a redirect, which the router follows as a *client-side*
+   * navigation — the query cache survives it. Since sessionQueryOptions is
+   * cached with staleTime/gcTime of Infinity, without this the dashboard's
+   * beforeLoad would keep reading a signed-out `admin` and let the shell render.
+   *
+   * onSettled rather than onSuccess: the redirect surfaces as a rejection here,
+   * so onSuccess never fires.
+   */
+  const signOut = useMutation({
+    mutationFn: () => logout(),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["session"] as const }),
+  });
   const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
 
   return (

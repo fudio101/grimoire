@@ -7,14 +7,16 @@ import {
   getTotalForCategories,
   getTransactionsForCategories,
 } from "@/lib/db/queries";
-import { getCategoryPathParts, type CategoryLike } from "@/lib/category-tree";
+import type { CategoryLike } from "@/lib/category-tree";
 import { addMonths } from "@/lib/format";
+import { monthRangeSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
 import type { TransactionTableRow } from "@/lib/types";
 
-export const publicReportSchema = z.object({
-  code: z.string().min(1),
-  fromMonth: z.string().optional(),
-  toMonth: z.string().optional(),
+export const publicReportSchema = monthRangeSchema.extend({
+  // SHARE_CODE_SHAPE, not SHARE_CODE_PATTERN: this rejects values that could
+  // never be a code, without imposing the 8-character write floor on links that
+  // were handed out before that floor existed.
+  code: z.string().regex(SHARE_CODE_SHAPE),
   category: z.string().optional(),
 });
 
@@ -43,9 +45,12 @@ export type PublicReport = {
    * `parentId` points at the nearest ancestor that is *also* in scope, or null.
    * That keeps the tree self-contained: a category whose parent was not shared
    * appears as a root here rather than dangling at a name the visitor is not
-   * entitled to. No category outside the link's scope is named, and the paths
-   * this reconstructs are the same ones the previous `label` field already
-   * spelled out — so this ships no information the old shape did not.
+   * entitled to.
+   *
+   * Scope truncation has to hold on both fields or it holds on neither — see
+   * `scopedPathParts`, which applies the same rule to each row's
+   * `categoryPathParts`. Together they are what makes "no category outside the
+   * link's scope is named" true of the whole response.
    */
   filterCategories: CategoryLike[];
 };
@@ -110,6 +115,31 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
       return null;
     };
 
+    /**
+     * The category path for one row, truncated at the link's own scope.
+     *
+     * `getCategoryPathParts` walks to the true root, which names ancestors the
+     * visitor was never granted: a link sharing only the leaf "Cơm trưa" would
+     * ship ["Ăn uống", "Nhà hàng", "Cơm trưa"]. Climbing only while the node is
+     * in scope keeps the visible path to categories this link actually covers.
+     *
+     * Every row's own category is in `effectiveIds` ⊆ `linkSet`, so this always
+     * yields at least one part.
+     */
+    const scopedPathParts = (categoryId: string): string[] => {
+      const parts: string[] = [];
+      const guard = new Set<string>();
+      let current = linkSet.has(categoryId) ? byId.get(categoryId) : undefined;
+      while (current && !guard.has(current.id)) {
+        parts.unshift(current.name);
+        guard.add(current.id);
+        const parentId = current.parentId;
+        current =
+          parentId && linkSet.has(parentId) ? byId.get(parentId) : undefined;
+      }
+      return parts;
+    };
+
     const filterCategories: CategoryLike[] = categoryIds
       .map((id) => byId.get(id))
       .filter((c): c is NonNullable<typeof c> => Boolean(c))
@@ -133,7 +163,7 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
         categoryId: row.categoryId,
         categoryName: row.categoryName,
         createdAt: row.createdAt,
-        categoryPathParts: getCategoryPathParts(row.categoryId, allCategories),
+        categoryPathParts: scopedPathParts(row.categoryId),
       })),
     };
   });

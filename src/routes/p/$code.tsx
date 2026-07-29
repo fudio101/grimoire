@@ -13,12 +13,11 @@ import { PublicMonthStepper } from "@/features/public-report/public-month-steppe
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
 import { PublicTransactionList } from "@/features/public-report/public-transaction-list";
 import { publicReportQueryOptions } from "@/lib/query-options";
+import { monthRangeSearchSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
 import type { TransactionTableRow } from "@/lib/types";
 import type { CategoryLike } from "@/lib/category-tree";
 
-const searchSchema = z.object({
-  fromMonth: z.string().optional(),
-  toMonth: z.string().optional(),
+const searchSchema = monthRangeSearchSchema.extend({
   category: z.string().optional(),
 });
 
@@ -28,6 +27,13 @@ export const Route = createFileRoute("/p/$code")({
   // filter would update the URL while the loader quietly never re-ran.
   loaderDeps: ({ search }) => search,
   loader: async ({ context, params, deps }) => {
+    // A code that cannot exist gets the same "link not found" screen as one
+    // that merely does not. Left to the server function's validator it would
+    // throw instead, and a mistyped or truncated link would answer with the
+    // error page — which tells the reader to retry something that will never
+    // work, rather than to ask for a new link.
+    if (!SHARE_CODE_SHAPE.test(params.code)) throw notFound();
+
     const report = await context.queryClient.ensureQueryData(
       publicReportQueryOptions(params.code, deps)
     );
