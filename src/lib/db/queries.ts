@@ -75,6 +75,37 @@ export async function getTransactions(filters?: {
   return rows;
 }
 
+/**
+ * Monthly totals across an inclusive month range, as `{ month: "YYYY-MM" }`.
+ *
+ * Grouping on `substr(date, 1, 7)` works for the same reason the month filters
+ * do: `date` is a fixed-width ISO string, so its first seven characters are the
+ * month key and lexicographic comparison is chronological. Months with no
+ * transactions are simply absent — callers zero-fill, since SQL has no row to
+ * return for a month that never happened.
+ */
+export async function getTotalsByMonth(
+  fromMonth: string,
+  toMonth: string
+): Promise<{ month: string; total: number }[]> {
+  const monthExpr = sql<string>`substr(${transactions.date}, 1, 7)`;
+
+  return db
+    .select({
+      month: monthExpr,
+      total: sql<number>`coalesce(sum(${transactions.amount}), 0)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        gte(transactions.date, `${fromMonth}-01`),
+        lt(transactions.date, nextMonthStart(toMonth))
+      )
+    )
+    .groupBy(monthExpr)
+    .orderBy(monthExpr);
+}
+
 export type ShareLinkWithCategories = ShareLink & {
   categoryIds: string[];
   categoryNames: string[];

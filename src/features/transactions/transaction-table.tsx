@@ -22,7 +22,10 @@ export function TransactionTable({
   const remove = useMutation({
     mutationFn: (id: string) => deleteTransaction({ data: { id } }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+      ]),
   });
 
   // The dashboard owns the category list, so it resolves paths here with the

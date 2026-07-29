@@ -15,7 +15,12 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardCategoriesRouteImport } from './routes/dashboard/categories'
 import { Route as DashboardLinksRouteImport } from './routes/dashboard/links'
+import { Route as DashboardManageRouteRouteImport } from './routes/dashboard/manage/route'
+import { Route as DashboardTransactionsRouteImport } from './routes/dashboard/transactions'
 import { Route as PCodeRouteImport } from './routes/p/$code'
+import { Route as DashboardManageIndexRouteImport } from './routes/dashboard/manage/index'
+import { Route as DashboardManageCategoriesRouteImport } from './routes/dashboard/manage/categories'
+import { Route as DashboardManageLinksRouteImport } from './routes/dashboard/manage/links'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,38 +52,78 @@ const DashboardLinksRoute = DashboardLinksRouteImport.update({
   path: '/links',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardManageRouteRoute = DashboardManageRouteRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardTransactionsRoute = DashboardTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const PCodeRoute = PCodeRouteImport.update({
   id: '/p/$code',
   path: '/p/$code',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardManageIndexRoute = DashboardManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardManageRouteRoute,
+} as any)
+const DashboardManageCategoriesRoute =
+  DashboardManageCategoriesRouteImport.update({
+    id: '/categories',
+    path: '/categories',
+    getParentRoute: () => DashboardManageRouteRoute,
+  } as any)
+const DashboardManageLinksRoute = DashboardManageLinksRouteImport.update({
+  id: '/links',
+  path: '/links',
+  getParentRoute: () => DashboardManageRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/dashboard/manage': typeof DashboardManageRouteRouteWithChildren
   '/dashboard/categories': typeof DashboardCategoriesRoute
   '/dashboard/links': typeof DashboardLinksRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/p/$code': typeof PCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/manage/categories': typeof DashboardManageCategoriesRoute
+  '/dashboard/manage/links': typeof DashboardManageLinksRoute
+  '/dashboard/manage/': typeof DashboardManageIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard/categories': typeof DashboardCategoriesRoute
   '/dashboard/links': typeof DashboardLinksRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/p/$code': typeof PCodeRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/manage/categories': typeof DashboardManageCategoriesRoute
+  '/dashboard/manage/links': typeof DashboardManageLinksRoute
+  '/dashboard/manage': typeof DashboardManageIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/dashboard/manage': typeof DashboardManageRouteRouteWithChildren
   '/dashboard/categories': typeof DashboardCategoriesRoute
   '/dashboard/links': typeof DashboardLinksRoute
+  '/dashboard/transactions': typeof DashboardTransactionsRoute
   '/p/$code': typeof PCodeRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/manage/categories': typeof DashboardManageCategoriesRoute
+  '/dashboard/manage/links': typeof DashboardManageLinksRoute
+  '/dashboard/manage/': typeof DashboardManageIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -86,27 +131,41 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/dashboard/manage'
     | '/dashboard/categories'
     | '/dashboard/links'
+    | '/dashboard/transactions'
     | '/p/$code'
     | '/dashboard/'
+    | '/dashboard/manage/categories'
+    | '/dashboard/manage/links'
+    | '/dashboard/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/dashboard/categories'
     | '/dashboard/links'
+    | '/dashboard/transactions'
     | '/p/$code'
     | '/dashboard'
+    | '/dashboard/manage/categories'
+    | '/dashboard/manage/links'
+    | '/dashboard/manage'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
+    | '/dashboard/manage'
     | '/dashboard/categories'
     | '/dashboard/links'
+    | '/dashboard/transactions'
     | '/p/$code'
     | '/dashboard/'
+    | '/dashboard/manage/categories'
+    | '/dashboard/manage/links'
+    | '/dashboard/manage/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -160,6 +219,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardLinksRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/manage': {
+      id: '/dashboard/manage'
+      path: '/manage'
+      fullPath: '/dashboard/manage'
+      preLoaderRoute: typeof DashboardManageRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/transactions': {
+      id: '/dashboard/transactions'
+      path: '/transactions'
+      fullPath: '/dashboard/transactions'
+      preLoaderRoute: typeof DashboardTransactionsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/p/$code': {
       id: '/p/$code'
       path: '/p/$code'
@@ -167,18 +240,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/manage/': {
+      id: '/dashboard/manage/'
+      path: '/'
+      fullPath: '/dashboard/manage/'
+      preLoaderRoute: typeof DashboardManageIndexRouteImport
+      parentRoute: typeof DashboardManageRouteRoute
+    }
+    '/dashboard/manage/categories': {
+      id: '/dashboard/manage/categories'
+      path: '/categories'
+      fullPath: '/dashboard/manage/categories'
+      preLoaderRoute: typeof DashboardManageCategoriesRouteImport
+      parentRoute: typeof DashboardManageRouteRoute
+    }
+    '/dashboard/manage/links': {
+      id: '/dashboard/manage/links'
+      path: '/links'
+      fullPath: '/dashboard/manage/links'
+      preLoaderRoute: typeof DashboardManageLinksRouteImport
+      parentRoute: typeof DashboardManageRouteRoute
+    }
   }
 }
 
+interface DashboardManageRouteRouteChildren {
+  DashboardManageCategoriesRoute: typeof DashboardManageCategoriesRoute
+  DashboardManageLinksRoute: typeof DashboardManageLinksRoute
+  DashboardManageIndexRoute: typeof DashboardManageIndexRoute
+}
+
+const DashboardManageRouteRouteChildren: DashboardManageRouteRouteChildren = {
+  DashboardManageCategoriesRoute: DashboardManageCategoriesRoute,
+  DashboardManageLinksRoute: DashboardManageLinksRoute,
+  DashboardManageIndexRoute: DashboardManageIndexRoute,
+}
+
+const DashboardManageRouteRouteWithChildren =
+  DashboardManageRouteRoute._addFileChildren(DashboardManageRouteRouteChildren)
+
 interface DashboardRouteRouteChildren {
+  DashboardManageRouteRoute: typeof DashboardManageRouteRouteWithChildren
   DashboardCategoriesRoute: typeof DashboardCategoriesRoute
   DashboardLinksRoute: typeof DashboardLinksRoute
+  DashboardTransactionsRoute: typeof DashboardTransactionsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardManageRouteRoute: DashboardManageRouteRouteWithChildren,
   DashboardCategoriesRoute: DashboardCategoriesRoute,
   DashboardLinksRoute: DashboardLinksRoute,
+  DashboardTransactionsRoute: DashboardTransactionsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

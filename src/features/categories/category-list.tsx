@@ -23,6 +23,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["categories"] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
       ]);
     },
   });

@@ -10,7 +10,7 @@ import { flattenWithDepth, getCategoryPath } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
-const routeApi = getRouteApi("/dashboard/");
+const routeApi = getRouteApi("/dashboard/transactions");
 
 export function TransactionFilters({ categories }: { categories: Category[] }) {
   const { fromMonth, toMonth, category } = routeApi.useSearch();

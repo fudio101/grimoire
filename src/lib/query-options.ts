@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { fetchSession } from "@/server/auth.functions";
 import {
   fetchCategories,
+  fetchOverview,
   fetchShareLinks,
   fetchTransactions,
   type TransactionFilters,
@@ -52,6 +53,17 @@ export const transactionsQueryOptions = (filters: TransactionFilters) =>
   queryOptions({
     queryKey: ["transactions", filters] as const,
     queryFn: () => fetchTransactions({ data: filters }),
+  });
+
+/**
+ * Keyed by month so stepping back and forth is instant after the first visit.
+ * Transaction mutations invalidate the bare ["overview"] prefix, which clears
+ * every month at once — the same prefix trick the transactions key relies on.
+ */
+export const overviewQueryOptions = (month: string) =>
+  queryOptions({
+    queryKey: ["overview", month] as const,
+    queryFn: () => fetchOverview({ data: { month } }),
   });
 
 export const shareLinksQueryOptions = () =>

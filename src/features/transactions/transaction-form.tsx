@@ -74,7 +74,10 @@ export function TransactionForm({
         return;
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+      ]);
       form.reset(emptyValues);
       onSuccess?.();
     },
