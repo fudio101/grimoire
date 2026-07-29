@@ -1,12 +1,22 @@
 import "@tanstack/react-start/server-only";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories } from "@/lib/db/schema";
-import { isLeaf } from "@/lib/category-tree";
 
-/** Transactions may only sit on leaf categories (those without children). */
+/**
+ * Transactions may only sit on leaf categories (those without children).
+ *
+ * Asked as "does any category name this one as its parent", which is what leaf
+ * means. This used to pull the whole category table across and run the shared
+ * `isLeaf` helper over it in JS, on every transaction create and update — the
+ * helper is the right tool when the caller already holds the list, and the
+ * wrong one when the answer is a single row.
+ */
 export async function categoryIsLeaf(categoryId: string): Promise<boolean> {
-  const all = await db
-    .select({ id: categories.id, parentId: categories.parentId })
-    .from(categories);
-  return isLeaf(categoryId, all);
+  const [child] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.parentId, categoryId))
+    .limit(1);
+  return !child;
 }

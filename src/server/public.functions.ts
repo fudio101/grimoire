@@ -1,13 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
-  expandCategorySubtree,
   getCategories,
   getShareLinkByCode,
   getTotalForCategories,
   getTransactionsForCategories,
 } from "@/lib/db/queries";
-import type { CategoryLike } from "@/lib/category-tree";
+import { getDescendantIds, type CategoryLike } from "@/lib/category-tree";
 import { addMonths } from "@/lib/format";
 import { monthRangeSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
 import type { TransactionTableRow } from "@/lib/types";
@@ -76,11 +75,20 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
     const { link, categoryIds } = result;
     const linkSet = new Set(categoryIds);
 
+    // Read the category table once and answer every question below from it.
+    // expandCategorySubtree used to issue its own SELECT over the same rows,
+    // so a filtered report scanned this table twice per request.
+    const allCategories = await getCategories();
+    const byId = new Map(allCategories.map((c) => [c.id, c]));
+
     // Drill-down filter: narrow to one picked category's subtree, intersected
     // with the link's own scope so a hand-crafted ?category= cannot widen it.
     let effectiveIds = categoryIds;
     if (data.category && linkSet.has(data.category)) {
-      const subtree = await expandCategorySubtree(data.category);
+      const subtree = [
+        data.category,
+        ...getDescendantIds(data.category, allCategories),
+      ];
       effectiveIds = subtree.filter((id) => linkSet.has(id));
     }
 
@@ -91,8 +99,7 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
       data.fromMonth && data.fromMonth === data.toMonth ? data.fromMonth : null;
     const previousMonth = singleMonth ? addMonths(singleMonth, -1) : null;
 
-    const [allCategories, rows, total, previousTotal] = await Promise.all([
-      getCategories(),
+    const [rows, total, previousTotal] = await Promise.all([
       getTransactionsForCategories(effectiveIds, range),
       getTotalForCategories(effectiveIds, range),
       previousMonth
@@ -102,8 +109,6 @@ export const fetchPublicReport = createServerFn({ method: "GET" })
           })
         : Promise.resolve(null),
     ]);
-
-    const byId = new Map(allCategories.map((c) => [c.id, c]));
     const nearestInScopeAncestor = (id: string): string | null => {
       let current = byId.get(id)?.parentId ?? null;
       const guard = new Set<string>();

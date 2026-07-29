@@ -14,11 +14,6 @@ export async function getCategories() {
   return db.select().from(categories).orderBy(categories.name);
 }
 
-/** Expose subtree expansion for callers that resolve a picked category id. */
-export async function expandCategorySubtree(rootId: string): Promise<string[]> {
-  return getSubtreeCategoryIds(rootId);
-}
-
 /**
  * Expand a category id to itself plus all descendants. Transactions only ever
  * sit on leaf categories, so filtering by a parent rolls up the whole subtree.

@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/queries";
 import { requireAdmin } from "@/server/auth.functions";
 import { addMonths } from "@/lib/format";
-import { getRootCategory } from "@/lib/category-tree";
+import { getRootCategory, indexCategories } from "@/lib/category-tree";
 import { monthRangeSchema, monthSchema } from "@/lib/schemas";
 
 export const transactionFilterSchema = monthRangeSchema.extend({
@@ -85,13 +85,17 @@ export const fetchOverview = createServerFn({ method: "GET" })
 
     const byMonth = new Map(totals.map((t) => [t.month, t.total]));
 
+    // Hoisted: getRootCategory is called once per row and would otherwise
+    // rebuild this index each time.
+    const categoryIndex = indexCategories(allCategories);
+
     const buckets = new Map<
       string,
       { id: string; name: string; total: number }
     >();
     for (const row of rows) {
       if (!row.categoryId) continue;
-      const root = getRootCategory(row.categoryId, allCategories);
+      const root = getRootCategory(row.categoryId, categoryIndex);
       const id = root?.id ?? row.categoryId;
       const existing = buckets.get(id);
       if (existing) {

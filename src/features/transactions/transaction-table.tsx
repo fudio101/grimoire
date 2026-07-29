@@ -5,7 +5,7 @@ import { TransactionForm } from "@/features/transactions/transaction-form";
 import { TransactionDataTable } from "@/features/transactions/transaction-data-table";
 import { transactionColumns } from "@/features/transactions/columns";
 import { deleteTransaction } from "@/server/transactions.functions";
-import { getCategoryPathParts } from "@/lib/category-tree";
+import { getCategoryPathParts, indexCategories } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import type { TransactionRow, TransactionTableRow } from "@/lib/types";
 
@@ -32,14 +32,15 @@ export function TransactionTable({
   // The dashboard owns the category list, so it resolves paths here with the
   // shared helper. This used to be a second, hand-written implementation of
   // getCategoryPathParts living in this file.
-  const rows: TransactionTableRow[] = useMemo(
-    () =>
-      transactions.map((tx) => ({
-        ...tx,
-        categoryPathParts: getCategoryPathParts(tx.categoryId, categories),
-      })),
-    [transactions, categories]
-  );
+  const rows: TransactionTableRow[] = useMemo(() => {
+    // Built once per memo rather than once per row — getCategoryPathParts
+    // would otherwise index the whole category list for every transaction.
+    const byId = indexCategories(categories);
+    return transactions.map((tx) => ({
+      ...tx,
+      categoryPathParts: getCategoryPathParts(tx.categoryId, byId),
+    }));
+  }, [transactions, categories]);
 
   // Both handlers are stable references — a useState setter and TanStack
   // Query's mutate — so the columns are built once.
