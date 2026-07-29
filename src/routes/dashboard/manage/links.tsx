@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareLinkForm } from "@/features/share-links/share-link-form";
 import { ShareLinkList } from "@/features/share-links/share-link-list";
 import {
@@ -21,17 +22,29 @@ function LinksPage() {
   const { data: links } = useSuspenseQuery(shareLinksQueryOptions());
 
   return (
+    // Deliberately the same shape as the categories tab: boxed create form on
+    // top, titled list below, and no <h1> — the layout above already owns it.
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Link công khai</h1>
-        <p className="text-sm text-muted-foreground">
-          Tạo và quản lý link chia sẻ báo cáo cho nhiều danh mục.
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tạo link mới</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ShareLinkForm categories={categories} />
+        </CardContent>
+      </Card>
 
-      <ShareLinkForm categories={categories} />
-
-      <ShareLinkList links={links} categories={categories} />
+      <section className="space-y-3">
+        <h2 className="font-semibold tracking-tight">
+          Tất cả link
+          {links.length > 0 && (
+            <span className="ml-2 font-normal text-muted-foreground tabular-nums">
+              {links.length}
+            </span>
+          )}
+        </h2>
+        <ShareLinkList links={links} categories={categories} />
+      </section>
     </div>
   );
 }

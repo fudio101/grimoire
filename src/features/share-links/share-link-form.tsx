@@ -61,21 +61,25 @@ export function ShareLinkForm({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         setServerError(null);
         void form.handleSubmit();
       }}
     >
-      <div className="flex flex-col gap-3 sm:flex-row">
+      {/* Same shape as CategoryForm: labelled fields, then a full-width submit
+          last. The two management forms sit one tab apart and should not look
+          like they came from different applications. */}
+      <div className="flex flex-col gap-4 sm:flex-row">
         <form.Field name="name">
           {(field) => (
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground">Tên link</Label>
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor={field.name}>Tên link</Label>
               <Input
+                id={field.name}
                 name={field.name}
-                placeholder="Tên link (tuỳ chọn)"
+                placeholder="Ví dụ: Chi tiêu gia đình"
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
@@ -85,9 +89,10 @@ export function ShareLinkForm({
         </form.Field>
         <form.Field name="code">
           {(field) => (
-            <div className="flex-1 space-y-1">
-              <Label className="text-xs text-muted-foreground">Mã link</Label>
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor={field.name}>Mã link</Label>
               <Input
+                id={field.name}
                 name={field.name}
                 placeholder="Để trống = tự tạo"
                 value={field.state.value}
@@ -106,8 +111,8 @@ export function ShareLinkForm({
 
       <form.Field name="categoryIds">
         {(field) => (
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Danh mục</Label>
+          <div className="space-y-1.5">
+            <Label>Danh mục được chia sẻ</Label>
             <CategoryTreeSelect
               categories={categories}
               value={field.state.value}
@@ -122,11 +127,15 @@ export function ShareLinkForm({
         )}
       </form.Field>
 
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+      {serverError && (
+        <p role="alert" className="text-sm text-destructive">
+          {serverError}
+        </p>
+      )}
 
       <form.Subscribe selector={(s) => s.isSubmitting}>
         {(isSubmitting) => (
-          <SubmitButton isLoading={isSubmitting}>
+          <SubmitButton className="w-full" isLoading={isSubmitting}>
             {defaultValues ? "Cập nhật" : "Tạo link"}
           </SubmitButton>
         )}

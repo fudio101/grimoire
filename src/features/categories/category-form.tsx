@@ -62,39 +62,47 @@ export function CategoryForm({
 
   return (
     <form
-      className="space-y-2"
+      className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         setServerError(null);
         void form.handleSubmit();
       }}
     >
-      <div className="flex gap-2">
-        <form.Field name="name">
-          {(field) => (
+      {/*
+       * Fields first, submit last.
+       *
+       * The button used to sit on the same row as the name, which pushed
+       * "Danh mục cha" below it — so the picker read as a control that had
+       * nothing to do with the form above it, easily mistaken for a filter on
+       * the list underneath. A form ends at its submit button; anything below
+       * it belongs to something else.
+       */}
+      <form.Field name="name">
+        {(field) => (
+          <div className="space-y-1.5">
+            <Label htmlFor={field.name}>Tên danh mục</Label>
             <Input
+              id={field.name}
               name={field.name}
-              placeholder="Tên danh mục"
-              className="flex-1"
+              placeholder="Ví dụ: Ăn uống"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
             />
-          )}
-        </form.Field>
-        <form.Subscribe selector={(s) => s.isSubmitting}>
-          {(isSubmitting) => (
-            <SubmitButton isLoading={isSubmitting}>
-              {defaultValues ? "Cập nhật" : "Thêm"}
-            </SubmitButton>
-          )}
-        </form.Subscribe>
-      </div>
+            {field.state.meta.errors[0] && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors[0].message}
+              </p>
+            )}
+          </div>
+        )}
+      </form.Field>
 
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Danh mục cha</Label>
-        <form.Field name="parentId">
-          {(field) => (
+      <form.Field name="parentId">
+        {(field) => (
+          <div className="space-y-1.5">
+            <Label>Danh mục cha</Label>
             <CategoryPickerField
               categories={categories}
               value={field.state.value ?? null}
@@ -106,20 +114,23 @@ export function CategoryForm({
               placeholder="— Cấp gốc —"
               title="Chọn danh mục cha"
             />
-          )}
-        </form.Field>
-      </div>
-
-      <form.Field name="name">
-        {(field) =>
-          field.state.meta.errors[0] ? (
-            <p className="text-sm text-destructive">
-              {field.state.meta.errors[0].message}
-            </p>
-          ) : null
-        }
+          </div>
+        )}
       </form.Field>
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+
+      {serverError && (
+        <p role="alert" className="text-sm text-destructive">
+          {serverError}
+        </p>
+      )}
+
+      <form.Subscribe selector={(s) => s.isSubmitting}>
+        {(isSubmitting) => (
+          <SubmitButton className="w-full" isLoading={isSubmitting}>
+            {defaultValues ? "Cập nhật" : "Thêm danh mục"}
+          </SubmitButton>
+        )}
+      </form.Subscribe>
     </form>
   );
 }
