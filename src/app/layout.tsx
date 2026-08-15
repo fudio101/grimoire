@@ -26,11 +26,25 @@ export const viewport: Viewport = {
 /**
  * Port of `__root.tsx`. Reading `cookies()` here (for theme, same as
  * `theme.functions.ts`'s `getCookie` today) opts the whole tree out of static
- * generation — intentional, see plan hazard 3: without a per-request read
- * somewhere in the root, `/login` and the `/dashboard/manage/*` screens have
- * no per-request input at the page level and Next could prerender them once
- * at build time, baking one admin's data into a static shell served forever.
+ * generation — see plan hazard 3: without a per-request read somewhere in the
+ * root, `/login` and the `/dashboard/manage/*` screens have no per-request
+ * input at the page level and Next could prerender them once at build time,
+ * baking one admin's data into a static shell served forever.
+ *
+ * `export const dynamic = "force-dynamic"` below is not redundant with that
+ * read. `next build`'s static-generation attempt renders a page's own async
+ * Server Component concurrently with its ancestor layouts rather than
+ * strictly after them, so a page that calls a `lib/db/queries.ts`/
+ * `server/*.queries.ts` function directly (PR 7 onward — the whole point of
+ * the self-fetch-avoidance rule in `query-options.ts`) can open `data.db`
+ * before this layout's `cookies()` call ever gets a chance to bail the
+ * render out. `force-dynamic` is checked per route segment before any
+ * component body runs at all, cascades to every nested layout/page, and
+ * closes that gap for good — confirmed by tracing an actual `next build`
+ * that reproduced the leak without it.
  */
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: {

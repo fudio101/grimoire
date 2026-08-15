@@ -58,3 +58,17 @@ export function parsePublicReportSearch(
 ): PublicReportUrlSearch {
   return publicReportSearchSchema.parse(search);
 }
+
+/**
+ * Next's async `searchParams` prop hands back an array for a repeated key
+ * (`?category=a&category=b`); `URLSearchParams.get()` — what every client
+ * component here uses to read the same URL — always returns the first
+ * occurrence. Narrowing here, before either `parseXSearch` sees the value, is
+ * what keeps the server and client side deriving the same key from the same
+ * URL (see the header comment above on why that matters).
+ */
+export function pickSearchParam(
+  value: string | string[] | undefined
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
