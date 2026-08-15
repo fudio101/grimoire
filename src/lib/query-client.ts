@@ -1,4 +1,9 @@
-import { QueryClient, environmentManager } from "@tanstack/react-query";
+import {
+  QueryCache,
+  QueryClient,
+  environmentManager,
+} from "@tanstack/react-query";
+import { ApiUnauthorizedError } from "@/lib/api";
 
 /**
  * Replaces `router.tsx`'s per-request `new QueryClient()` in `getRouter()`.
@@ -10,10 +15,37 @@ import { QueryClient, environmentManager } from "@tanstack/react-query";
  * `staleTime: 60_000` matches `router.tsx:11` and is what makes a previously
  * visited month/filter render instantly with zero network requests instead of
  * refetching on every revisit.
+ *
+ * `retry` stops immediately on `ApiUnauthorizedError` rather than the default
+ * 3 attempts with backoff — without it, an expired session would retry three
+ * times before the `onError` below ever got a chance to redirect anywhere,
+ * turning a session expiry into several seconds of visible nothing.
+ *
+ * `onError` on the cache, not on individual queries: a session can expire
+ * behind any of them. A full-page navigation to `/login`, not `next/navigation`,
+ * is deliberate — it also discards this QueryClient and every other piece of
+ * client memory, which is the right amount of reset for an auth loss, not
+ * just the convenient one.
  */
 function makeQueryClient(): QueryClient {
   return new QueryClient({
-    defaultOptions: { queries: { staleTime: 60_000 } },
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        retry: (failureCount, error) =>
+          error instanceof ApiUnauthorizedError ? false : failureCount < 3,
+      },
+    },
+    queryCache: new QueryCache({
+      onError: (error) => {
+        if (
+          error instanceof ApiUnauthorizedError &&
+          typeof window !== "undefined"
+        ) {
+          window.location.assign("/login");
+        }
+      },
+    }),
   });
 }
 

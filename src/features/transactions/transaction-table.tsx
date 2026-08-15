@@ -4,7 +4,7 @@ import { ResponsiveModal } from "@/components/responsive-modal";
 import { TransactionForm } from "@/features/transactions/transaction-form";
 import { TransactionDataTable } from "@/features/transactions/transaction-data-table";
 import { transactionColumns } from "@/features/transactions/columns";
-import { deleteTransaction } from "@/server/transactions.functions";
+import { deleteTransaction } from "@/server/transactions.actions";
 import { getCategoryPathParts, indexCategories } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
 import type { TransactionRow, TransactionTableRow } from "@/lib/types";
@@ -20,7 +20,7 @@ export function TransactionTable({
   const queryClient = useQueryClient();
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteTransaction({ data: { id } }),
+    mutationFn: (id: string) => deleteTransaction(id),
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),

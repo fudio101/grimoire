@@ -5,10 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { CategoryTreeSelect } from "@/features/share-links/category-tree-select";
-import {
-  createShareLink,
-  updateShareLink,
-} from "@/server/share-links.functions";
+import { createShareLink, updateShareLink } from "@/server/share-links.actions";
 import { shareLinkSchema, type ShareLinkFormValues } from "@/lib/schemas";
 import type { Category } from "@/lib/db/schema";
 
@@ -42,8 +39,8 @@ export function ShareLinkForm({
     validators: { onSubmit: shareLinkSchema },
     onSubmit: async ({ value }) => {
       const result = defaultValues
-        ? await updateShareLink({ data: { id: defaultValues.id, data: value } })
-        : await createShareLink({ data: value });
+        ? await updateShareLink(defaultValues.id, value)
+        : await createShareLink(value);
 
       if (!result.success) {
         setServerError(result.error ?? null);

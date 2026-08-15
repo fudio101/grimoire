@@ -13,7 +13,7 @@ import { ResponsiveModal } from "@/components/responsive-modal";
 import { CategoryForm } from "@/features/categories/category-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toastError } from "@/lib/toast";
-import { deleteCategory } from "@/server/categories.functions";
+import { deleteCategory } from "@/server/categories.actions";
 import { buildCategoryTree, type CategoryNode } from "@/lib/category-tree";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/db/schema";
@@ -27,7 +27,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
   const queryClient = useQueryClient();
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteCategory({ data: { id } }),
+    mutationFn: (id: string) => deleteCategory(id),
     onSuccess: async (result) => {
       if (!result.success) {
         toastError(result.error);

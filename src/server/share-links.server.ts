@@ -1,4 +1,4 @@
-import "@tanstack/react-start/server-only";
+import "server-only";
 import { customAlphabet } from "nanoid";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
