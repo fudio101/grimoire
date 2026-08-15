@@ -64,6 +64,20 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
+      - name: Generate route types
+        # tsconfig.json's `include` covers `.next/types/**/*.ts`, which is what
+        # makes `redirect()`/`router.push()`/`router.replace()` calls checked
+        # against real routes. That directory is only ever written by `next
+        # build` or `next typegen` — never by tsc itself — and this runner's
+        # `clean: false` checkout leaves `.next` (gitignored, so checkout
+        # doesn't touch it) untouched between jobs. Without this step, the
+        # Type-check step below silently validates against whatever `.next/types`
+        # some unrelated prior job happened to leave on disk, not the commit
+        # actually being tested — a real incident: it flagged a perfectly valid
+        # `redirect("/login")` as invalid because a stale, pre-login-page
+        # `.next/types` from an earlier run was still sitting there.
+        run: pnpm exec next typegen
+
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
