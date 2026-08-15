@@ -78,7 +78,7 @@ export function CategoryList({ categories }: { categories: Category[] }) {
             collapsed={isCollapsed}
             onToggle={() => toggle(node.id)}
             onEdit={() => setEditing(node)}
-            onDelete={() => remove.mutate(node.id)}
+            onDelete={() => remove.mutateAsync(node.id)}
           />
           {hasChildren && !isCollapsed && (
             <ul>{renderNodes(node.children, depth + 1)}</ul>

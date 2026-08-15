@@ -4,10 +4,9 @@ import { MonthRangeFilter } from "./month-range-filter";
 
 /**
  * Driven entirely by props rather than reading `/dashboard/transactions`'s
- * own search state via `getRouteApi`: the caller owns navigation, which is
- * what lets `/p/$code` reuse the exact same shape for its own month/category
- * controls, and what a future App Router page (no route-context equivalent)
- * can supply too.
+ * own search state directly: the caller owns navigation via `router.push`,
+ * which is what lets `/p/[code]` reuse the exact same shape for its own
+ * month/category controls.
  */
 export function TransactionFilters({
   categories,

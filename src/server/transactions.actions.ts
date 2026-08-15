@@ -6,10 +6,11 @@ import { db } from "@/lib/db";
 import { transactions } from "@/lib/db/schema";
 import { transactionSchema, type TransactionInput } from "@/lib/schemas";
 import { requireAuthForAction } from "@/server/auth-guard";
-import { categoryIsLeaf } from "@/server/transactions.server";
+import { categoryExists, categoryIsLeaf } from "@/server/transactions.server";
 import type { ActionState } from "@/lib/types";
 
 const NOT_A_LEAF = "Vui lòng chọn danh mục cụ thể (không phải danh mục cha).";
+const CATEGORY_NOT_FOUND = "Không tìm thấy danh mục.";
 
 export async function createTransaction(
   input: TransactionInput
@@ -18,6 +19,9 @@ export async function createTransaction(
   if (authError) return authError;
 
   const data = transactionSchema.parse(input);
+  if (!(await categoryExists(data.categoryId))) {
+    return { success: false, error: CATEGORY_NOT_FOUND };
+  }
   if (!(await categoryIsLeaf(data.categoryId))) {
     return { success: false, error: NOT_A_LEAF };
   }
@@ -35,6 +39,9 @@ export async function updateTransaction(
   z.string().min(1).parse(id);
 
   const data = transactionSchema.parse(input);
+  if (!(await categoryExists(data.categoryId))) {
+    return { success: false, error: CATEGORY_NOT_FOUND };
+  }
   if (!(await categoryIsLeaf(data.categoryId))) {
     return { success: false, error: NOT_A_LEAF };
   }

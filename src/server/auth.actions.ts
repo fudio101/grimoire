@@ -7,12 +7,12 @@ import {
   validateCredentials,
 } from "@/lib/auth";
 import { loginSchema, type LoginInput } from "@/lib/schemas";
-import { COOKIE_OPTIONS } from "@/server/auth-guard";
+import { COOKIE_OPTIONS, requireAuthForAction } from "@/server/auth-guard";
 import type { ActionState } from "@/lib/types";
 
 /**
- * Deliberately unauthenticated, like `logout` and `fetchPublicReport` — this
- * is the endpoint that establishes the session in the first place.
+ * Deliberately unauthenticated, like `/api/public-report` — this is the
+ * endpoint that establishes the session in the first place.
  */
 export async function login(input: LoginInput): Promise<ActionState> {
   const data = loginSchema.parse(input);
@@ -34,6 +34,9 @@ export async function login(input: LoginInput): Promise<ActionState> {
  * (PR 7) does the actual navigation client-side after this resolves.
  */
 export async function logout(): Promise<ActionState> {
+  const authError = await requireAuthForAction();
+  if (authError) return authError;
+
   (await cookies()).delete(SESSION_COOKIE_NAME);
   return { success: true };
 }

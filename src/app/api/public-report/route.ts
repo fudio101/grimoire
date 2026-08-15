@@ -20,5 +20,9 @@ export async function GET(request: Request) {
   }
 
   const { code, ...search } = parsed.data;
-  return Response.json(await getPublicReport({ ...search, code }));
+  const report = await getPublicReport({ ...search, code });
+  if (!report) {
+    return Response.json({ error: "Không tìm thấy báo cáo." }, { status: 404 });
+  }
+  return Response.json(report);
 }

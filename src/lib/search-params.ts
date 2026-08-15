@@ -2,16 +2,13 @@ import { z } from "zod";
 import { monthRangeSearchSchema, monthSchema } from "@/lib/schemas";
 
 /**
- * One parser per search-param route, shared by whatever reads the URL —
- * today that's a single `validateSearch` call per route, so the loader and
- * the component already agree by construction. The value of centralising
- * this is forward-looking: a future App Router page has no `validateSearch`
- * choke point, so the page (parsing `searchParams` server-side) and its
- * client component (parsing `useSearchParams()`) would otherwise each build
- * their own schema and risk deriving two different query keys from the same
- * URL — silently losing SSR the same way a missing `loaderDeps` does today.
- * Routing both sides through the same function here removes that class of
- * bug by construction rather than by convention.
+ * One parser per search-param route, shared by whatever reads the URL: a
+ * server `page.tsx` parses its own `searchParams` prop and its paired client
+ * view parses `useSearchParams()` off the same URL, and the App Router gives
+ * neither side a shared choke point the way a router's own `validateSearch`
+ * would. Routing both through the same function here is what keeps them
+ * deriving identical query keys instead of each building its own schema and
+ * risking two different answers for the same URL.
  *
  * All three are lenient (`.catch(undefined)`, matching `monthRangeSearchSchema`):
  * a malformed value degrades to "no bound" rather than throwing. URLs get
@@ -19,7 +16,6 @@ import { monthRangeSearchSchema, monthSchema } from "@/lib/schemas";
  * produced them changed — answering a mangled query param with a full-page
  * error is worse than answering with an unfiltered view.
  */
-
 const overviewSearchSchema = z.object({
   month: monthSchema.optional().catch(undefined),
 });

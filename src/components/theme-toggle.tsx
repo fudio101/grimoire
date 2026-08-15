@@ -15,10 +15,10 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
  * default and a switch cannot express it — a user on a dark phone would have no
  * way back to "follow my phone" once they touched it.
  *
- * `themePreference` is passed in rather than read from route context: it comes
- * from the root route's beforeLoad today, but every caller already sits in a
- * different place in the tree, and a plain prop is what a future App Router
- * page (with no route-context equivalent) can supply too.
+ * `themePreference` is passed in rather than read from context: the root
+ * layout reads the theme cookie via `cookies()` and passes it down as a plain
+ * prop, since the App Router has no route-context equivalent to hand it to
+ * every caller directly.
  *
  * The server-rendered preference seeds local state; after that this component
  * owns it, since `persistTheme` writes the cookie and toggles the class

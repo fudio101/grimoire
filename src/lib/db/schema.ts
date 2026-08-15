@@ -81,8 +81,5 @@ export const transactions = sqliteTable(
 );
 
 export type Category = typeof categories.$inferSelect;
-export type NewCategory = typeof categories.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
-export type NewTransaction = typeof transactions.$inferInsert;
 export type ShareLink = typeof shareLinks.$inferSelect;
-export type NewShareLink = typeof shareLinks.$inferInsert;

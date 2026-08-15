@@ -20,3 +20,17 @@ export async function categoryIsLeaf(categoryId: string): Promise<boolean> {
     .limit(1);
   return !child;
 }
+
+/**
+ * `categoryIsLeaf` answers "does anything name this as its parent", which is
+ * true for a nonexistent id too — this is the separate existence check that
+ * catches that case with a friendly `ActionState` error instead of an FK throw.
+ */
+export async function categoryExists(categoryId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.id, categoryId))
+    .limit(1);
+  return Boolean(row);
+}

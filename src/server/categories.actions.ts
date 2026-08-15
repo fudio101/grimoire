@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { categories, transactions } from "@/lib/db/schema";
+import { categories, shareLinkCategories, transactions } from "@/lib/db/schema";
 import { categorySchema, type CategoryFormValues } from "@/lib/schemas";
 import { getDescendantIds } from "@/lib/category-tree";
 import { requireAuthForAction } from "@/server/auth-guard";
@@ -105,6 +105,9 @@ export async function deleteCategory(id: string): Promise<ActionState> {
     tx.update(categories)
       .set({ parentId: null })
       .where(eq(categories.parentId, id))
+      .run();
+    tx.delete(shareLinkCategories)
+      .where(eq(shareLinkCategories.categoryId, id))
       .run();
     tx.delete(categories).where(eq(categories.id, id)).run();
   });

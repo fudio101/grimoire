@@ -114,19 +114,13 @@ Use `pnpm run db:push` only for quick local iteration; the committed migrations 
 
 This project uses GitHub Flow. Development happens on feature branches, merged to `main` via PRs.
 
-**To create a release:**
+Releases are automated by [Release Please](https://github.com/googleapis/release-please), triggered on every push to `main`:
 
-1. Go to **Actions** → **Release PR** → **Run workflow** → choose `patch` / `minor` / `major`
-2. Workflow automatically:
-   - Creates a release branch with version bump
-   - Opens a PR to `main` (labeled `release`)
-   - Auto-approves and sets PR to auto-merge (squash)
-3. When PR is merged, the publish workflow automatically:
-   - Creates git tag
-   - Builds and pushes Docker image to GHCR
-   - Creates GitHub Release with auto-generated notes from merged PRs since last release
+1. Release Please watches merged PRs and keeps a release PR up to date with the next version bump and changelog, inferred from Conventional Commits.
+2. Merging that release PR creates the git tag and GitHub Release.
+3. The tagged release triggers the Docker publish workflow, which builds and pushes the image to GHCR.
 
-The `main` branch history stays clean with proper squash-merged PRs.
+No manual workflow dispatch is needed — just merge the release PR when you're ready to ship.
 
 ## Project Structure
 

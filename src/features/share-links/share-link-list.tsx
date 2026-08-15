@@ -81,6 +81,12 @@ export function ShareLinkList({
       );
       return { previous };
     },
+    onSuccess: (result, _id, ctx) => {
+      if (!result.success) {
+        if (ctx?.previous) queryClient.setQueryData(linksKey, ctx.previous);
+        toastError(result.error);
+      }
+    },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(linksKey, ctx.previous);
     },
@@ -89,7 +95,13 @@ export function ShareLinkList({
 
   const rotate = useMutation({
     mutationFn: (id: string) => rotateShareLinkCode(id),
-    onSuccess: invalidate,
+    onSuccess: async (result) => {
+      if (!result.success) {
+        toastError(result.error);
+        return;
+      }
+      await invalidate();
+    },
   });
 
   const remove = useMutation({
@@ -241,11 +253,11 @@ export function ShareLinkList({
         confirmLabel={pendingConfirm?.kind === "rotate" ? "Đổi mã" : "Xoá"}
         // Rotating a code is not a deletion and should not be styled like one.
         variant={pendingConfirm?.kind === "rotate" ? "default" : "destructive"}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!pendingConfirm) return;
           if (pendingConfirm.kind === "rotate")
-            rotate.mutate(pendingConfirm.link.id);
-          else remove.mutate(pendingConfirm.link.id);
+            await rotate.mutateAsync(pendingConfirm.link.id);
+          else await remove.mutateAsync(pendingConfirm.link.id);
         }}
       />
 
