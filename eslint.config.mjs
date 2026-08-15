@@ -29,13 +29,22 @@ const NEXT_APP_FILES = ["src/app/**/*.{ts,tsx}", "src/instrumentation*.ts"];
 
 const eslintConfig = defineConfig([
   globalIgnores([
-    // Leftovers from before the TanStack Start migration. Nothing produces
-    // these any more, but any checkout that once ran `next build` still has
-    // them — including the self-hosted CI runner, which checks out with
-    // `clean: false`. Without this, eslint walks into .next/ and either lints
-    // build output or crashes on a file that vanished mid-run.
+    // Nothing produces any of these any more (Vite and TanStack Start are
+    // both gone as of PR 9), but the self-hosted CI runner checks out with
+    // `clean: false` — its working directory has been reused across this
+    // whole migration's PRs and can still hold a stale `dist/` from a much
+    // earlier `vite build`. PR 9 briefly dropped these entries on the
+    // (wrong) assumption that "nothing produces them" meant "nothing has
+    // them" — confirmed a 2.4M leftover `dist/` still on the runner, which
+    // ESLint then tried to parse as source, a real contributor to that PR's
+    // CI OOM. Keep this list even though it should be a no-op on a fresh
+    // checkout.
     ".next/**",
     "next-env.d.ts",
+    "dist/**",
+    ".vite/**",
+    ".tanstack/**",
+    "build/**",
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
