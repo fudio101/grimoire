@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.2.0](https://github.com/fugo101/grimoire/compare/v2.1.1...v2.2.0) (2026-08-15)
+
+
+### 🚀 Features
+
+* port login and the public report to the App Router ([#99](https://github.com/fugo101/grimoire/issues/99)) ([0e84f00](https://github.com/fugo101/grimoire/commit/0e84f002c90aea583ea162f36787fd81a3cfd03f))
+* port mutations to Server Actions and reads to Route Handlers ([#97](https://github.com/fugo101/grimoire/issues/97)) ([bc3456e](https://github.com/fugo101/grimoire/commit/bc3456eef18908455d52a54a1a8210e8da04cc3e))
+* port the dashboard and manage screens to the App Router ([#98](https://github.com/fugo101/grimoire/issues/98)) ([d9f0590](https://github.com/fugo101/grimoire/commit/d9f0590571f12dfb485ebae12eec662c7428fef6))
+
+
+### 🐛 Bug Fixes
+
+* post-migration security and correctness audit ([#104](https://github.com/fugo101/grimoire/issues/104)) ([4789dd9](https://github.com/fugo101/grimoire/commit/4789dd9a407a24f2a2dadefa601ea9bbfb3ef4c5))
+
+
+### 📚 Documentation
+
+* rewrite CLAUDE.md and README for the App Router ([#102](https://github.com/fugo101/grimoire/issues/102)) ([d4efc29](https://github.com/fugo101/grimoire/commit/d4efc2917f7341a60a246bcb8802d453947251b9))
+
+
+### ♻️ Refactors
+
+* centralize search-param parsing ([#94](https://github.com/fugo101/grimoire/issues/94)) ([7da9b02](https://github.com/fugo101/grimoire/commit/7da9b026bfb2472676ee5d42c70cd7eea0c3038e))
+* **db:** open the SQLite connection lazily ([#91](https://github.com/fugo101/grimoire/issues/91)) ([a54ee64](https://github.com/fugo101/grimoire/commit/a54ee6420054ddb795da1271c214688f5645225a))
+* drive filters and the theme toggle through props ([#93](https://github.com/fugo101/grimoire/issues/93)) ([b51bc74](https://github.com/fugo101/grimoire/commit/b51bc749344ad2b89f6dd44e3733f456edc094a8))
+* **server:** relocate schemas and COOKIE_OPTIONS ahead of Next.js ([#92](https://github.com/fugo101/grimoire/issues/92)) ([48ef7a0](https://github.com/fugo101/grimoire/commit/48ef7a0b3f0c184fa4a98292c40f2c659cd7587d))
+
 ## [2.1.1](https://github.com/fugo101/grimoire/compare/v2.1.0...v2.1.1) (2026-07-29)
 
 
