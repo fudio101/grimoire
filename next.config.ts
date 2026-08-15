@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   // better-sqlite3 is a native addon — keep it a runtime `require` rather than
-  // letting Next try to bundle it (mirrors Vite's `ssr.resolve.external` today).
+  // letting Next try to bundle it.
   serverExternalPackages: ["better-sqlite3"],
   /**
    * File tracing follows static requires fine, but binding.js resolves its
@@ -34,8 +34,9 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   // Old TanStack Router paths, kept live for bookmarks/screenshots that named
-  // them — same redirects as src/routes/index.tsx, dashboard/categories.tsx,
-  // dashboard/links.tsx and dashboard/manage/index.tsx today.
+  // them — same redirects those routes' now-deleted src/routes/index.tsx,
+  // dashboard/categories.tsx, dashboard/links.tsx and dashboard/manage/index.tsx
+  // used to define.
   async redirects() {
     return [
       { source: "/", destination: "/dashboard", permanent: false },
