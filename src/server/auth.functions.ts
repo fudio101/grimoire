@@ -13,16 +13,7 @@ import {
 } from "@/lib/auth";
 import { loginSchema } from "@/lib/schemas";
 import type { ActionState } from "@/lib/types";
-
-// Unchanged from the Next.js version, so existing `session` cookies stay valid
-// across the migration and nobody is signed out.
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  path: "/",
-  maxAge: 60 * 60 * 24 * 7,
-} as const;
+import { COOKIE_OPTIONS } from "@/server/auth-guard";
 
 async function readSession() {
   const token = getCookie(SESSION_COOKIE_NAME);
@@ -38,6 +29,13 @@ async function readSession() {
  * endpoints under `/_serverFn/*`, outside any such matcher, and `beforeLoad`
  * is a UX guard rather than a security boundary. Every server function that
  * reads or writes private data must therefore carry this middleware.
+ *
+ * Kept here rather than alongside COOKIE_OPTIONS in auth-guard.ts: TanStack
+ * Start's import-protection plugin only compiles this middleware's `.server`
+ * body away from the client bundle because this file also defines
+ * `createServerFn`s — split out on its own, its `getCookie` dependency (via
+ * readSession) becomes a live violation instead of a stripped one. Moving it
+ * out is deferred to the PR that retires the Start toolchain.
  */
 export const requireAdmin = createMiddleware({ type: "function" }).server(
   async ({ next }) => {

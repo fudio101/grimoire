@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import {
   getCategories,
   getShareLinks,
@@ -10,13 +9,13 @@ import {
 import { requireAdmin } from "@/server/auth.functions";
 import { addMonths } from "@/lib/format";
 import { getRootCategory, indexCategories } from "@/lib/category-tree";
-import { monthRangeSchema, monthSchema } from "@/lib/schemas";
+import {
+  overviewSchema,
+  transactionFilterSchema,
+  type TransactionFilters,
+} from "@/lib/schemas";
 
-export const transactionFilterSchema = monthRangeSchema.extend({
-  category: z.string().optional(),
-});
-
-export type TransactionFilters = z.infer<typeof transactionFilterSchema>;
+export type { TransactionFilters };
 
 export const fetchCategories = createServerFn({ method: "GET" })
   .middleware([requireAdmin])
@@ -44,10 +43,6 @@ export const fetchRecentCategories = createServerFn({ method: "GET" })
 
 /** How many months the overview trend covers, including the selected one. */
 const SERIES_MONTHS = 6;
-
-export const overviewSchema = z.object({
-  month: monthSchema,
-});
 
 export type OverviewData = {
   month: string;

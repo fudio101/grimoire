@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import {
   getCategories,
   getShareLinkByCode,
@@ -8,21 +7,10 @@ import {
 } from "@/lib/db/queries";
 import { getDescendantIds, type CategoryLike } from "@/lib/category-tree";
 import { addMonths } from "@/lib/format";
-import { monthRangeSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
+import { publicReportSchema, type PublicReportSearch } from "@/lib/schemas";
 import type { TransactionTableRow } from "@/lib/types";
 
-export const publicReportSchema = monthRangeSchema.extend({
-  // SHARE_CODE_SHAPE, not SHARE_CODE_PATTERN: this rejects values that could
-  // never be a code, without imposing the 8-character write floor on links that
-  // were handed out before that floor existed.
-  code: z.string().regex(SHARE_CODE_SHAPE),
-  category: z.string().optional(),
-});
-
-export type PublicReportSearch = Omit<
-  z.infer<typeof publicReportSchema>,
-  "code"
->;
+export type { PublicReportSearch };
 
 export type PublicReport = {
   linkName: string | null;
