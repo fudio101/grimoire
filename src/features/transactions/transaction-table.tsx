@@ -6,6 +6,7 @@ import { TransactionDataTable } from "@/features/transactions/transaction-data-t
 import { transactionColumns } from "@/features/transactions/columns";
 import { deleteTransaction } from "@/server/transactions.actions";
 import { getCategoryPathParts, indexCategories } from "@/lib/category-tree";
+import { toastError } from "@/lib/toast";
 import type { Category } from "@/lib/db/schema";
 import type { TransactionRow, TransactionTableRow } from "@/lib/types";
 
@@ -21,12 +22,17 @@ export function TransactionTable({
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteTransaction(id),
-    onSuccess: () =>
-      Promise.all([
+    onSuccess: async (result) => {
+      if (!result.success) {
+        toastError(result.error);
+        return;
+      }
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
         queryClient.invalidateQueries({ queryKey: ["recentCategories"] }),
-      ]),
+      ]);
+    },
   });
 
   // The dashboard owns the category list, so it resolves paths here with the
