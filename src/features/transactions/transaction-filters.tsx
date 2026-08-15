@@ -1,30 +1,35 @@
-import { getRouteApi } from "@tanstack/react-router";
 import { CategoryPickerField } from "@/features/categories/category-picker";
 import type { Category } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
-const routeApi = getRouteApi("/dashboard/transactions");
-
-export function TransactionFilters({ categories }: { categories: Category[] }) {
-  const { fromMonth, toMonth, category } = routeApi.useSearch();
-  const navigate = routeApi.useNavigate();
-
+/**
+ * Driven entirely by props rather than reading `/dashboard/transactions`'s
+ * own search state via `getRouteApi`: the caller owns navigation, which is
+ * what lets `/p/$code` reuse the exact same shape for its own month/category
+ * controls, and what a future App Router page (no route-context equivalent)
+ * can supply too.
+ */
+export function TransactionFilters({
+  categories,
+  fromMonth,
+  toMonth,
+  category,
+  onMonthChange,
+  onCategoryChange,
+}: {
+  categories: Category[];
+  fromMonth: string | undefined;
+  toMonth: string | undefined;
+  category: string | undefined;
+  onMonthChange: (fromMonth: string | null, toMonth: string | null) => void;
+  onCategoryChange: (category: string | null) => void;
+}) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
       <MonthRangeFilter
         fromMonth={fromMonth ?? null}
         toMonth={toMonth ?? null}
-        onChange={(from, to) => {
-          // undefined drops the key from the URL, matching the old
-          // URLSearchParams.delete() behaviour.
-          void navigate({
-            search: (prev) => ({
-              ...prev,
-              fromMonth: from ?? undefined,
-              toMonth: to ?? undefined,
-            }),
-          });
-        }}
+        onChange={onMonthChange}
       />
 
       {/*
@@ -34,11 +39,7 @@ export function TransactionFilters({ categories }: { categories: Category[] }) {
       <CategoryPickerField
         categories={categories}
         value={category ?? null}
-        onChange={(id) =>
-          void navigate({
-            search: (prev) => ({ ...prev, category: id ?? undefined }),
-          })
-        }
+        onChange={onCategoryChange}
         selectable="all"
         clearLabel="Tất cả danh mục"
         placeholder="Tất cả danh mục"

@@ -65,6 +65,7 @@ const NAV: {
  * to header on every desktop page load.
  */
 function DashboardLayout() {
+  const { themePreference } = Route.useRouteContext();
   const queryClient = useQueryClient();
 
   /**
@@ -107,7 +108,7 @@ function DashboardLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <ThemeToggle themePreference={themePreference} />
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -127,7 +128,7 @@ function DashboardLayout() {
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
         <span className="font-semibold tracking-tight">Grimoire</span>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeToggle themePreference={themePreference} />
           <form
             onSubmit={(e) => {
               e.preventDefault();

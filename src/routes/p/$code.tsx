@@ -16,6 +16,7 @@ import { publicReportQueryOptions } from "@/lib/query-options";
 import { monthRangeSearchSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
 import type { TransactionTableRow } from "@/lib/types";
 import type { CategoryLike } from "@/lib/category-tree";
+import type { ThemePreference } from "@/lib/theme";
 
 const searchSchema = monthRangeSearchSchema.extend({
   category: z.string().optional(),
@@ -104,6 +105,7 @@ function PublicError() {
 
 function PublicView() {
   const { code } = Route.useParams();
+  const { themePreference } = Route.useRouteContext();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const { data: report } = useSuspenseQuery(
@@ -133,6 +135,7 @@ function PublicView() {
         filterCategories={filterCategories}
         month={month}
         category={search.category}
+        themePreference={themePreference}
         onMonthChange={(next) =>
           void navigate({
             search: (prev) => ({
@@ -162,6 +165,7 @@ function ReportBody({
   category,
   onMonthChange,
   onCategoryChange,
+  themePreference,
 }: {
   linkName: string | null;
   transactions: TransactionTableRow[];
@@ -172,6 +176,7 @@ function ReportBody({
   category: string | undefined;
   onMonthChange: (month: string | null) => void;
   onCategoryChange: (category: string | null) => void;
+  themePreference: ThemePreference;
 }) {
   // Collapsed on a phone, where an open chart pushes the entries off screen;
   // open from md, where there is room for both.
@@ -209,7 +214,7 @@ function ReportBody({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-muted-foreground">Giao diện</span>
-          <ThemeToggle />
+          <ThemeToggle themePreference={themePreference} />
         </div>
       </header>
 
