@@ -1,22 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import { MonthStepper } from "@/features/overview/month-stepper";
 import { TotalCard, StatTile } from "@/features/overview/summary-cards";
 import { CategoryBreakdown } from "@/features/overview/category-breakdown";
 import { MonthlyTrendChart } from "@/features/overview/monthly-trend-chart";
 import { formatVND, getCurrentMonth } from "@/lib/format";
 import { overviewQueryOptions } from "@/lib/query-options";
-
-const searchSchema = z.object({
-  month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .optional(),
-});
+import { parseOverviewSearch } from "@/lib/search-params";
 
 export const Route = createFileRoute("/dashboard/")({
-  validateSearch: searchSchema,
+  validateSearch: parseOverviewSearch,
   // Loaders are keyed on the parsed pathname plus loaderDeps only. Without this
   // the month would change in the URL while the loader never re-ran — the page
   // would still show correct data, fetched on the client after hydration, so
