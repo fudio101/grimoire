@@ -17,7 +17,7 @@ A lightweight, self-hosted expense tracker. Vietnamese UI, VNĐ currency, SQLite
 
 ## Tech Stack
 
-TanStack Start · TanStack Router · TanStack Query · TanStack Table · TanStack Form · TanStack Virtual · Vite · React 19 · Tailwind CSS 4 · Base UI · SQLite · Drizzle ORM · jose · ESLint · Prettier
+Next.js 16 (App Router) · TanStack Query · TanStack Table · TanStack Form · TanStack Virtual · React 19 · Tailwind CSS 4 · Base UI · SQLite · Drizzle ORM · jose · ESLint · Prettier
 
 ## Quick Start
 
@@ -62,7 +62,7 @@ pnpm run dev                 # migrations apply automatically on startup
 
 ## Docker
 
-Pre-built images are published to GHCR on each tagged release.
+Pre-built images are published to GHCR on each tagged release. The runtime image is ~347MB.
 
 ```bash
 # Using pre-built image
@@ -81,7 +81,7 @@ SQLite data is persisted at `/app/data/data.db` via volume mount.
 
 ### Upgrading & migrating the database
 
-Schema migrations run **automatically on startup** — no manual steps. Versioned SQL migrations live in [`drizzle/`](drizzle/) and are applied by `src/lib/db/migrate.ts` (called from `src/server.ts`) every time the server boots. To upgrade:
+Schema migrations run **automatically on startup** — no manual steps. Versioned SQL migrations live in [`drizzle/`](drizzle/) and are applied by `src/lib/db/migrate.ts` (called from `src/instrumentation.node.ts`, itself invoked via `src/instrumentation.ts`) every time the server boots. To upgrade:
 
 ```bash
 docker compose pull
@@ -133,26 +133,34 @@ The `main` branch history stays clean with proper squash-merged PRs.
 ```
 src/
 ├── app/
-│   ├── actions/           # Server actions (auth, categories, transactions)
-│   ├── dashboard/         # Admin pages
-│   │   └── categories/    # Category management page
-│   ├── login/             # Authentication
-│   └── p/[shareToken]/    # Public shared category view
+│   ├── api/                       # Route Handlers (client-side reads)
+│   ├── dashboard/                 # readSession()-guarded pages
+│   │   ├── manage/{categories,links}/
+│   │   └── transactions/
+│   ├── login/
+│   ├── p/[code]/                  # Public shared report (own not-found/error)
+│   ├── layout.tsx                 # Root layout, force-dynamic, theme cookie
+│   └── providers.tsx, theme-context.tsx, error.tsx, not-found.tsx, global-error.tsx
+├── server/
+│   ├── *.actions.ts               # Server Actions (mutations)
+│   ├── *.queries.ts               # Plain read functions (overview, public-report)
+│   └── auth-guard.ts, http-auth.ts
 ├── features/
-│   ├── transactions/      # Transaction form, table, filters, add button
-│   │   └── month-range-filter.tsx
-│   └── categories/        # Category form, list, copy button
+│   └── transactions/, categories/, share-links/, overview/, public-report/
 ├── components/
-│   ├── ui/                # Base UI components (dialog, select, button, etc.)
-│   ├── responsive-modal.tsx  # Desktop dialog / mobile drawer
-│   ├── confirm-dialog.tsx    # Confirmation dialogs
-│   ├── submit-button.tsx     # Loading state button
-│   └── currency-input.tsx    # VND formatted input
-├── hooks/                 # Custom React hooks
-└── lib/
-    ├── db/                # Schema & queries (Drizzle ORM)
-    ├── schemas.ts         # Zod validation schemas
-    ├── types.ts           # Shared TypeScript types
-    ├── auth.ts            # JWT session utilities
-    └── format.ts          # Currency & datetime formatters
+│   ├── ui/                        # Base UI components (dialog, select, button, etc.)
+│   ├── responsive-modal.tsx       # Desktop dialog / mobile drawer
+│   ├── nav-link.tsx               # Active-link matching via usePathname()
+│   ├── submit-button.tsx          # Loading state button
+│   └── currency-input.tsx         # VND formatted input
+├── hooks/                         # Custom React hooks
+├── lib/
+│   ├── db/                        # Schema, queries & migrations (Drizzle ORM)
+│   ├── schemas.ts                 # Zod validation schemas
+│   ├── search-params.ts           # Shared searchParams parsing (server + client)
+│   ├── query-options.ts, query-client.ts, api.ts
+│   ├── types.ts                   # Shared TypeScript types
+│   ├── auth.ts                    # JWT session utilities
+│   └── format.ts                  # Currency & datetime formatters
+└── instrumentation.ts, instrumentation.node.ts   # Startup migrations, AUTH_SECRET check
 ```
