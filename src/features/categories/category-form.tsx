@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
 import { CategoryPickerField } from "@/features/categories/category-picker";
-import { createCategory, updateCategory } from "@/server/categories.functions";
+import { createCategory, updateCategory } from "@/server/categories.actions";
 import { categorySchema, type CategoryFormValues } from "@/lib/schemas";
 import { getDescendantIds } from "@/lib/category-tree";
 import type { Category } from "@/lib/db/schema";
@@ -32,8 +32,8 @@ export function CategoryForm({
     validators: { onSubmit: categorySchema },
     onSubmit: async ({ value }) => {
       const result = defaultValues
-        ? await updateCategory({ data: { id: defaultValues.id, data: value } })
-        : await createCategory({ data: value });
+        ? await updateCategory(defaultValues.id, value)
+        : await createCategory(value);
 
       if (!result.success) {
         setServerError(result.error ?? null);

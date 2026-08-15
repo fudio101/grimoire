@@ -34,7 +34,7 @@ import {
   toggleShareLinkEnabled,
   rotateShareLinkCode,
   deleteShareLink,
-} from "@/server/share-links.functions";
+} from "@/server/share-links.actions";
 import { shareLinksQueryOptions } from "@/lib/query-options";
 import type { Category } from "@/lib/db/schema";
 import type { ShareLinkWithCategories } from "@/lib/db/queries";
@@ -71,7 +71,7 @@ export function ShareLinkList({
    * can disagree.
    */
   const toggle = useMutation({
-    mutationFn: (id: string) => toggleShareLinkEnabled({ data: { id } }),
+    mutationFn: (id: string) => toggleShareLinkEnabled(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: linksKey });
       const previous =
@@ -88,12 +88,12 @@ export function ShareLinkList({
   });
 
   const rotate = useMutation({
-    mutationFn: (id: string) => rotateShareLinkCode({ data: { id } }),
+    mutationFn: (id: string) => rotateShareLinkCode(id),
     onSuccess: invalidate,
   });
 
   const remove = useMutation({
-    mutationFn: (id: string) => deleteShareLink({ data: { id } }),
+    mutationFn: (id: string) => deleteShareLink(id),
     onSuccess: async (result) => {
       if (!result.success) {
         toastError(result.error);

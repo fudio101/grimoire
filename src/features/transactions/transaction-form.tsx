@@ -11,7 +11,7 @@ import { CategoryPickerField } from "@/features/categories/category-picker";
 import {
   createTransaction,
   updateTransaction,
-} from "@/server/transactions.functions";
+} from "@/server/transactions.actions";
 import { transactionSchema } from "@/lib/schemas";
 import { isLeaf } from "@/lib/category-tree";
 import { recentCategoriesQueryOptions } from "@/lib/query-options";
@@ -93,10 +93,8 @@ export function TransactionForm({
     validators: { onSubmit: transactionSchema },
     onSubmit: async ({ value }) => {
       const result = defaultValues
-        ? await updateTransaction({
-            data: { id: defaultValues.id, data: value },
-          })
-        : await createTransaction({ data: value });
+        ? await updateTransaction(defaultValues.id, value)
+        : await createTransaction(value);
 
       if (!result.success) {
         setServerError(result.error ?? null);

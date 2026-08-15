@@ -53,33 +53,21 @@ jobs:
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
-      - name: Build (Vite)
-        # No DATABASE_URL: `vite build` never evaluates application modules,
-        # so this build does not open the database. Still the primary build
-        # until PR 9 retires it — see "Build (Next.js)" below for the build
-        # that actually exercises hazard 1.
+      - name: Build
+        # `pnpm run build` is `next build` as of this PR — Vite is retired
+        # from the primary scripts (query-options.ts's queryFns now fetch
+        # app/api/* Route Handlers that only exist under Next, so the old
+        # TanStack Router surface can no longer run correctly regardless of
+        # whether it still compiles; see src/routes/** in tsconfig.json's
+        # exclude list). No DATABASE_URL: unlike `vite build`, `next build`
+        # evaluates every page module during "Collecting page data", so this
+        # exercises hazard 1's fix for real — the lazy SQLite connection
+        # (PR 1) plus `instrumentation.ts` skipping migrations during
+        # NEXT_PHASE=phase-production-build are what make the next step
+        # pass. `next build`'s own internal type-check runs against
+        # tsconfig.next.json (see `typescript.tsconfigPath`), separately
+        # from the plain tsc step above.
         run: pnpm run build
 
-      - name: Build (Next.js)
-        # No DATABASE_URL here either, but this build does not get the same
-        # free pass: `next build` evaluates every page module during
-        # "Collecting page data", unlike `vite build`. `src/lib/db/index.ts`'s
-        # lazy connection (PR 1) plus `src/instrumentation.ts` skipping
-        # migrations during NEXT_PHASE=phase-production-build are what make
-        # the next check pass.
-        run: pnpm run build:next
-
-      - name: Next.js build never opened the database
+      - name: Build never opened the database
         run: test ! -f data.db
-
-      - name: Route tree is up to date
-        # src/routeTree.gen.ts is generated but committed, so that tsc can run
-        # before the build on a clean checkout. The build regenerates it, so
-        # diffing afterwards catches a route added or renamed without the tree
-        # committed alongside — otherwise tsc passes against a stale tree.
-        #
-        # This has to use the build rather than the standalone `tsr generate`
-        # CLI: the CLI omits the `declare module "@tanstack/react-start"` block
-        # that the Start plugin appends, so its output differs from the
-        # committed file even when nothing changed.
-        run: git diff --exit-code src/routeTree.gen.ts
