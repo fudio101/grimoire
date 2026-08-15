@@ -13,10 +13,24 @@ const nextConfig: NextConfig = {
    * build time — see PR 10's `find .../linuxmusl-*.node` build-time control,
    * which exists precisely because this is silent otherwise. Both arches
    * included for multi-arch image builds; each prebuild is ~2.3MB.
+   *
+   * `@swc/helpers` (a real, correctly-installed dependency of `next` itself —
+   * confirmed present in the full, untraced `node_modules`) is the same class
+   * of tracing gap under pnpm's virtual store: the standalone output's own
+   * `require-hook.js` resolves it through a path tracing doesn't follow,
+   * throwing `Cannot find module '.../@swc/helpers/esm/_interop_require_default.js'`
+   * at container startup — found by actually running the built image against
+   * real data (PR 10), not just building it; a build that "succeeds" here
+   * still produces a standalone bundle that crashes on its first request.
+   * Wildcarded on version so a future `@swc/helpers` patch bump (pulled in
+   * transitively by `next` itself) doesn't silently reopen this gap.
    */
   outputFileTracingIncludes: {
     // Each prebuild is a flat `<platform>.node` file, not a directory.
-    "/**": ["./node_modules/better-sqlite3/prebuilds/linuxmusl-*.node"],
+    "/**": [
+      "./node_modules/better-sqlite3/prebuilds/linuxmusl-*.node",
+      "./node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/**",
+    ],
   },
   typedRoutes: true,
   // Old TanStack Router paths, kept live for bookmarks/screenshots that named

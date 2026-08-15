@@ -1,7 +1,5 @@
 node_modules
-dist
-.vite
-.tanstack
+.next
 .git
 *.db
 *.db-wal
