@@ -15,7 +15,18 @@ import prettier from "eslint-config-prettier";
  * `eslint-plugin-react-hooks` and has no class components for
  * `eslint-plugin-react`'s prop-types rules to check, so nothing of substance
  * is lost by taking only the Next-specific rules.
+ *
+ * Scoped to `src/app/**` rather than repo-wide. PR 9 tried widening this now
+ * that the whole tree is Next-only (no more TanStack Router split to justify
+ * the narrow scope) — it passed locally but OOM-killed the self-hosted CI
+ * runner's Lint step after ~5 minutes (exit 137). Whatever in this plugin's
+ * `core-web-vitals` config gets expensive across `src/components/ui/`'s 23
+ * files plus `src/features/**`, the runner can't afford it. Keep this
+ * narrow; if broader Next-lint coverage is wanted later, budget CI runner
+ * memory for it rather than widening blind.
  */
+const NEXT_APP_FILES = ["src/app/**/*.{ts,tsx}", "src/instrumentation*.ts"];
+
 const eslintConfig = defineConfig([
   globalIgnores([
     // Leftovers from before the TanStack Start migration. Nothing produces
@@ -31,7 +42,7 @@ const eslintConfig = defineConfig([
   reactHooks.configs.flat.recommended,
   // `exhaustive-deps` catches query keys that omit a filter.
   ...pluginQuery.configs["flat/recommended"],
-  nextPlugin.configs["core-web-vitals"],
+  { ...nextPlugin.configs["core-web-vitals"], files: NEXT_APP_FILES },
   prettier,
 ]);
 
