@@ -11,3 +11,12 @@ node_modules
 eslint.config.mjs
 README.md
 LICENSE
+CLAUDE.md
+CHANGELOG.md
+docker-compose.yml
+grimoire-data.tar.gz
+*.tsbuildinfo
+.idea
+.claude
+.rtk
+.github

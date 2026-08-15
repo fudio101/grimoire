@@ -56,3 +56,6 @@ grimoire-data.tar.gz
 
 # ide
 .idea/
+
+# Claude Code output-filter config (rtk) — local tool state, not project config.
+/.rtk/
