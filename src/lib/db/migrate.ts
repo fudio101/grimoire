@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { db, sqlite } from "@/lib/db";
+import { db, getSqlite } from "@/lib/db";
 
 const MIGRATIONS_DIR = path.join(process.cwd(), "drizzle");
 
@@ -50,7 +50,7 @@ export function runMigrations(): void {
 
 function tableExists(name: string): boolean {
   return Boolean(
-    sqlite
+    getSqlite()
       .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
       .get(name)
   );
@@ -58,14 +58,14 @@ function tableExists(name: string): boolean {
 
 function indexExists(name: string): boolean {
   return Boolean(
-    sqlite
+    getSqlite()
       .prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?")
       .get(name)
   );
 }
 
 function columnExists(table: string, column: string): boolean {
-  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as {
+  const cols = getSqlite().prepare(`PRAGMA table_info(${table})`).all() as {
     name: string;
   }[];
   return cols.some((c) => c.name === column);
@@ -84,7 +84,7 @@ function stampBaselineIfNeeded(): void {
   if (entries.length === 0) return;
 
   // Same DDL the Drizzle migrator uses, so it reuses this table as-is.
-  sqlite.exec(
+  getSqlite().exec(
     `CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
       id SERIAL PRIMARY KEY,
       hash text NOT NULL,
@@ -92,7 +92,7 @@ function stampBaselineIfNeeded(): void {
     )`
   );
 
-  const tracked = sqlite
+  const tracked = getSqlite()
     .prepare(`SELECT count(*) AS n FROM "__drizzle_migrations"`)
     .get() as { n: number };
   if (tracked.n > 0) return; // already managed by the migrator
@@ -114,7 +114,7 @@ function stampBaselineIfNeeded(): void {
   // Baseline schema unrecognizable → let the migrator run everything.
   if (!lastApplied) return;
 
-  sqlite
+  getSqlite()
     .prepare(
       `INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES (?, ?)`
     )

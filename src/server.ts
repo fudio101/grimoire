@@ -1,7 +1,7 @@
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 import { runMigrations } from "@/lib/db/migrate";
 import { assertAuthSecret } from "@/lib/auth";
-import { sqlite } from "@/lib/db";
+import { closeDatabase } from "@/lib/db";
 
 // Replaces the App Router's instrumentation.register() hook. This module is
 // compiled only into the SSR environment and evaluated once, when the server
@@ -31,7 +31,7 @@ function shutdown(signal: NodeJS.Signals): void {
   if (closed) return;
   closed = true;
   try {
-    sqlite.close();
+    closeDatabase();
   } catch (err) {
     console.error("Error closing the database during shutdown:", err);
   }
