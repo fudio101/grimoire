@@ -5,9 +5,6 @@ RUN npm i -g corepack@latest && corepack enable
 WORKDIR /app
 
 # --- Build dependencies ---
-# No `pnpm rebuild better-sqlite3` here: `vite build` never evaluates
-# application modules, so the build does not open the database and does not
-# need the native binary. Only the runtime stage does.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -17,39 +14,57 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm run build
-
-# --- Runtime dependencies ---
-# The Vite SSR build leaves better-sqlite3 as a bare import rather than
-# inlining it the way `.next/standalone` used to, so node_modules has to ship.
-# better-sqlite3 13 dropped prebuild-install and always compiles from source,
-# which is why the rebuild runs here, against this image's Node and libc.
-FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
-    pnpm rebuild better-sqlite3
+# The build must never have opened the database — next build evaluating
+# every page module during "Collecting page data" is exactly the failure
+# mode hazard 1's lazy SQLite connection (and force-dynamic) exist to avoid.
+RUN test ! -f data.db
+# outputFileTracingIncludes (next.config.ts) has to reach through a
+# *computed* require path in better-sqlite3's binding.js that file tracing
+# can't follow on its own — a build that silently produced a standalone
+# bundle missing the native addon looks identical to a working one until
+# runtime, so this is a control, not decoration.
+RUN find .next/standalone -name 'linuxmusl-*.node' -print -quit | grep -q . \
+    || (echo "better-sqlite3 prebuild missing from standalone output" && exit 1)
 
 # --- Production ---
+# No native-rebuild stage: better-sqlite3 ships prebuilt binaries resolved
+# via fs.existsSync (see next.config.ts's comment) and has no install/
+# postinstall script at all, so there's nothing to rebuild. .next/standalone
+# already carries its own minimal traced node_modules — the prod-only
+# install + `pnpm rebuild better-sqlite3` stage the pre-Start-migration
+# Dockerfile needed here is gone, not preserved.
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV HOST=0.0.0.0
+ENV HOSTNAME=0.0.0.0
 ENV DATABASE_URL=/app/data/data.db
+# getCurrentMonth() (src/lib/format.ts) is local-time; without this the
+# container computes "current month" in UTC while the Vietnamese browsers
+# using it are UTC+7, diverging between 00:00-07:00 ICT on the 1st of every
+# month. The ENV var alone is not enough — Alpine ships no tzdata by
+# default, so TZ silently has no effect without it (found by actually
+# checking `date` inside a running container, not just setting the var and
+# assuming it worked).
+ENV TZ=Asia/Ho_Chi_Minh
+RUN apk add --no-cache tzdata
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 grimoire && \
     mkdir -p /app/data && chown grimoire:nodejs /app/data
 
-COPY --from=prod-deps --chown=grimoire:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=grimoire:nodejs /app/dist ./dist
-# Drizzle migrations applied on startup (see src/server.ts)
+# Standalone ships its own server.js and package.json ("type": "module"
+# carried over from the root one) — no explicit COPY package.json needed.
+COPY --from=builder --chown=grimoire:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=grimoire:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=grimoire:nodejs /app/public ./public
+# Drizzle migrations applied on startup (see src/instrumentation.node.ts).
+# migrate.ts resolves path.join(process.cwd(), "drizzle"), so this has to
+# land at /app, matching the WORKDIR every other stage already uses.
 COPY --from=builder --chown=grimoire:nodejs /app/drizzle ./drizzle
-# Required at runtime for "type": "module" — without it Node treats
-# dist/server/server.js as CommonJS and the import fails.
-COPY --chown=grimoire:nodejs package.json ./
 
 USER grimoire
 EXPOSE 3000
 
-# Invoking srvx directly keeps node as PID 1, so signals and graceful shutdown
-# work. `-s ../client` is resolved relative to the server bundle.
-CMD ["node_modules/.bin/srvx", "--prod", "-s", "../client", "dist/server/server.js"]
+# node as PID 1 (no srvx) keeps signal handling direct — instrumentation.node.ts's
+# own SIGTERM/SIGINT handlers close the database and exit cleanly.
+CMD ["node", "server.js"]
