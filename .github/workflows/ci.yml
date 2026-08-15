@@ -80,6 +80,15 @@ jobs:
         # `.next/types` from an earlier run was still sitting there.
         run: pnpm run typecheck
 
+      - name: Test
+        # The migration test that seeds from grimoire-data.tar.gz (the real
+        # production snapshot) is gitignored and never reaches this
+        # checkout, so it self-skips here via `it.skipIf` rather than
+        # failing on a fixture this runner was never going to have. Every
+        # other test — including the equivalent baseline scenario built
+        # from the committed migration SQL itself — still runs for real.
+        run: pnpm run test
+
       - name: Audit dependencies
         # Baseline, not a fix — `pnpm audit` is clean as of this step's
         # introduction. Catches a known-vulnerable transitive dep landing via
