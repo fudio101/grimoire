@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE_NAME = "session";
@@ -25,8 +26,9 @@ function getSecret() {
  *
  * `getSecret` is lazy, so without this a server misconfigured with a weak or
  * missing secret boots clean and only fails later, at a request — which reads
- * as a login bug rather than a deployment one. Called from src/server.ts beside
- * the migrations, the other thing that has to be right before traffic arrives.
+ * as a login bug rather than a deployment one. Called from
+ * src/instrumentation.node.ts beside the migrations, the other thing that has
+ * to be right before traffic arrives.
  */
 export function assertAuthSecret(): void {
   getSecret();
@@ -58,12 +60,29 @@ export async function verifyToken(
   }
 }
 
+/** Constant-time compare — a plain `===` leaks timing information a network attacker can use to guess characters one at a time. */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  // timingSafeEqual throws on mismatched lengths, so pad to equal length
+  // first — comparing against a same-length buffer still keeps the
+  // comparison itself constant-time; only the length check is length-leaky,
+  // which is unavoidable and not the information being protected here.
+  if (bufA.length !== bufB.length) {
+    timingSafeEqual(bufA, Buffer.alloc(bufA.length));
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
+
 export function validateCredentials(
   username: string,
   password: string
 ): boolean {
+  const expectedUsername = process.env.ADMIN_USERNAME ?? "";
+  const expectedPassword = process.env.ADMIN_PASSWORD ?? "";
   return (
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
+    timingSafeStringEqual(username, expectedUsername) &&
+    timingSafeStringEqual(password, expectedPassword)
   );
 }

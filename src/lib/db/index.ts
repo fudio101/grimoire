@@ -13,6 +13,9 @@ const globalRef = globalThis as typeof globalThis & {
 function open(): Database.Database {
   const connection = new Database(process.env.DATABASE_URL ?? "./data.db");
   connection.pragma("busy_timeout = 5000");
+  // SQLite defaults this off per-connection, so every `.references()` in
+  // schema.ts is decorative without it.
+  connection.pragma("foreign_keys = ON");
   enableWalMode(connection);
   return connection;
 }
@@ -83,8 +86,9 @@ export function closeDatabase(): void {
  * with SQLITE_BUSY (the busy_timeout handler does not cover this case) when
  * another connection to the same file is doing the same thing — parallel
  * build-time module evaluation opening the database is exactly this case, so
- * this retry loop is load-bearing again once the app builds under Next rather
- * than Vite. WAL is a persistent property of the file, so once any process
+ * this retry loop is load-bearing now that the app builds under Next, which
+ * evaluates page modules concurrently while collecting page data. WAL is a
+ * persistent property of the file, so once any process
  * sets it the rest only need to observe it — retry briefly, and treat "already
  * in WAL" as success.
  */

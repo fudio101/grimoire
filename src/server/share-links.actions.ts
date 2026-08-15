@@ -6,11 +6,16 @@ import { db } from "@/lib/db";
 import { shareLinkCategories, shareLinks } from "@/lib/db/schema";
 import { shareLinkSchema, type ShareLinkFormValues } from "@/lib/schemas";
 import { requireAuthForAction } from "@/server/auth-guard";
-import { codeTaken, generateCode } from "@/server/share-links.server";
+import {
+  allCategoriesExist,
+  codeTaken,
+  generateCode,
+} from "@/server/share-links.server";
 import type { ActionState } from "@/lib/types";
 
 const NOT_FOUND = "Không tìm thấy liên kết.";
 const CODE_TAKEN = "Mã này đã tồn tại.";
+const CATEGORY_NOT_FOUND = "Một hoặc nhiều danh mục không tồn tại.";
 
 export async function createShareLink(
   input: ShareLinkFormValues
@@ -26,6 +31,9 @@ export async function createShareLink(
 
   const name = data.name?.trim() || null;
   const { categoryIds } = data;
+  if (!(await allCategoriesExist(categoryIds))) {
+    return { success: false, error: CATEGORY_NOT_FOUND };
+  }
 
   db.transaction((tx) => {
     const [link] = tx
@@ -69,6 +77,9 @@ export async function updateShareLink(
 
   const name = data.name?.trim() || null;
   const { categoryIds } = data;
+  if (!(await allCategoriesExist(categoryIds))) {
+    return { success: false, error: CATEGORY_NOT_FOUND };
+  }
 
   db.transaction((tx) => {
     tx.update(shareLinks)

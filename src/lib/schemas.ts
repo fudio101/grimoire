@@ -15,7 +15,7 @@ import { z } from "zod";
  */
 export const monthSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}$/, "Tháng phải có dạng YYYY-MM");
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Tháng phải có dạng YYYY-MM");
 
 /**
  * The `fromMonth` / `toMonth` pair, as a server function accepts it.
@@ -35,7 +35,7 @@ export const monthRangeSchema = z.object({
  * the error component. URLs get hand-edited, truncated by chat clients, and
  * shared long after the UI that produced them changed — answering a mangled
  * `?toMonth=` with a full-page error is worse than answering with an unfiltered
- * report, and `/p/$code` is read by people who cannot fix the link themselves.
+ * report, and `/p/[code]` is read by people who cannot fix the link themselves.
  *
  * This is not a hole: `.catch` produces `undefined`, never the malformed
  * string, so nothing invalid reaches monthRangeSchema or the query layer.
@@ -58,8 +58,6 @@ export const categorySchema = z.object({
   name: z.string().min(1, "Vui lòng nhập tên danh mục").max(100),
   parentId: z.string().nullable().optional(),
 });
-
-export type CategoryInput = z.infer<typeof categorySchema>;
 
 /**
  * TanStack Form matches a Standard Schema against its form data invariantly, so
@@ -101,8 +99,6 @@ export const shareLinkSchema = z.object({
   categoryIds: z.array(z.string()).min(1, "Chọn ít nhất 1 danh mục"),
 });
 
-export type ShareLinkInput = z.infer<typeof shareLinkSchema>;
-
 export type ShareLinkFormValues = z.input<typeof shareLinkSchema>;
 
 export const loginSchema = z.object({
@@ -131,7 +127,7 @@ export const overviewSchema = z.object({
 });
 
 /**
- * A public share-link code, as accepted on read via `/p/$code`. Moved here for
+ * A public share-link code, as accepted on read via `/p/[code]`. Moved here for
  * the same reason as `transactionFilterSchema` above.
  */
 export const publicReportSchema = monthRangeSchema.extend({
