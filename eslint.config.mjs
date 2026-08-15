@@ -16,17 +16,31 @@ import prettier from "eslint-config-prettier";
  * `eslint-plugin-react`'s prop-types rules to check, so nothing of substance
  * is lost by taking only the Next-specific rules.
  *
- * Scoped to `src/app/**` rather than repo-wide. PR 9 tried widening this now
- * that the whole tree is Next-only (no more TanStack Router split to justify
- * the narrow scope) — it passed locally but OOM-killed the self-hosted CI
- * runner's Lint step after ~5 minutes (exit 137). Whatever in this plugin's
- * `core-web-vitals` config gets expensive across `src/components/ui/`'s 23
- * files plus `src/features/**`, the runner can't afford it. Keep this
- * narrow; if broader Next-lint coverage is wanted later, budget CI runner
- * memory for it rather than widening blind.
+ * Was scoped to `src/app/**` only. An earlier attempt at widening this to
+ * repo-wide OOM-killed the self-hosted CI runner's Lint step after ~5
+ * minutes (exit 137). Re-measured with `TIMING=20 pnpm run lint` on a
+ * repo-wide `core-web-vitals` before retrying this: every `@next/next/*`
+ * rule combined costs under 4ms — `no-html-link-for-pages` (the one rule
+ * here that reads the route tree from disk, and the obvious first suspect)
+ * is 0.3% of total rule time. The real cost, ~90% of it, is
+ * `react-hooks/static-components` from `eslint-plugin-react-hooks`'s
+ * `flat.recommended` below — which has no `files` restriction and
+ * therefore *already* ran across this same `src/components/ui/` +
+ * `src/features/**` tree even while this plugin was still narrow-scoped.
+ * Confirmed identical timing on the narrow-scope config, so that cost
+ * isn't new and was never caused by this plugin's `files` setting.
+ *
+ * `core-web-vitals` also sets no `languageOptions` (no type-aware
+ * `parserOptions`), so widening it doesn't balloon a TypeScript program
+ * graph either. Neither of that rules out the original OOM being real —
+ * this repo's own CI comments already note that local macOS testing never
+ * reproduces this runner's failure mode — but the rule-time evidence gave
+ * enough confidence to widen this for real and let the actual CI run be
+ * the verdict, rather than re-testing on paper indefinitely. If this ever
+ * OOMs the runner again, get per-step memory data from the runner itself
+ * before narrowing back — a repeat wouldn't say which rule is the cause,
+ * only that scope is (which we already knew).
  */
-const NEXT_APP_FILES = ["src/app/**/*.{ts,tsx}", "src/instrumentation*.ts"];
-
 const eslintConfig = defineConfig([
   globalIgnores([
     // Nothing produces any of these any more (Vite and TanStack Start are
@@ -51,7 +65,16 @@ const eslintConfig = defineConfig([
   reactHooks.configs.flat.recommended,
   // `exhaustive-deps` catches query keys that omit a filter.
   ...pluginQuery.configs["flat/recommended"],
-  { ...nextPlugin.configs["core-web-vitals"], files: NEXT_APP_FILES },
+  {
+    ...nextPlugin.configs["core-web-vitals"],
+    rules: {
+      ...nextPlugin.configs["core-web-vitals"].rules,
+      // Pages Router leftover — reads the route tree from disk to flag
+      // <a> tags that should be <Link>. This project has no pages/
+      // directory and never will; the rule is dead weight, not a guard.
+      "@next/next/no-html-link-for-pages": "off",
+    },
+  },
   prettier,
 ]);
 
