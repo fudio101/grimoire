@@ -111,3 +111,38 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/**
+ * The `fromMonth`/`toMonth`/`category` triple, as the transactions server
+ * function accepts it. Moved here (rather than left inline in
+ * queries.functions.ts, where it originated) ahead of the Next.js migration:
+ * a `"use server"` file may only export async functions, so this value export
+ * would be a hard compile error there.
+ */
+export const transactionFilterSchema = monthRangeSchema.extend({
+  category: z.string().optional(),
+});
+
+export type TransactionFilters = z.infer<typeof transactionFilterSchema>;
+
+/** How many months the overview trend covers, including the selected one. */
+export const overviewSchema = z.object({
+  month: monthSchema,
+});
+
+/**
+ * A public share-link code, as accepted on read via `/p/$code`. Moved here for
+ * the same reason as `transactionFilterSchema` above.
+ */
+export const publicReportSchema = monthRangeSchema.extend({
+  // SHARE_CODE_SHAPE, not SHARE_CODE_PATTERN: this rejects values that could
+  // never be a code, without imposing the 8-character write floor on links that
+  // were handed out before that floor existed.
+  code: z.string().regex(SHARE_CODE_SHAPE),
+  category: z.string().optional(),
+});
+
+export type PublicReportSearch = Omit<
+  z.infer<typeof publicReportSchema>,
+  "code"
+>;
