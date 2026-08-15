@@ -1,8 +1,10 @@
 import { Loader2 } from "lucide-react";
 
 /**
- * Shown while a route loader is in flight. Replaces the two identical
- * `loading.tsx` files the App Router used to pick up by convention.
+ * Shown while a route loader is in flight. Rendered by each of the App
+ * Router's `loading.tsx` files (`dashboard/`, `dashboard/transactions/`,
+ * `dashboard/manage/categories/`, `dashboard/manage/links/`) so the fallback
+ * markup lives in exactly one place.
  */
 export function PendingIndicator() {
   return (
