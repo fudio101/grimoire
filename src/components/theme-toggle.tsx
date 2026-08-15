@@ -3,9 +3,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { persistTheme, type ThemePreference } from "@/lib/theme";
-import { getRouteApi } from "@tanstack/react-router";
-
-const rootApi = getRouteApi("__root__");
 
 const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
   { value: "light", label: "Sáng", Icon: Sun },
@@ -18,13 +15,21 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
  * default and a switch cannot express it — a user on a dark phone would have no
  * way back to "follow my phone" once they touched it.
  *
+ * `themePreference` is passed in rather than read from route context: it comes
+ * from the root route's beforeLoad today, but every caller already sits in a
+ * different place in the tree, and a plain prop is what a future App Router
+ * page (with no route-context equivalent) can supply too.
+ *
  * The server-rendered preference seeds local state; after that this component
  * owns it, since `persistTheme` writes the cookie and toggles the class
  * directly. Nothing is invalidated and no request is made, so switching is
  * instant.
  */
-export function ThemeToggle() {
-  const { themePreference } = rootApi.useRouteContext();
+export function ThemeToggle({
+  themePreference,
+}: {
+  themePreference: ThemePreference;
+}) {
   const [preference, setPreference] =
     useState<ThemePreference>(themePreference);
 

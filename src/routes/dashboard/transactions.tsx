@@ -31,6 +31,7 @@ export const Route = createFileRoute("/dashboard/transactions")({
 
 function DashboardPage() {
   const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
   const { data: transactions } = useSuspenseQuery(
     transactionsQueryOptions(search)
@@ -55,7 +56,28 @@ function DashboardPage() {
         </div>
       </div>
 
-      <TransactionFilters categories={categories} />
+      <TransactionFilters
+        categories={categories}
+        fromMonth={search.fromMonth}
+        toMonth={search.toMonth}
+        category={search.category}
+        onMonthChange={(fromMonth, toMonth) =>
+          // undefined drops the key from the URL, matching the old
+          // URLSearchParams.delete() behaviour.
+          void navigate({
+            search: (prev) => ({
+              ...prev,
+              fromMonth: fromMonth ?? undefined,
+              toMonth: toMonth ?? undefined,
+            }),
+          })
+        }
+        onCategoryChange={(category) =>
+          void navigate({
+            search: (prev) => ({ ...prev, category: category ?? undefined }),
+          })
+        }
+      />
 
       <ExpenseChart transactions={transactions} />
 

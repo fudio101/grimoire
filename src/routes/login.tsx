@@ -21,6 +21,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { themePreference } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -46,7 +47,7 @@ function LoginPage() {
       {/* Same reason as /p/$code: the dashboard header is unreachable here, so
           without this there is no way to change theme while signed out. */}
       <div className="absolute top-4 right-4">
-        <ThemeToggle />
+        <ThemeToggle themePreference={themePreference} />
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
