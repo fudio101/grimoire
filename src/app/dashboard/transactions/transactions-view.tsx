@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
@@ -16,13 +17,17 @@ import {
 import type { TransactionSearch } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 
-function buildHref(next: Partial<TransactionSearch>): string {
+function buildHref(next: Partial<TransactionSearch>): Route {
   const params = new URLSearchParams();
   if (next.fromMonth) params.set("fromMonth", next.fromMonth);
   if (next.toMonth) params.set("toMonth", next.toMonth);
   if (next.category) params.set("category", next.category);
   const qs = params.toString();
-  return qs ? `/dashboard/transactions?${qs}` : "/dashboard/transactions";
+  // Non-literal string: typedRoutes can't validate a query-string-bearing
+  // href against its route table, so this is the documented escape hatch.
+  return (
+    qs ? `/dashboard/transactions?${qs}` : "/dashboard/transactions"
+  ) as Route;
 }
 
 export function TransactionsView({ search }: { search: TransactionSearch }) {

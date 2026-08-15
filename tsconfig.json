@@ -13,24 +13,22 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": ["vite/client"],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
-  // TanStack Start/Router surface — dead as of PR 6 (see the CI/scripts note
-  // in that PR): query-options.ts's queryFns now fetch app/api/* Route
-  // Handlers that only exist under Next, so nothing under src/routes/** can
-  // run correctly any more regardless of whether it still compiles. Excluded
-  // here so a stray `tsc --noEmit` doesn't fail on code nothing builds or
-  // runs — deleted outright in PR 9.
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/routes",
-    "src/routeTree.gen.ts",
-    "src/router.tsx",
-    "src/server.ts"
-  ]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

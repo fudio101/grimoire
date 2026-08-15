@@ -23,6 +23,20 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     if: github.event_name == 'push' || github.event.pull_request.head.repo.fork == false
     timeout-minutes: 20
+    env:
+      # This runner is a small, real box (3.8GB RAM, zero swap — any spike
+      # past available memory is an instant OOM-kill, not graceful paging).
+      # glibc's default per-thread arena allocator can multiply a Node
+      # process's RSS several times over on Linux for the exact same
+      # workload that looks modest on macOS (each GC/libuv thread gets its
+      # own arena that never fully shrinks) — MALLOC_ARENA_MAX caps that.
+      # max-old-space-size makes V8 GC more aggressively rather than let the
+      # heap grow toward whatever's physically available, trading a little
+      # CPU time for a much lower, more predictable peak RSS. First hit
+      # during PR 9's ESLint step (exit 137, no code regression involved —
+      # `git bisect`-style local testing on macOS never reproduced it).
+      MALLOC_ARENA_MAX: "2"
+      NODE_OPTIONS: "--max-old-space-size=1536"
 
     steps:
       - name: Checkout
@@ -50,23 +64,31 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
+      - name: Generate route types
+        # tsconfig.json's `include` covers `.next/types/**/*.ts`, which is what
+        # makes `redirect()`/`router.push()`/`router.replace()` calls checked
+        # against real routes. That directory is only ever written by `next
+        # build` or `next typegen` — never by tsc itself — and this runner's
+        # `clean: false` checkout leaves `.next` (gitignored, so checkout
+        # doesn't touch it) untouched between jobs. Without this step, the
+        # Type-check step below silently validates against whatever `.next/types`
+        # some unrelated prior job happened to leave on disk, not the commit
+        # actually being tested — a real incident: it flagged a perfectly valid
+        # `redirect("/login")` as invalid because a stale, pre-login-page
+        # `.next/types` from an earlier run was still sitting there.
+        run: pnpm exec next typegen
+
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
       - name: Build
-        # `pnpm run build` is `next build` as of this PR — Vite is retired
-        # from the primary scripts (query-options.ts's queryFns now fetch
-        # app/api/* Route Handlers that only exist under Next, so the old
-        # TanStack Router surface can no longer run correctly regardless of
-        # whether it still compiles; see src/routes/** in tsconfig.json's
-        # exclude list). No DATABASE_URL: unlike `vite build`, `next build`
-        # evaluates every page module during "Collecting page data", so this
-        # exercises hazard 1's fix for real — the lazy SQLite connection
-        # (PR 1) plus `instrumentation.ts` skipping migrations during
-        # NEXT_PHASE=phase-production-build are what make the next step
-        # pass. `next build`'s own internal type-check runs against
-        # tsconfig.next.json (see `typescript.tsconfigPath`), separately
-        # from the plain tsc step above.
+        # `next build` evaluates every page module during "Collecting page
+        # data", so this exercises hazard 1's fix for real — the lazy SQLite
+        # connection (PR 1), `instrumentation.ts` skipping migrations during
+        # NEXT_PHASE=phase-production-build, and `force-dynamic` on the root
+        # layout (PR 7) are what make the next step pass. `next build`'s own
+        # internal type-check runs against the same tsconfig.json the plain
+        # tsc step above uses.
         run: pnpm run build
 
       - name: Build never opened the database
