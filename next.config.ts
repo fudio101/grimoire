@@ -2,10 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // tsconfig.json still has to serve Vite ("types": ["vite/client"]) until PR 9
-  // deletes the Vite build, so Next reads its own copy instead of rewriting the
-  // live one. Folded back into tsconfig.json in PR 8.
-  typescript: { tsconfigPath: "tsconfig.next.json" },
   // better-sqlite3 is a native addon — keep it a runtime `require` rather than
   // letting Next try to bundle it (mirrors Vite's `ssr.resolve.external` today).
   serverExternalPackages: ["better-sqlite3"],

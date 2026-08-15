@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useTransition } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
@@ -22,13 +23,15 @@ import type { ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { PublicShell } from "./public-shell";
 
-function buildHref(code: string, next: Partial<PublicReportUrlSearch>): string {
+function buildHref(code: string, next: Partial<PublicReportUrlSearch>): Route {
   const params = new URLSearchParams();
   if (next.fromMonth) params.set("fromMonth", next.fromMonth);
   if (next.toMonth) params.set("toMonth", next.toMonth);
   if (next.category) params.set("category", next.category);
   const qs = params.toString();
-  return qs ? `/p/${code}?${qs}` : `/p/${code}`;
+  // Non-literal string: typedRoutes can't validate a query-string-bearing
+  // href against its route table, so this is the documented escape hatch.
+  return (qs ? `/p/${code}?${qs}` : `/p/${code}`) as Route;
 }
 
 export function PublicReportView({

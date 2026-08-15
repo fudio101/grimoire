@@ -54,19 +54,13 @@ jobs:
         run: pnpm exec tsc --noEmit
 
       - name: Build
-        # `pnpm run build` is `next build` as of this PR — Vite is retired
-        # from the primary scripts (query-options.ts's queryFns now fetch
-        # app/api/* Route Handlers that only exist under Next, so the old
-        # TanStack Router surface can no longer run correctly regardless of
-        # whether it still compiles; see src/routes/** in tsconfig.json's
-        # exclude list). No DATABASE_URL: unlike `vite build`, `next build`
-        # evaluates every page module during "Collecting page data", so this
-        # exercises hazard 1's fix for real — the lazy SQLite connection
-        # (PR 1) plus `instrumentation.ts` skipping migrations during
-        # NEXT_PHASE=phase-production-build are what make the next step
-        # pass. `next build`'s own internal type-check runs against
-        # tsconfig.next.json (see `typescript.tsconfigPath`), separately
-        # from the plain tsc step above.
+        # `next build` evaluates every page module during "Collecting page
+        # data", so this exercises hazard 1's fix for real — the lazy SQLite
+        # connection (PR 1), `instrumentation.ts` skipping migrations during
+        # NEXT_PHASE=phase-production-build, and `force-dynamic` on the root
+        # layout (PR 7) are what make the next step pass. `next build`'s own
+        # internal type-check runs against the same tsconfig.json the plain
+        # tsc step above uses.
         run: pnpm run build
 
       - name: Build never opened the database
