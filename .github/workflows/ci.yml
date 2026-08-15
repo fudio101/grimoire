@@ -23,6 +23,20 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     if: github.event_name == 'push' || github.event.pull_request.head.repo.fork == false
     timeout-minutes: 20
+    env:
+      # This runner is a small, real box (3.8GB RAM, zero swap — any spike
+      # past available memory is an instant OOM-kill, not graceful paging).
+      # glibc's default per-thread arena allocator can multiply a Node
+      # process's RSS several times over on Linux for the exact same
+      # workload that looks modest on macOS (each GC/libuv thread gets its
+      # own arena that never fully shrinks) — MALLOC_ARENA_MAX caps that.
+      # max-old-space-size makes V8 GC more aggressively rather than let the
+      # heap grow toward whatever's physically available, trading a little
+      # CPU time for a much lower, more predictable peak RSS. First hit
+      # during PR 9's ESLint step (exit 137, no code regression involved —
+      # `git bisect`-style local testing on macOS never reproduced it).
+      MALLOC_ARENA_MAX: "2"
+      NODE_OPTIONS: "--max-old-space-size=1536"
 
     steps:
       - name: Checkout
