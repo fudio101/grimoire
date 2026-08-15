@@ -4,7 +4,25 @@ import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import pluginRouter from "@tanstack/eslint-plugin-router";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import nextPlugin from "@next/eslint-plugin-next";
 import prettier from "eslint-config-prettier";
+
+/**
+ * `@next/eslint-plugin-next` directly, not the `eslint-config-next` wrapper:
+ * the wrapper bundles a pinned `eslint-plugin-react`, and that pinned version
+ * throws (`contextOrFilename.getFilename is not a function`) under this
+ * project's ESLint 10 — a real incompatibility between the two packages'
+ * release cadences, not a config mistake. This project already has its own
+ * `eslint-plugin-react-hooks` and has no class components for
+ * `eslint-plugin-react`'s prop-types rules to check, so nothing of substance
+ * is lost by taking only the Next-specific rules.
+ *
+ * Scoped to the App Router surface rather than repo-wide: the rest of the
+ * tree is still on TanStack Router until PR 9. Widens automatically as more
+ * of src/app/** is added in later PRs; nothing here needs to change again
+ * until then.
+ */
+const NEXT_APP_FILES = ["src/app/**/*.{ts,tsx}", "src/instrumentation*.ts"];
 
 const eslintConfig = defineConfig([
   globalIgnores([
@@ -30,6 +48,7 @@ const eslintConfig = defineConfig([
   ...pluginRouter.configs["flat/recommended"],
   // `exhaustive-deps` catches query keys that omit a filter.
   ...pluginQuery.configs["flat/recommended"],
+  { ...nextPlugin.configs["core-web-vitals"], files: NEXT_APP_FILES },
   prettier,
 ]);
 

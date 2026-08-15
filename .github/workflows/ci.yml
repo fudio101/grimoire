@@ -1,8 +1,12 @@
 name: CI
 
 on:
+  # No `branches:` filter — this repo delivers stacked PRs (each based on the
+  # previous PR's branch, not on `main`), and `branches:` filters on the PR's
+  # *base* ref. Scoping this to `[main]` silently skipped CI on every PR in a
+  # stack except the bottom one — discovered when PRs #91-94 all showed an
+  # empty status-check list on GitHub despite passing every check locally.
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -49,12 +53,24 @@ jobs:
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
-      - name: Build
-        # No DATABASE_URL: `next build` used to evaluate page modules and open
-        # SQLite, but `vite build` never evaluates application code. If this
-        # step ever fails on the database, something is being run at build time
-        # that should not be.
+      - name: Build (Vite)
+        # No DATABASE_URL: `vite build` never evaluates application modules,
+        # so this build does not open the database. Still the primary build
+        # until PR 9 retires it — see "Build (Next.js)" below for the build
+        # that actually exercises hazard 1.
         run: pnpm run build
+
+      - name: Build (Next.js)
+        # No DATABASE_URL here either, but this build does not get the same
+        # free pass: `next build` evaluates every page module during
+        # "Collecting page data", unlike `vite build`. `src/lib/db/index.ts`'s
+        # lazy connection (PR 1) plus `src/instrumentation.ts` skipping
+        # migrations during NEXT_PHASE=phase-production-build are what make
+        # the next check pass.
+        run: pnpm run build:next
+
+      - name: Next.js build never opened the database
+        run: test ! -f data.db
 
       - name: Route tree is up to date
         # src/routeTree.gen.ts is generated but committed, so that tsc can run

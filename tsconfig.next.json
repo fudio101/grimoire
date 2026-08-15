@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  // TanStack Start/Router surface — dead weight for Next, and its route files
+  // use Vite-only syntax (`?url` imports, etc.) that only typechecks against
+  // `vite/client`'s ambient types, which this tsconfig deliberately excludes
+  // to model the post-migration end state. All four are deleted outright in
+  // PR 9; until then `tsconfig.json` (unchanged) keeps typechecking them for
+  // the Vite build.
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "src/routes",
+    "src/routeTree.gen.ts",
+    "src/router.tsx",
+    "src/server.ts"
+  ]
+}
