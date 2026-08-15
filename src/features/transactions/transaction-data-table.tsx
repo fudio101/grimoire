@@ -59,6 +59,9 @@ export function TransactionDataTable({
   // does not reshuffle.
   const initialSorting: SortingState = [{ id: "date", desc: true }];
 
+  // React Compiler correctly skips memoizing here — TanStack Table's API is
+  // why, not a bug.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
