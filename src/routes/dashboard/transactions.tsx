@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import { TransactionTable } from "@/features/transactions/transaction-table";
 import { TransactionFilters } from "@/features/transactions/transaction-filters";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
@@ -10,14 +9,10 @@ import {
   categoriesQueryOptions,
   transactionsQueryOptions,
 } from "@/lib/query-options";
-import { monthRangeSearchSchema } from "@/lib/schemas";
-
-const searchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
-});
+import { parseTransactionSearch } from "@/lib/search-params";
 
 export const Route = createFileRoute("/dashboard/transactions")({
-  validateSearch: searchSchema,
+  validateSearch: parseTransactionSearch,
   // Without this the loader is keyed on the pathname alone, so changing a
   // filter would update the URL while the loader quietly never re-ran.
   loaderDeps: ({ search }) => search,

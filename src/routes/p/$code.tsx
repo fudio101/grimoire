@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -13,17 +12,14 @@ import { PublicMonthStepper } from "@/features/public-report/public-month-steppe
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
 import { PublicTransactionList } from "@/features/public-report/public-transaction-list";
 import { publicReportQueryOptions } from "@/lib/query-options";
-import { monthRangeSearchSchema, SHARE_CODE_SHAPE } from "@/lib/schemas";
+import { SHARE_CODE_SHAPE } from "@/lib/schemas";
+import { parsePublicReportSearch } from "@/lib/search-params";
 import type { TransactionTableRow } from "@/lib/types";
 import type { CategoryLike } from "@/lib/category-tree";
 import type { ThemePreference } from "@/lib/theme";
 
-const searchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
-});
-
 export const Route = createFileRoute("/p/$code")({
-  validateSearch: searchSchema,
+  validateSearch: parsePublicReportSearch,
   // Without this the loader is keyed on the pathname alone, so changing a
   // filter would update the URL while the loader quietly never re-ran.
   loaderDeps: ({ search }) => search,
