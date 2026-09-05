@@ -112,3 +112,13 @@ SQLite via better-sqlite3 with Drizzle ORM (`src/lib/db/index.ts`). WAL mode + 5
 - **`loading.tsx` + `notFound()`/`redirect()` in the same segment is a real trap.** A `loading.tsx` makes Next start streaming (committing to a 200 status) before a deeper conditional `notFound()`/`redirect()` call can resolve, so the right UI can render with the wrong HTTP status. `/p/[code]` has no `loading.tsx` for this reason.
 - **Build output:** `.next/standalone` (self-contained `server.js` + a minimal traced `node_modules`) + `.next/static` + `public/` + `drizzle/`. Next's output-file-tracing can miss a deep/computed `require()` path under pnpm's virtual store — hit twice so far (`better-sqlite3`'s prebuilds, `@swc/helpers`), both fixed via an explicit `outputFileTracingIncludes` glob in `next.config.ts`; worth knowing the pattern before a third instance. `TZ=Asia/Ho_Chi_Minh` needs `apk add --no-cache tzdata` on the `node:26-alpine` runner stage — the env var alone silently does nothing.
 - **Release process:** GitHub Flow. Release-Please creates version bump PRs. Docker images published to GHCR on tagged releases. The runtime image is ~347MB (down from 597MB before the Next.js migration).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
