@@ -47,7 +47,8 @@ function buildCsp(nonce: string, isDev: boolean): string {
     `form-action 'self'`,
     `frame-ancestors 'none'`,
     /*
-     * Production is reached over HTTPS through Cloudflare (ADR-0001), so
+     * Production is reached over HTTPS through Cloudflare (see
+     * docs/adr/0001-cloudflare-tunnel-ingress.md), so
      * upgrading is exactly right there. `next dev` serves plain HTTP, where
      * the directive rewrites every subresource and form action to https://
      * — nothing local is listening for TLS, so the stylesheet and every JS

@@ -29,7 +29,8 @@ describe("the Content-Security-Policy the proxy attaches", () => {
    * The whole point of the split, and the control that stops the dev
    * assertion below from being satisfied by a CSP that lost the directive
    * everywhere. Production is served over HTTPS through Cloudflare
-   * (ADR-0001), where upgrading is exactly what should happen.
+   * (docs/adr/0001-cloudflare-tunnel-ingress.md), where upgrading is exactly
+   * what should happen.
    */
   it("keeps upgrade-insecure-requests in production", () => {
     expect(directives(cspFor("production"))).toContain(

@@ -11,6 +11,13 @@ import { cn } from "@/lib/utils";
 const EVERYTHING = "__everything__";
 
 /**
+ * The one word that is the same for both dimensions, so it lives here rather
+ * than in `dimension-copy.ts`, which holds only what *differs*. The group is
+ * labelled by the dimension's question, so "Tất cả" alone is unambiguous.
+ */
+export const EVERYTHING_LABEL = "Tất cả";
+
+/**
  * One row of tappable chips, one per option. This is how both dimensions are
  * chosen everywhere: the filter rows on the dashboard and the public report,
  * and the two required pickers on the transaction form.
@@ -58,7 +65,7 @@ export function DimensionChips({
   /** The selected option's id, or `null` for everything / not yet chosen. */
   value: string | null;
   onChange: (value: string | null) => void;
-  copy: Pick<DimensionCopy, "question" | "everything" | "unknown">;
+  copy: Pick<DimensionCopy, "question" | "unknown">;
   /** No "everything" chip; nothing is pressed until a choice is made. */
   required?: boolean;
   className?: string;
@@ -80,6 +87,7 @@ export function DimensionChips({
       <ToggleGroup
         aria-labelledby={labelId}
         variant="outline"
+        size="touch"
         value={pressed === undefined ? [] : [pressed]}
         onValueChange={(next) => {
           const picked = next[0];
@@ -92,7 +100,7 @@ export function DimensionChips({
         }}
         className="flex-wrap"
       >
-        {!required && <Chip value={EVERYTHING}>{copy.everything}</Chip>}
+        {!required && <Chip value={EVERYTHING}>{EVERYTHING_LABEL}</Chip>}
         {options.map((option) => (
           <Chip key={option.id} value={option.id}>
             {option.name}
@@ -110,10 +118,9 @@ export function DimensionChips({
 }
 
 /**
- * Sizes are width-responsive, matching `Button`: 48px below `md` for a thumb
- * (user story 5 — this is the public report's floor and now every chip's),
- * 40px from `md` for a pointer. Text follows so the taller chip does not look
- * empty.
+ * Size comes from the group (`size="touch"` in `toggleVariants` — 48px on a
+ * phone, 40px for a pointer); this only adds the pressed colouring, which the
+ * toggle's muted default is too quiet for on a filter row.
  */
 function Chip({
   className,
@@ -122,7 +129,6 @@ function Chip({
   return (
     <ToggleGroupItem
       className={cn(
-        "h-12 px-4 text-base md:h-10 md:px-3 md:text-sm",
         "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90",
         className
       )}

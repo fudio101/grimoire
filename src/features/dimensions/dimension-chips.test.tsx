@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DimensionChips } from "@/features/dimensions/dimension-chips";
+import {
+  DimensionChips,
+  EVERYTHING_LABEL,
+} from "@/features/dimensions/dimension-chips";
 
 /**
  * The chips replaced a `DimensionSelect` (since deleted) on the filter rows
@@ -21,8 +24,9 @@ const OPTIONS = [
 
 const COPY = {
   question: "Chọn cái nào?",
-  everything: "Tất cả",
   unknown: "Không còn tồn tại",
+  // Not a copy field — the same word for both dimensions, owned by the chips.
+  everything: EVERYTHING_LABEL,
 };
 
 function markup(
