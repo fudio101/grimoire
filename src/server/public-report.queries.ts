@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  getFundingSourcesForPurposes,
   getShareLinkByCode,
   getTotalForPurposes,
   getTransactionsForPurposes,
@@ -61,7 +62,18 @@ export async function getPublicReport(
   const effectiveIds =
     input.purpose && linkSet.has(input.purpose) ? [input.purpose] : purposeIds;
 
-  const range = { fromMonth: input.fromMonth, toMonth: input.toMonth };
+  /**
+   * The Funding Source filter is *not* intersected with anything, because
+   * there is nothing to intersect it with: scope is a set of Purposes
+   * (ADR-0002), and a Funding Source can only remove rows from that set,
+   * never add one. An id naming no pot yields an honest empty view, which
+   * the chips render as a stale filter rather than as "everything".
+   */
+  const range = {
+    fromMonth: input.fromMonth,
+    toMonth: input.toMonth,
+    fundingSourceId: input.fundingSource,
+  };
 
   // Only a single-month view has a meaningful "previous month".
   const singleMonth =
@@ -70,17 +82,22 @@ export async function getPublicReport(
       : null;
   const previousMonth = singleMonth ? addMonths(singleMonth, -1) : null;
 
-  const [rows, total, previousTotal, allPurposes] = await Promise.all([
-    getTransactionsForPurposes(effectiveIds, range),
-    getTotalForPurposes(effectiveIds, range),
-    previousMonth
-      ? getTotalForPurposes(effectiveIds, {
-          fromMonth: previousMonth,
-          toMonth: previousMonth,
-        })
-      : Promise.resolve(null),
-    getPurposes(),
-  ]);
+  const [rows, total, previousTotal, allPurposes, filterFundingSources] =
+    await Promise.all([
+      getTransactionsForPurposes(effectiveIds, range),
+      getTotalForPurposes(effectiveIds, range),
+      previousMonth
+        ? getTotalForPurposes(effectiveIds, {
+            fromMonth: previousMonth,
+            toMonth: previousMonth,
+            fundingSourceId: input.fundingSource,
+          })
+        : Promise.resolve(null),
+      getPurposes(),
+      // Over the link's whole scope, not the narrowed view: the chips must
+      // stay put while the reader taps between them.
+      getFundingSourcesForPurposes(purposeIds),
+    ]);
 
   // Exactly the link's own Purposes, in the order a picker should show them.
   // Filtering the full list rather than joining keeps this one query, and the
@@ -95,6 +112,7 @@ export async function getPublicReport(
     total,
     previousTotal,
     filterPurposes,
+    filterFundingSources,
     transactions: rows,
   };
 }

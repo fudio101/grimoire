@@ -87,5 +87,6 @@ export const publicReportQueryOptions = (
         fromMonth: search.fromMonth,
         toMonth: search.toMonth,
         purpose: search.purpose,
+        fundingSource: search.fundingSource,
       }),
   });

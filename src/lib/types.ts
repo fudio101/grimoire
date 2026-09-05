@@ -58,8 +58,15 @@ export type OverviewData = {
   monthlySeries: { month: string; total: number }[];
 };
 
-/** A Purpose as the public report ships it: id and name, nothing more. */
-export type PurposeOption = { id: string; name: string };
+/**
+ * One entry of either dimension, as a picker or a filter needs it: id and
+ * name, nothing more. Shared by the chips, the public report's filter lists
+ * and anything else that offers a flat choice.
+ */
+export type DimensionOption = { id: string; name: string };
+
+/** A Purpose as the public report ships it. Same shape; the name says which. */
+export type PurposeOption = DimensionOption;
 
 export type PublicReport = {
   linkName: string | null;
@@ -83,4 +90,11 @@ export type PublicReport = {
    * ancestor to hide.
    */
   filterPurposes: PurposeOption[];
+  /**
+   * Every Funding Source that paid for any of the link's Purposes, so the
+   * reader can look at one pot at a time. A view filter, not scope — see the
+   * amendment on ADR-0002. Derived from the scoped rows, so a pot that never
+   * funded a shared Purpose is not offered.
+   */
+  filterFundingSources: DimensionOption[];
 };

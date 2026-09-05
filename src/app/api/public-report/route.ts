@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     fromMonth: searchParams.get("fromMonth") ?? undefined,
     toMonth: searchParams.get("toMonth") ?? undefined,
     purpose: searchParams.get("purpose") ?? undefined,
+    fundingSource: searchParams.get("fundingSource") ?? undefined,
   });
   if (!parsed.success) {
     return Response.json({ error: "Yêu cầu không hợp lệ." }, { status: 400 });

@@ -40,14 +40,17 @@ export function parseTransactionSearch(search: unknown): TransactionSearch {
 }
 
 /**
- * Deliberately *not* the same shape as `parseTransactionSearch`: the dashboard
- * filters on both dimensions, while a share link's scope is one-dimensional by
- * decision (ADR-0002), so the public report reads `purpose` and nothing else.
- * A `fundingSource` parameter here would be ignored by the query layer anyway;
- * leaving it out of the schema is what says so out loud.
+ * The same two view filters as the dashboard. A share link's *scope* is still
+ * one-dimensional (ADR-0002) — that is a property of the permission model,
+ * enforced in `getPublicReport` by intersecting `purpose` with the link's own
+ * Purposes. `fundingSource` is not scope: it narrows rows the scope already
+ * allows, and can reveal nothing a reader could not already see by looking at
+ * the funding split. Kept as its own schema rather than reusing the dashboard's
+ * so the two contracts can still diverge on purpose.
  */
 const publicReportSearchSchema = monthRangeSearchSchema.extend({
   purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type PublicReportUrlSearch = z.infer<typeof publicReportSearchSchema>;
@@ -112,5 +115,6 @@ export function readPublicReportSearch(
     fromMonth: pickSearchParam(raw.fromMonth),
     toMonth: pickSearchParam(raw.toMonth),
     purpose: pickSearchParam(raw.purpose),
+    fundingSource: pickSearchParam(raw.fundingSource),
   });
 }

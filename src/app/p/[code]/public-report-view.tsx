@@ -7,7 +7,10 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PurposeBreakdown } from "@/features/overview/purpose-breakdown";
 import { DimensionChips } from "@/features/dimensions/dimension-chips";
-import { PURPOSE_COPY } from "@/features/dimensions/dimension-copy";
+import {
+  FUNDING_SOURCE_COPY,
+  PURPOSE_COPY,
+} from "@/features/dimensions/dimension-copy";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
@@ -18,6 +21,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { publicReportQueryOptions } from "@/lib/query-options";
 import type { PublicReportUrlSearch } from "@/lib/search-params";
 import type {
+  DimensionOption,
   PurposeOption,
   PurposeTotal,
   TransactionTableRow,
@@ -31,6 +35,7 @@ function buildHref(code: string, next: Partial<PublicReportUrlSearch>): Route {
   if (next.fromMonth) params.set("fromMonth", next.fromMonth);
   if (next.toMonth) params.set("toMonth", next.toMonth);
   if (next.purpose) params.set("purpose", next.purpose);
+  if (next.fundingSource) params.set("fundingSource", next.fundingSource);
   const qs = params.toString();
   // Non-literal string: typedRoutes can't validate a query-string-bearing
   // href against its route table, so this is the documented escape hatch.
@@ -81,14 +86,19 @@ export function PublicReportView({
         total={report.total}
         previousTotal={report.previousTotal}
         filterPurposes={report.filterPurposes}
+        filterFundingSources={report.filterFundingSources}
         month={month}
         purpose={search.purpose}
+        fundingSource={search.fundingSource}
         themePreference={themePreference}
         showPending={showPending}
         onMonthChange={(next) =>
           navigate({ fromMonth: next ?? undefined, toMonth: next ?? undefined })
         }
         onPurposeChange={(next) => navigate({ purpose: next ?? undefined })}
+        onFundingSourceChange={(next) =>
+          navigate({ fundingSource: next ?? undefined })
+        }
       />
     </PublicShell>
   );
@@ -100,10 +110,13 @@ function ReportBody({
   total,
   previousTotal,
   filterPurposes,
+  filterFundingSources,
   month,
   purpose,
+  fundingSource,
   onMonthChange,
   onPurposeChange,
+  onFundingSourceChange,
   themePreference,
   showPending,
 }: {
@@ -112,10 +125,13 @@ function ReportBody({
   total: number;
   previousTotal: number | null;
   filterPurposes: PurposeOption[];
+  filterFundingSources: DimensionOption[];
   month: string | null;
   purpose: string | undefined;
+  fundingSource: string | undefined;
   onMonthChange: (month: string | null) => void;
   onPurposeChange: (purpose: string | null) => void;
+  onFundingSourceChange: (fundingSource: string | null) => void;
   themePreference: ThemePreference;
   showPending: boolean;
 }) {
@@ -198,16 +214,17 @@ function ReportBody({
       />
 
       {/*
-       * Exactly the Purposes this link was given, and no Funding Source
-       * control at all: a link's scope is one-dimensional (ADR-0002), so the
-       * server would ignore that parameter and offering it would be a lie.
-       * Whatever is picked here is intersected server-side with the link's own
-       * scope, so a hand-edited URL cannot widen it.
+       * The same two chip rows as the dashboard, so whoever the admin shares
+       * this with sees something the admin can explain over the phone.
        *
-       * The same chips as the dashboard, so whoever the admin shares this with
-       * sees something the admin can explain over the phone. The chips are
-       * 48px on a phone by construction — this is the phone-first public
-       * surface and its one control should be the easiest thing to hit.
+       * Purposes: exactly the ones this link was given. Whatever is picked is
+       * intersected server-side with the link's own scope, so a hand-edited
+       * URL cannot widen it — that is the security boundary (ADR-0002).
+       *
+       * Funding Sources: the pots that paid for those Purposes. This is a view
+       * filter, not scope (ADR-0002, amendment): it can only narrow what the
+       * reader already sees, so it needs no intersection. Either row is
+       * hidden when there is nothing to choose between.
        */}
       {filterPurposes.length > 1 && (
         <DimensionChips
@@ -215,6 +232,14 @@ function ReportBody({
           value={purpose ?? null}
           onChange={onPurposeChange}
           copy={PURPOSE_COPY}
+        />
+      )}
+      {filterFundingSources.length > 1 && (
+        <DimensionChips
+          options={filterFundingSources}
+          value={fundingSource ?? null}
+          onChange={onFundingSourceChange}
+          copy={FUNDING_SOURCE_COPY}
         />
       )}
 

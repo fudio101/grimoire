@@ -205,23 +205,41 @@ export async function getShareLinkByCode(
   return { link, purposeIds: rows.map((r) => r.purposeId) };
 }
 
-function purposeConditions(
-  ids: string[],
-  filters?: { fromMonth?: string; toMonth?: string }
-) {
-  return [inArray(transactions.purposeId, ids), ...monthConditions(filters)];
+/** The view filters a share link's reader may apply within the link's scope. */
+type ScopedFilters = {
+  fromMonth?: string;
+  toMonth?: string;
+  /**
+   * Narrows to one pot. Not scope (ADR-0002, amendment): the Purpose set is
+   * the permission, and this only ever removes rows from it.
+   */
+  fundingSourceId?: string;
+};
+
+function purposeConditions(ids: string[], filters?: ScopedFilters) {
+  const conditions = [
+    inArray(transactions.purposeId, ids),
+    ...monthConditions(filters),
+  ];
+  if (filters?.fundingSourceId) {
+    conditions.push(eq(transactions.fundingSourceId, filters.fundingSourceId));
+  }
+  return conditions;
 }
 
 /**
- * Transactions across an explicit set of Purposes, from every Funding Source.
+ * Transactions across an explicit set of Purposes — from every Funding Source
+ * unless the reader narrows to one.
  *
  * This is what a share link reads through. Scope is one-dimensional by
  * decision (ADR-0002): a link names Purposes, and its readers see the whole
- * Gross cost of each, however it was funded.
+ * Gross cost of each, however it was funded. The optional Funding Source
+ * filter is the reader choosing what to look at within that, not the link
+ * deciding what they may see.
  */
 export async function getTransactionsForPurposes(
   ids: string[],
-  filters?: { fromMonth?: string; toMonth?: string }
+  filters?: ScopedFilters
 ) {
   if (ids.length === 0) return [];
 
@@ -230,9 +248,31 @@ export async function getTransactionsForPurposes(
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
 }
 
+/**
+ * The distinct Funding Sources that paid for any of these Purposes, ever —
+ * what a share link offers as its Funding Source filter. Derived from the
+ * rows rather than the whole `funding_sources` table so a pot that never
+ * touched a shared Purpose is not named to a reader.
+ */
+export async function getFundingSourcesForPurposes(
+  ids: string[]
+): Promise<{ id: string; name: string }[]> {
+  if (ids.length === 0) return [];
+
+  return db
+    .selectDistinct({ id: fundingSources.id, name: fundingSources.name })
+    .from(transactions)
+    .innerJoin(
+      fundingSources,
+      eq(fundingSources.id, transactions.fundingSourceId)
+    )
+    .where(inArray(transactions.purposeId, ids))
+    .orderBy(fundingSources.name);
+}
+
 export async function getTotalForPurposes(
   ids: string[],
-  filters?: { fromMonth?: string; toMonth?: string }
+  filters?: ScopedFilters
 ): Promise<number> {
   if (ids.length === 0) return 0;
 

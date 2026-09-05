@@ -62,29 +62,19 @@ describe("search-param parsers agree on the same URL (one URL, one query key)", 
     expect(result).toEqual({ fromMonth: "2026-01", toMonth: undefined });
   });
 
-  it("parsePublicReportSearch: agrees on months and Purpose, and drops a Funding Source it never accepts", () => {
+  it("parsePublicReportSearch: agrees with the dashboard parser on months and both dimensions", () => {
     const url = {
       fromMonth: "2026-01",
       toMonth: "2026-08",
       purpose: "purpose-1",
+      fundingSource: "pot-1",
     };
-    // On the parameters both surfaces share, the two parsers must agree —
-    // that parity is why they live in one module.
-    expect(parsePublicReportSearch(url)).toEqual({
-      ...parseTransactionSearch(url),
-      fundingSource: undefined,
-    });
-
-    // Where they deliberately differ: a share link's scope is one-dimensional
-    // (ADR-0002), so the public parser drops `fundingSource` rather than
-    // carrying it into a query that would ignore it anyway.
-    const withPot = { ...url, fundingSource: "pot-1" };
-    expect(parsePublicReportSearch(withPot)).not.toHaveProperty(
-      "fundingSource"
-    );
-    // The control: the dashboard parser *does* keep it, so the absence above
-    // is this parser's rule and not a value that failed to parse.
-    expect(parseTransactionSearch(withPot).fundingSource).toBe("pot-1");
+    // Both surfaces now read the same four view filters, so the two parsers
+    // must agree on all of them — that parity is why they live in one module.
+    // (Scope is still one-dimensional; `fundingSource` here is a view filter,
+    // see ADR-0002's amendment.)
+    expect(parsePublicReportSearch(url)).toEqual(parseTransactionSearch(url));
+    expect(parsePublicReportSearch(url).fundingSource).toBe("pot-1");
   });
 
   it("all three parsers derive the same query key from a Next searchParams-shaped object with a repeated param", () => {
@@ -130,7 +120,7 @@ describe("readXSearch: the routes and the schemas cannot drift apart", () => {
     });
   });
 
-  it("readPublicReportSearch picks up the Purpose and ignores a Funding Source", () => {
+  it("readPublicReportSearch picks up both dimensions and the month range", () => {
     expect(
       readPublicReportSearch({
         fromMonth: "2026-01",
@@ -142,6 +132,7 @@ describe("readXSearch: the routes and the schemas cannot drift apart", () => {
       fromMonth: "2026-01",
       toMonth: "2026-01",
       purpose: "purpose-1",
+      fundingSource: "pot-1",
     });
   });
 
@@ -152,6 +143,11 @@ describe("readXSearch: the routes and the schemas cannot drift apart", () => {
     const retired = { category: "purpose-1" };
     expect(readTransactionSearch(retired).purpose).toBeUndefined();
     expect(readPublicReportSearch(retired).purpose).toBeUndefined();
+    // And an unknown key is stripped rather than carried, on both — the
+    // control that the parsers accept only what they name.
+    const unknown = { pot: "pot-1" };
+    expect(readTransactionSearch(unknown)).not.toHaveProperty("pot");
+    expect(readPublicReportSearch(unknown)).not.toHaveProperty("pot");
   });
 
   it("narrows a repeated parameter the way URLSearchParams.get() does", () => {

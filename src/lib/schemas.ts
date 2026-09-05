@@ -157,10 +157,13 @@ export const publicReportSchema = monthRangeSchema.extend({
   // never be a code, without imposing the 8-character write floor on links that
   // were handed out before that floor existed.
   code: z.string().regex(SHARE_CODE_SHAPE),
-  // Purpose only. A share link's scope is one-dimensional by decision
-  // (ADR-0002), so there is deliberately no `fundingSource` here: readers see
-  // every Funding Source of the Purposes they were given.
+  // Both are *view* filters, and neither is scope. A link's scope stays
+  // one-dimensional (ADR-0002): `purpose` is intersected with it, and
+  // `fundingSource` only ever narrows rows the scope already allows — readers
+  // were always shown every Funding Source of their Purposes, so letting them
+  // look at one pot at a time reveals nothing new. See the ADR's amendment.
   purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type PublicReportSearch = Omit<
