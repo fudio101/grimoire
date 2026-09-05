@@ -56,10 +56,26 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache-grimoire
-          cache-to: type=local,dest=/tmp/.buildx-cache-grimoire-new,mode=max
-
-      - name: Rotate Docker cache
-        run: |
-          rm -rf /tmp/.buildx-cache-grimoire
-          mv /tmp/.buildx-cache-grimoire-new /tmp/.buildx-cache-grimoire || true
+          # Registry cache, not `type=local`. This ran on the self-hosted
+          # runner as local cache under /tmp — which is a 2GB *tmpfs*, so the
+          # cache sat in RAM, unreclaimable (tmpfs pages need swap to be
+          # evicted, and this box has none), until the next reboot. With
+          # mode=max that includes the builder stage's whole node_modules
+          # layer; node_modules alone is 1.1GB.
+          #
+          # Worse, the rotate step below it wrote `-new` while `cache-from`
+          # still read the old directory, so at peak *two* full caches were
+          # resident at once, and only afterwards was the old one deleted.
+          # That is a rotate scheme that needs double the space of the thing
+          # it is rotating, on the resource the box has least of.
+          #
+          # Pushing the cache to GHCR instead costs the runner nothing —
+          # no RAM, and no disk either, which matters at 88% full. It also
+          # survives a runner reinstall, and deletes the rotate step: the
+          # registry overwrites the tag in place, so there is no old copy to
+          # keep alive while the new one is written.
+          #
+          # `buildcache` shows up as a tag on the package alongside the
+          # version tags. It is a cache manifest, not a runnable image.
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max

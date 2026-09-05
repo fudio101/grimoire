@@ -25,18 +25,37 @@ jobs:
     timeout-minutes: 20
     env:
       # This runner is a small, real box (3.8GB RAM, zero swap — any spike
-      # past available memory is an instant OOM-kill, not graceful paging).
-      # glibc's default per-thread arena allocator can multiply a Node
-      # process's RSS several times over on Linux for the exact same
-      # workload that looks modest on macOS (each GC/libuv thread gets its
-      # own arena that never fully shrinks) — MALLOC_ARENA_MAX caps that.
-      # max-old-space-size makes V8 GC more aggressively rather than let the
-      # heap grow toward whatever's physically available, trading a little
-      # CPU time for a much lower, more predictable peak RSS. First hit
-      # during PR 9's ESLint step (exit 137, no code regression involved —
-      # `git bisect`-style local testing on macOS never reproduced it).
+      # past available memory is an instant OOM-kill, not graceful paging),
+      # and it hosts production alongside CI.
+      #
+      # glibc's default per-thread arena allocator can multiply a process's
+      # RSS several times over on Linux for the same workload that looks
+      # modest on macOS (each thread gets its own arena that never fully
+      # shrinks). Kept because `next build` is Turbopack — its memory is
+      # allocated natively, which is exactly what this caps; a JS-heap knob
+      # is not (see below).
       MALLOC_ARENA_MAX: "2"
-      NODE_OPTIONS: "--max-old-space-size=1536"
+      #
+      # NODE_OPTIONS=--max-old-space-size was here and has been removed: it
+      # did nothing for this build, and reading it as a memory guard is what
+      # made a real OOM look already-handled. Measured, same machine, one
+      # variable:
+      #
+      #   cap 1536 -> peak RSS 1686MB    cap 512 -> peak RSS 1684MB
+      #   cap  768 -> peak RSS 1562MB    cap 384 -> V8 heap OOM, RSS 1697MB
+      #
+      # RSS is flat, because `next build` runs Turbopack (Rust) and its
+      # memory lives outside the V8 heap that flag bounds. Lowering the cap
+      # only starves the JS half until it dies while RSS never moves. Next's
+      # own docs/01-app/02-guides/memory-usage.md is entirely webpack knobs —
+      # none of them apply to a Turbopack build either.
+      #
+      # The build needs ~1.6GB for ~20s and there is no knob that changes
+      # that. What decides whether it survives is how much the box has free
+      # at that moment, which is a property of the box, not of this file.
+      # The one thing CI was doing to make that worse — a BuildKit cache
+      # written into /tmp, which is a tmpfs on this runner — is fixed in
+      # docker-publish.yml in this same change.
 
     steps:
       - name: Checkout
@@ -54,9 +73,21 @@ jobs:
         run: npm i -g corepack@latest && corepack enable
 
       - name: Install dependencies
+        # No `STORE_DIR:` here any more. It used to be set to
+        # /tmp/.pnpm-store-grimoire and was a no-op the whole time: pnpm
+        # takes its store location from `--store-dir`, a `store-dir=` entry
+        # in .npmrc, or the `pnpm-workspace.yaml` setting — never from an
+        # env var of that name. Verified by probing pnpm directly:
+        #
+        #   pnpm store path --store-dir=/tmp/probe  -> /tmp/probe/v11
+        #   STORE_DIR=/tmp/probe pnpm store path    -> unchanged default
+        #   npm_config_store_dir=... pnpm store path -> unchanged default
+        #
+        # So the store has always been at pnpm's default path on disk, never
+        # in the tmpfs. Deleting the line changes no behaviour; keeping it
+        # would keep implying a control that does not exist, which is how it
+        # ended up being treated as an explanation during the OOM hunt.
         run: pnpm install --frozen-lockfile
-        env:
-          STORE_DIR: /tmp/.pnpm-store-grimoire
 
       - name: Lint
         run: pnpm run lint
