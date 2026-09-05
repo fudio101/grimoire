@@ -46,7 +46,20 @@ function buildCsp(nonce: string, isDev: boolean): string {
     // Server Actions post back to the same origin; nothing here submits anywhere else.
     `form-action 'self'`,
     `frame-ancestors 'none'`,
-    `upgrade-insecure-requests`,
+    /*
+     * Production is reached over HTTPS through Cloudflare (ADR-0001), so
+     * upgrading is exactly right there. `next dev` serves plain HTTP, where
+     * the directive rewrites every subresource and form action to https://
+     * — nothing local is listening for TLS, so the stylesheet and every JS
+     * chunk fail, the page never hydrates, and the login form falls back to
+     * a native submit that `form-action 'self'` then blocks.
+     *
+     * `localhost` hides all of that: browsers treat it as a
+     * potentially-trustworthy origin and skip the upgrade. It only bites
+     * over a LAN address — which is the only way to open the app on a real
+     * phone, and mobile is where this app's primary flows live.
+     */
+    ...(isDev ? [] : [`upgrade-insecure-requests`]),
   ].join("; ");
 }
 
