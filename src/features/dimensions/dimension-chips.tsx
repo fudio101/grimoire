@@ -5,17 +5,42 @@ import type { DimensionOption } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * A single value that stands for "no filter" inside the toggle group, which
- * cannot hold `null`. It never leaves this file: `onChange` gets `null`.
+ * Internal toggle values for the two chips that are not options. Neither is
+ * ever an option id (ids are UUIDs), and neither leaves this file: `onChange`
+ * gets `null` for "everything" and the real value is what the stale chip is
+ * *about*, not what it is keyed by — so a hand-edited URL carrying one of
+ * these strings cannot make two chips share a value.
  */
 const EVERYTHING = "__everything__";
+const STALE = "__stale__";
 
 /**
  * The one word that is the same for both dimensions, so it lives here rather
  * than in `dimension-copy.ts`, which holds only what *differs*. The group is
  * labelled by the dimension's question, so "Tất cả" alone is unambiguous.
  */
-export const EVERYTHING_LABEL = "Tất cả";
+const EVERYTHING_LABEL = "Tất cả";
+
+/**
+ * What a change reported by the toggle group means for the caller.
+ *
+ * `undefined` means "no change": in `required` mode, un-pressing the chosen
+ * chip is ignored, because a required answer can be changed but not taken
+ * back — otherwise an accidental second tap on the edit form silently emptied
+ * the field and the user only found out at "Cập nhật". In filter mode the same
+ * gesture is "clear", the same as tapping "Tất cả": one tap out of a narrowed
+ * view, always.
+ */
+export function resolveSelection(
+  next: readonly string[],
+  required: boolean
+): string | null | undefined {
+  const picked = next[0];
+  if (picked === undefined || picked === STALE)
+    return required ? undefined : null;
+  if (picked === EVERYTHING) return null;
+  return picked;
+}
 
 /**
  * One row of tappable chips, one per option. This is how both dimensions are
@@ -47,7 +72,7 @@ export const EVERYTHING_LABEL = "Tất cả";
  *   filter at all.
  * - **A 48px target on a phone.** The public report's select once lost its
  *   height in a port because the class went to a wrapper. Here the size is
- *   set on the chip itself, and it is the chip that gets tapped.
+ *   `toggleVariants`' `touch`, set on the group and inherited by every chip.
  *
  * Built on the toggle group rather than plain buttons: it gives arrow-key
  * movement between chips and the pressed state for free, and "at most one
@@ -75,9 +100,11 @@ export function DimensionChips({
   const isStale =
     value !== null && !options.some((option) => option.id === value);
 
-  // In a filter, `null` is a real answer ("everything") and its chip is
-  // pressed. In a required choice, `null` is the absence of one.
-  const pressed = value ?? (required ? undefined : EVERYTHING);
+  // Exactly one of: the stale chip, the chosen option, "everything" (filter
+  // mode only), or nothing (required mode, unanswered).
+  const pressed = isStale
+    ? STALE
+    : (value ?? (required ? undefined : EVERYTHING));
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -90,13 +117,8 @@ export function DimensionChips({
         size="touch"
         value={pressed === undefined ? [] : [pressed]}
         onValueChange={(next) => {
-          const picked = next[0];
-          // Pressing the already-pressed chip un-presses it and the group
-          // reports an empty selection; that reads as "clear", same as
-          // tapping "everything" — one tap out of a narrowed view, always.
-          onChange(
-            picked === undefined || picked === EVERYTHING ? null : picked
-          );
+          const resolved = resolveSelection(next, required);
+          if (resolved !== undefined) onChange(resolved);
         }}
         className="flex-wrap"
       >
@@ -107,8 +129,9 @@ export function DimensionChips({
           </Chip>
         ))}
         {isStale && (
-          // Pressed, because it *is* the active value. Tapping it clears.
-          <Chip value={value} className="text-muted-foreground">
+          // Pressed, because it *is* the active value. Tapping it clears (in a
+          // filter) — see `resolveSelection`.
+          <Chip value={STALE} className="text-muted-foreground">
             {copy.unknown}
           </Chip>
         )}

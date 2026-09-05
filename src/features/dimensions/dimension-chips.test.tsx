@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   DimensionChips,
-  EVERYTHING_LABEL,
+  resolveSelection,
 } from "@/features/dimensions/dimension-chips";
 
 /**
@@ -25,9 +25,11 @@ const OPTIONS = [
 const COPY = {
   question: "Chọn cái nào?",
   unknown: "Không còn tồn tại",
-  // Not a copy field — the same word for both dimensions, owned by the chips.
-  everything: EVERYTHING_LABEL,
 };
+
+// The word the reader sees on the clearing chip — asserted as the literal a
+// user reads, not via an export, so a change to it fails here on purpose.
+const EVERYTHING_TEXT = "Tất cả";
 
 function markup(
   props: Partial<Parameters<typeof DimensionChips>[0]> = {}
@@ -72,7 +74,7 @@ const pressedOf = (list: Chip[]) => list.filter((c) => c.pressed);
 describe("DimensionChips", () => {
   it("renders one chip per option, by name, behind an 'everything' chip", () => {
     expect(chips().map((c) => c.text)).toEqual([
-      COPY.everything,
+      EVERYTHING_TEXT,
       "Lựa chọn một",
       "Lựa chọn hai",
     ]);
@@ -80,7 +82,7 @@ describe("DimensionChips", () => {
 
   it("presses 'everything' and nothing else when there is no value", () => {
     const pressed = pressedOf(chips({ value: null }));
-    expect(pressed.map((c) => c.text)).toEqual([COPY.everything]);
+    expect(pressed.map((c) => c.text)).toEqual([EVERYTHING_TEXT]);
   });
 
   it("presses exactly the selected option, and not 'everything' (positive control)", () => {
@@ -93,9 +95,59 @@ describe("DimensionChips", () => {
       for (const chip of chips({ value })) {
         expect(chip.text).not.toContain("opt-");
         expect(chip.text).not.toContain("gone-from-the-list");
-        expect(chip.text).not.toContain("__everything__");
+        // Internal toggle values are double-underscored; none may leak as text.
+        expect(chip.text).not.toMatch(/__/);
       }
     }
+  });
+
+  /** Every chip's toggle `value`, in order — what the group keys pressed state by. */
+  function values(
+    props: Partial<Parameters<typeof DimensionChips>[0]> = {}
+  ): string[] {
+    return [...markup(props).matchAll(/<button\b[^>]*\bvalue="([^"]*)"/g)].map(
+      (m) => m[1]
+    );
+  }
+
+  it("keeps every chip's value unique, even when the URL carries an internal sentinel", () => {
+    // A hand-edited `?purpose=__everything__` is just another stale id: the
+    // server filters by it and finds nothing, so the chips must say "stale",
+    // not "everything" — and must not end up with two chips sharing a value,
+    // which would press both.
+    const everythingValue = values()[0];
+    const stale = chips({ value: everythingValue });
+    expect(pressedOf(stale).map((c) => c.text)).toEqual([COPY.unknown]);
+
+    for (const value of [
+      null,
+      "opt-1",
+      "gone-from-the-list",
+      everythingValue,
+    ]) {
+      const v = values({ value });
+      expect(new Set(v).size).toBe(v.length);
+    }
+  });
+
+  /**
+   * What a tap means, as the pure rule the group's `onValueChange` applies.
+   * Static markup cannot fire events, so the rule is tested on its own.
+   */
+  describe("resolveSelection", () => {
+    const everythingValue = values()[0];
+
+    it("filter: an option is chosen, 'everything' and un-pressing both clear", () => {
+      expect(resolveSelection(["opt-1"], false)).toBe("opt-1");
+      expect(resolveSelection([everythingValue], false)).toBeNull();
+      expect(resolveSelection([], false)).toBeNull();
+    });
+
+    it("required: an option is chosen, but un-pressing is ignored rather than emptying the field", () => {
+      expect(resolveSelection(["opt-2"], true)).toBe("opt-2");
+      // `undefined` = no change; the caller does not call `onChange` at all.
+      expect(resolveSelection([], true)).toBeUndefined();
+    });
   });
 
   /**
@@ -106,7 +158,7 @@ describe("DimensionChips", () => {
     const stale = chips({ value: "gone-from-the-list" });
 
     // 'everything' is NOT pressed — a filter is in force.
-    const everything = stale.find((c) => c.text === COPY.everything);
+    const everything = stale.find((c) => c.text === EVERYTHING_TEXT);
     expect(everything?.pressed).toBe(false);
 
     // ...and a pressed chip says so, in words, so it can be seen and cleared.
