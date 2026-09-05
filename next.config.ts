@@ -2,6 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  /**
+   * Enabled now rather than earlier because the codebase was already
+   * compiler-clean: eslint-plugin-react-hooks@7's flat.recommended turns on the
+   * full React Compiler rule set (purity, immutability,
+   * preserve-manual-memoization, set-state-in-render, refs, globals, …) and the
+   * repo passes it with exactly one suppression, in transaction-data-table.tsx.
+   *
+   * Manual useMemo/useCallback are deliberately left in place — the compiler
+   * honours them (preserve-manual-memoization enforces that), and removing them
+   * is a behaviour change that belongs in its own PR, not smuggled in with the
+   * flag that makes it possible.
+   */
+  reactCompiler: true,
   // better-sqlite3 is a native addon — keep it a runtime `require` rather than
   // letting Next try to bundle it.
   serverExternalPackages: ["better-sqlite3"],
@@ -48,6 +61,34 @@ const nextConfig: NextConfig = {
    */
   experimental: {
     useTypeScriptCli: false,
+    /**
+     * Runs the React Compiler as native code inside Turbopack instead of as a
+     * Babel pass, so Babel never enters the build pipeline and
+     * `babel-plugin-react-compiler` is not a dependency at all.
+     *
+     * Chosen over the documented Babel path on measurements, not preference —
+     * three builds each on a clean `.next`, against a control with the compiler
+     * off:
+     *
+     *   | config   | build (median) | memo-cache slots in the client chunks |
+     *   |----------|----------------|---------------------------------------|
+     *   | off      | 11.31s         |   0   ← control                       |
+     *   | Babel    | 18.51s (+64%)  | 212                                   |
+     *   | Rust     | 13.45s (+19%)  | 212                                   |
+     *
+     * Same amount of compiled output either way: 30 of 35 client chunks are
+     * byte-identical between the two, and the totals differ by 45 bytes across
+     * 2.2MB. `experimental` here is about the flag's stability, not the
+     * output's.
+     *
+     * The cost this trades against is memory on the self-hosted runner, which
+     * has no swap and OOM-killed `next-build` once already (see PR #127). The
+     * Babel path spreads its work across Node workers while this one adds to
+     * the single Turbopack process — the exact process the kernel killed. If a
+     * Build step ever exits 137, reverting is this line plus reinstalling
+     * `babel-plugin-react-compiler`.
+     */
+    turbopackRustReactCompiler: true,
   },
   // Old TanStack Router paths, kept live for bookmarks/screenshots that named
   // them — same redirects those routes' now-deleted src/routes/index.tsx,
