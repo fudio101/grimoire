@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.1](https://github.com/fugo101/grimoire/compare/v2.2.0...v2.2.1) (2026-09-05)
+
+
+### 🐛 Bug Fixes
+
+* declare the client boundary explicitly ([#109](https://github.com/fugo101/grimoire/issues/109)) ([89fba30](https://github.com/fugo101/grimoire/commit/89fba30d8d7264287afc4707553a1915b359c2aa))
+
+
+### 📚 Documentation
+
+* add agent skills configuration ([#124](https://github.com/fugo101/grimoire/issues/124)) ([59b6fe4](https://github.com/fugo101/grimoire/commit/59b6fe4263a7c9345057c9f92725c3831c21ac8e))
+* commit the Next.js agent-rules block ([#123](https://github.com/fugo101/grimoire/issues/123)) ([abd0aea](https://github.com/fugo101/grimoire/commit/abd0aea62c22f409f5c8c75ccdf288ec17187ede))
+
 ## [2.2.0](https://github.com/fugo101/grimoire/compare/v2.1.1...v2.2.0) (2026-08-15)
 
 
