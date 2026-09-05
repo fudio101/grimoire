@@ -6,6 +6,7 @@ import {
   pickSearchParam,
   readPublicReportSearch,
   readTransactionSearch,
+  toSearchString,
 } from "@/lib/search-params";
 
 describe("pickSearchParam", () => {
@@ -92,6 +93,27 @@ describe("search-param parsers agree on the same URL (one URL, one query key)", 
     expect(parsePublicReportSearch(narrowed).purpose).toBe(
       parseTransactionSearch(narrowed).purpose
     );
+  });
+});
+
+describe("toSearchString: hrefs and parsers spell the parameters the same way", () => {
+  it("round-trips a full search through both parsers", () => {
+    const search = {
+      fromMonth: "2026-01",
+      toMonth: "2026-08",
+      purpose: "purpose-1",
+      fundingSource: "pot-1",
+    };
+    const raw = Object.fromEntries(new URLSearchParams(toSearchString(search)));
+    expect(readTransactionSearch(raw)).toEqual(search);
+    expect(readPublicReportSearch(raw)).toEqual(search);
+  });
+
+  it("omits absent and empty values, so a cleared filter leaves no trace in the URL", () => {
+    expect(toSearchString({})).toBe("");
+    expect(toSearchString({ purpose: undefined, fundingSource: "" })).toBe("");
+    // The control: a present value is written.
+    expect(toSearchString({ purpose: "purpose-1" })).toBe("purpose=purpose-1");
   });
 });
 

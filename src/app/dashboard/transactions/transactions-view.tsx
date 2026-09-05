@@ -15,16 +15,11 @@ import {
   purposesQueryOptions,
   transactionsQueryOptions,
 } from "@/lib/query-options";
-import type { TransactionSearch } from "@/lib/search-params";
+import { toSearchString, type TransactionSearch } from "@/lib/search-params";
 import { cn } from "@/lib/utils";
 
 function buildHref(next: Partial<TransactionSearch>): Route {
-  const params = new URLSearchParams();
-  if (next.fromMonth) params.set("fromMonth", next.fromMonth);
-  if (next.toMonth) params.set("toMonth", next.toMonth);
-  if (next.purpose) params.set("purpose", next.purpose);
-  if (next.fundingSource) params.set("fundingSource", next.fundingSource);
-  const qs = params.toString();
+  const qs = toSearchString(next);
   // Non-literal string: typedRoutes can't validate a query-string-bearing
   // href against its route table, so this is the documented escape hatch.
   return (

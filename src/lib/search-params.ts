@@ -40,20 +40,38 @@ export function parseTransactionSearch(search: unknown): TransactionSearch {
 }
 
 /**
- * The same two view filters as the dashboard. A share link's *scope* is still
- * one-dimensional (ADR-0002) — that is a property of the permission model,
- * enforced in `getPublicReport` by intersecting `purpose` with the link's own
- * Purposes. `fundingSource` is not scope: it narrows rows the scope already
- * allows, and can reveal nothing a reader could not already see by looking at
- * the funding split. Kept as its own schema rather than reusing the dashboard's
- * so the two contracts can still diverge on purpose.
+ * The public report reads the same four view filters as the dashboard, so it
+ * shares the schema. A share link's *scope* is still one-dimensional
+ * (ADR-0002) — that is a property of the permission model, enforced in
+ * `getPublicReport` by intersecting `purpose` with the link's own Purposes.
+ * `fundingSource` is not scope: it narrows rows the scope already allows, and
+ * can reveal nothing a reader could not already see in the funding split. The
+ * separate name and type stay so a future divergence has somewhere to land.
  */
-const publicReportSearchSchema = monthRangeSearchSchema.extend({
-  purpose: z.string().optional(),
-  fundingSource: z.string().optional(),
-});
+const publicReportSearchSchema = transactionSearchSchema;
 
 export type PublicReportUrlSearch = z.infer<typeof publicReportSearchSchema>;
+
+/**
+ * The inverse of the parsers: a parsed search back to a query string, for
+ * hrefs. Both client views used to spell the four parameter names again in
+ * their own `buildHref`, which is exactly the drift CLAUDE.md's "routes are
+ * unchecked strings" note warns about — here they are spelled once more, and
+ * `search-params.test.ts` round-trips them through the parsers.
+ */
+export function toSearchString(search: Partial<TransactionSearch>): string {
+  const params = new URLSearchParams();
+  for (const key of [
+    "fromMonth",
+    "toMonth",
+    "purpose",
+    "fundingSource",
+  ] as const) {
+    const value = search[key];
+    if (value) params.set(key, value);
+  }
+  return params.toString();
+}
 
 export function parsePublicReportSearch(
   search: unknown

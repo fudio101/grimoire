@@ -262,6 +262,30 @@ describe("getPublicReport", () => {
     });
   });
 
+  it("compares the previous month within the same pot when one is chosen", async () => {
+    // February from Nguồn A against January from Nguồn A — not January from
+    // every pot, which would make "so với tháng trước" compare unlike things.
+    const fromA = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-02",
+      toMonth: "2026-02",
+      fundingSource: FUNDING.a,
+    });
+    expect(fromA!.total).toBe(TXN.febXA.amount + TXN.febYA.amount);
+    expect(fromA!.previousTotal).toBe(TXN.janXA.amount);
+
+    // The control: Nguồn B paid nothing in January, so its comparison is zero
+    // rather than January's all-pot figure.
+    const fromB = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-02",
+      toMonth: "2026-02",
+      fundingSource: FUNDING.b,
+    });
+    expect(fromB!.total).toBe(TXN.febXB.amount);
+    expect(fromB!.previousTotal).toBe(0);
+  });
+
   it("reports the previous month only for a single-month view", async () => {
     const singleMonth = await getPublicReport({
       code: SHARE_CODE,

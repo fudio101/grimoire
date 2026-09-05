@@ -35,8 +35,8 @@ export type DimensionCopy = {
   /**
    * The chip shown when a filter names something that no longer exists — an
    * id left in a URL after the thing was renamed or deleted. Distinct from
-   * `everything` on purpose: without it, a filter matching zero rows would
-   * read exactly like no filter at all.
+   * the chips' "Tất cả" on purpose: without it, a filter matching zero rows
+   * would read exactly like no filter at all.
    */
   unknown: string;
   nameLabel: string;

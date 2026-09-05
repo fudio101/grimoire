@@ -86,11 +86,13 @@ export async function getPublicReport(
     await Promise.all([
       getTransactionsForPurposes(effectiveIds, range),
       getTotalForPurposes(effectiveIds, range),
+      // Same pot filter as the month being viewed, or "so với tháng trước"
+      // would compare one pot against all of them.
       previousMonth
         ? getTotalForPurposes(effectiveIds, {
+            ...range,
             fromMonth: previousMonth,
             toMonth: previousMonth,
-            fundingSourceId: input.fundingSource,
           })
         : Promise.resolve(null),
       getPurposes(),

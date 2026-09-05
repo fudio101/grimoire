@@ -18,12 +18,9 @@ import { MonthRangeFilter } from "./month-range-filter";
  * same Purpose lived in two branches, so no single value selected it — and
  * clearing it was the only way out of a narrowed view.
  *
- * The Funding Source half is optional so this can serve a caller that has only
- * one dimension to offer. `/p/[code]` is that case in principle — a share
- * link's scope is one-dimensional (ADR-0002), so offering a filter the query
- * ignores would be a lie — but it composes its own controls, since its month
- * stepper differs. Both surfaces render the same `DimensionChips`, so the
- * shape is shared even though this wrapper is not.
+ * `/p/[code]` renders the same two `DimensionChips` rows but composes them
+ * itself, because its month control is a stepper rather than a range picker.
+ * The shape is shared even though this wrapper is not.
  */
 export function TransactionFilters({
   purposes,
@@ -37,14 +34,14 @@ export function TransactionFilters({
   onFundingSourceChange,
 }: {
   purposes: Purpose[];
-  fundingSources?: FundingSource[];
+  fundingSources: FundingSource[];
   fromMonth: string | undefined;
   toMonth: string | undefined;
   purpose: string | undefined;
-  fundingSource?: string | undefined;
+  fundingSource: string | undefined;
   onMonthChange: (fromMonth: string | null, toMonth: string | null) => void;
   onPurposeChange: (purpose: string | null) => void;
-  onFundingSourceChange?: (fundingSource: string | null) => void;
+  onFundingSourceChange: (fundingSource: string | null) => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -61,14 +58,12 @@ export function TransactionFilters({
         copy={PURPOSE_COPY}
       />
 
-      {fundingSources && onFundingSourceChange && (
-        <DimensionChips
-          options={fundingSources}
-          value={fundingSource ?? null}
-          onChange={onFundingSourceChange}
-          copy={FUNDING_SOURCE_COPY}
-        />
-      )}
+      <DimensionChips
+        options={fundingSources}
+        value={fundingSource ?? null}
+        onChange={onFundingSourceChange}
+        copy={FUNDING_SOURCE_COPY}
+      />
     </div>
   );
 }
