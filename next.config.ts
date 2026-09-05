@@ -123,12 +123,18 @@ const nextConfig: NextConfig = {
   // them — same redirects those routes' now-deleted src/routes/index.tsx,
   // dashboard/categories.tsx, dashboard/links.tsx and dashboard/manage/index.tsx
   // used to define.
+  //
+  // `/dashboard/manage` is NOT one of those: it is the live target of the
+  // "Quản lý" nav tab, so its destination has to name a route that exists.
+  // It pointed at the deleted `.../categories` for a while, which 404'd the
+  // main navigation — a redirect destination is a plain string that neither
+  // the compiler nor the route table checks.
   async redirects() {
     return [
       { source: "/", destination: "/dashboard", permanent: false },
       {
         source: "/dashboard/categories",
-        destination: "/dashboard/manage/categories",
+        destination: "/dashboard/manage/purposes",
         permanent: false,
       },
       {
@@ -138,7 +144,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/dashboard/manage",
-        destination: "/dashboard/manage/categories",
+        destination: "/dashboard/manage/purposes",
         permanent: false,
       },
     ];

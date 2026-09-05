@@ -31,6 +31,33 @@ function routeFileFor(apiPath: string): string {
   return path.join(SRC, "app", apiPath, "route.ts");
 }
 
+/**
+ * Internal redirect destinations from `next.config.ts`.
+ *
+ * The same unchecked-string problem one layer out: a `destination` is a plain
+ * string that neither the compiler nor Next's route table validates, so a
+ * redirect can outlive the route it points at. `/dashboard/manage` — the
+ * destination of the "Quản lý" nav tab — kept pointing at the deleted
+ * `.../categories` for exactly that reason, 404ing the main navigation while
+ * every check in the repository stayed green.
+ */
+function redirectDestinations(): string[] {
+  const source = fs.readFileSync(
+    path.join(SRC, "..", "next.config.ts"),
+    "utf8"
+  );
+  return [...source.matchAll(/destination:\s*"(\/[^"]*)"/g)].map((m) => m[1]);
+}
+
+/** Whether a path resolves to a page or a route handler under `src/app`. */
+function resolvesToARoute(routePath: string): boolean {
+  const base = path.join(SRC, "app", routePath);
+  return (
+    fs.existsSync(path.join(base, "page.tsx")) ||
+    fs.existsSync(path.join(base, "route.ts"))
+  );
+}
+
 describe("query-options route paths", () => {
   it("finds the fetched paths at all (control for the regex below)", () => {
     const paths = fetchedApiPaths();
@@ -55,5 +82,25 @@ describe("query-options route paths", () => {
     // ...while the ones that replaced them do.
     expect(fs.existsSync(routeFileFor("/api/purposes"))).toBe(true);
     expect(fs.existsSync(routeFileFor("/api/recent-purposes"))).toBe(true);
+  });
+});
+
+describe("next.config.ts redirect destinations", () => {
+  it("finds the destinations at all (control for the regex below)", () => {
+    const destinations = redirectDestinations();
+    expect(destinations.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("points every redirect at a route that exists", () => {
+    const dangling = redirectDestinations().filter(
+      (destination) => !resolvesToARoute(destination)
+    );
+    expect(dangling).toEqual([]);
+  });
+
+  it("would notice a destination that does not exist (negative control)", () => {
+    // The check above only means something if it can fail.
+    expect(resolvesToARoute("/dashboard/manage/categories")).toBe(false);
+    expect(resolvesToARoute("/dashboard/manage/purposes")).toBe(true);
   });
 });

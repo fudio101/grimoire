@@ -2,6 +2,9 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { db } from "@/lib/db";
+
+/** The handle `db.transaction` hands its callback. */
+type DrizzleTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 import {
   fundingSources,
   purposes,
@@ -28,10 +31,13 @@ export type Dimension = {
   labels: { notFound: string; inUse: string };
   /**
    * Rows outside `transactions` that reference this dimension and should go
-   * with it on delete, run inside the same transaction as the delete itself.
-   * Only Purposes have any: they are what a share link's scope is made of.
+   * with it on delete. Handed the transaction handle so its writes are
+   * genuinely inside the same transaction as the delete, rather than landing
+   * there only because better-sqlite3 happens to be one synchronous
+   * connection. Only Purposes have any: they are what a share link's scope is
+   * made of.
    */
-  detach?: (id: string) => void;
+  detach?: (tx: DrizzleTransaction, id: string) => void;
 };
 
 export const PURPOSE_DIMENSION: Dimension = {
@@ -44,8 +50,8 @@ export const PURPOSE_DIMENSION: Dimension = {
   // A Purpose can sit in a share link's scope with no transactions of its own.
   // Removing it narrows that link rather than blocking the delete: the scope is
   // a list of what to show, and a Purpose that no longer exists shows nothing.
-  detach: (id) =>
-    db
+  detach: (tx, id) =>
+    tx
       .delete(shareLinkPurposes)
       .where(eq(shareLinkPurposes.purposeId, id))
       .run(),
@@ -133,9 +139,9 @@ export async function deleteDimension(
 
   // Atomic: a detach that succeeded next to a delete that failed would leave a
   // share link quietly missing a Purpose it still has every right to show.
-  db.transaction(() => {
-    dimension.detach?.(id);
-    db.delete(dimension.table).where(eq(dimension.table.id, id)).run();
+  db.transaction((tx) => {
+    dimension.detach?.(tx, id);
+    tx.delete(dimension.table).where(eq(dimension.table.id, id)).run();
   });
   return { success: true };
 }

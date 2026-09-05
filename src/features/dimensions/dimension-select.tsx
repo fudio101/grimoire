@@ -23,6 +23,15 @@ export type DimensionOption = { id: string; name: string };
  * `emptyOption`, when given, is the "no choice / everything" entry. Base UI's
  * Select cannot carry an empty-string item value, so it is modelled as `null`
  * and mapped to the sentinel below only for the duration of the round-trip.
+ *
+ * The trigger's label is resolved by an explicit `SelectValue` children
+ * function rather than left to `placeholder`. Base UI reads a trigger label
+ * from the Root's `items` prop, from `itemToStringLabel`, or from exactly this
+ * function — a rendered `<SelectItem>` does *not* register its text anywhere
+ * the trigger can find. Without one it falls back to serialising the value, so
+ * every select rendered its sentinel (`__none__`) and then, once something was
+ * picked, a raw id. `placeholder` cannot cover for that either: the sentinel
+ * counts as a selected value, so it never engages.
  */
 const NONE = "__none__";
 
@@ -56,7 +65,17 @@ export function DimensionSelect({
         }
       >
         <SelectTrigger id={id} className="w-full">
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>
+            {(selected) => {
+              if (selected === NONE || selected == null) {
+                return emptyOption ?? placeholder;
+              }
+              return (
+                options.find((option) => option.id === selected)?.name ??
+                placeholder
+              );
+            }}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {emptyOption && <SelectItem value={NONE}>{emptyOption}</SelectItem>}
