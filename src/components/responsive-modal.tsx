@@ -45,8 +45,16 @@ export function ResponsiveModal({
     );
   }
 
+  /*
+   * `repositionInputs` is left at vaul's default (on). It had been switched
+   * off since #21; with it off, focusing a field hands the job to the browser,
+   * which on a phone pans the whole fixed drawer to chase the keyboard and
+   * sometimes leaves it stranded high on the screen. vaul's repositioning is
+   * built for exactly this: it resizes the drawer to the visual viewport and
+   * keeps the focused input sitting just above the keyboard.
+   */
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent>
         <DrawerHeader>
