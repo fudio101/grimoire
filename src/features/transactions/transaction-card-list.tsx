@@ -37,6 +37,24 @@ export function TransactionCardList({
   onEdit?: (row: TransactionTableRow) => void;
   onDelete?: (id: string) => void;
 }) {
+  /*
+   * Opted out of the React Compiler. The virtualizer is one object whose
+   * identity never changes while its *contents* change on every scroll, and
+   * `getVirtualItems()` is read during render. Compiled, this component's
+   * output was memoised on inputs that never changed, so the list rendered
+   * its first screen of cards and then nothing more no matter how far the
+   * page scrolled — a long blank page below nine rows, seen on a phone under
+   * #138 and reproduced in a headless browser (9 rendered at top, middle and
+   * bottom; with this directive, 22 in the middle and 25 at the bottom,
+   * reaching the last index).
+   *
+   * The desktop table does not need this: `useVirtualizer` is on the
+   * compiler's known-incompatible list, so that component is skipped
+   * automatically — which is also why `react-hooks/incompatible-library`
+   * fires there. `useWindowVirtualizer` is not on the list, so the compiler
+   * compiles this one and has to be told not to.
+   */
+  "use no memo";
   const listRef = useRef<HTMLDivElement>(null);
   const showActions = Boolean(onEdit && onDelete);
 
