@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0](https://github.com/fugo101/grimoire/compare/v2.3.0...v2.4.0) (2026-09-05)
+
+
+### 🚀 Features
+
+* **model:** replace the category tree with Purpose × Funding Source ([#142](https://github.com/fugo101/grimoire/issues/142)) ([d70070e](https://github.com/fugo101/grimoire/commit/d70070ede55729f2f1dbeaee2450824e3b822265))
+* **ui:** chip filters, question-style labels and the narrow-phone tab bar ([#143](https://github.com/fugo101/grimoire/issues/143)) ([35af94d](https://github.com/fugo101/grimoire/commit/35af94d3a89f1359c6cfe874a7e971c945fa9c42))
+
+
+### 📚 Documentation
+
+* add the domain glossary and the two dimension ADRs ([#139](https://github.com/fugo101/grimoire/issues/139)) ([f40a187](https://github.com/fugo101/grimoire/commit/f40a18785d661a8ee09877debad9f228d78195cc))
+
 ## [2.3.0](https://github.com/fugo101/grimoire/compare/v2.2.1...v2.3.0) (2026-09-05)
 
 
