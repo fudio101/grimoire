@@ -19,6 +19,16 @@
 --   * a share link's scope collapses to the distinct Purposes it already
 --     covered through the subtree it pointed at (ADR-0002).
 --
+-- That last one can WIDEN what a link shows, and does so by design. Scope is
+-- one-dimensional now, so a link that pointed at one branch's leaf sees that
+-- Purpose funded from every pot — ADR-0002 states this outright ("A link's
+-- readers see every Funding Source of the shared Purposes"). Where two
+-- branches held a same-named leaf, that is precisely the merge this whole
+-- change exists to perform, and the link inherits it. It is a deliberate
+-- consequence on the one unauthenticated surface in the app, so if it ever
+-- stops being acceptable the fix is at the presentation layer, not a second
+-- dimension in the permission model — re-read ADR-0002 before changing it.
+--
 -- Deferred rather than disabled foreign keys: drizzle's migrator wraps every
 -- migration in BEGIN/COMMIT, and `PRAGMA foreign_keys` is documented as a
 -- no-op inside a transaction — so the OFF/ON pair drizzle-kit generates for a
@@ -60,10 +70,17 @@ SELECT "id", "name", "created_at" FROM `categories` WHERE `parent_id` IS NULL;
 -- random bits for the rest. `randomblob` and `random` are non-deterministic, so
 -- they are evaluated once per group — one distinct id per Purpose.
 --
--- The source set is "categories that are leaves, OR that hold transactions".
--- The second half should be empty (the old model only allowed transactions on
--- leaves) and exists so that a database which somehow violates that cannot
--- reach the INSERT below with no Purpose to point at.
+-- The source set is "categories that are leaves BELOW a root, OR that hold
+-- transactions at all".
+--
+-- The first half is the ordinary case. The second exists so the transactions
+-- INSERT further down can never find itself with no Purpose to point at: it
+-- covers a childless root that was spent from directly (legal under the old
+-- leaf-only rule, since such a root is its own leaf) and any row that predates
+-- that rule. What it deliberately does NOT cover is a childless root with no
+-- transactions — a pot created and not yet spent from. That is a Funding
+-- Source and nothing else; minting a Purpose for it too would invent a
+-- spending purpose the admin never recorded.
 INSERT INTO `purposes` ("id", "name", "created_at")
 SELECT
 	substr(ts, 1, 8) || '-' || substr(ts, 9, 4)
@@ -79,13 +96,18 @@ FROM (
 		c.name AS name,
 		min(c.created_at) AS created_at
 	FROM `categories` c
-	WHERE NOT EXISTS (SELECT 1 FROM `categories` x WHERE x.parent_id = c.id)
+	WHERE (
+			c.parent_id IS NOT NULL
+			AND NOT EXISTS (SELECT 1 FROM `categories` x WHERE x.parent_id = c.id)
+		)
 		OR EXISTS (SELECT 1 FROM `transactions` t WHERE t.category_id = c.id)
 	GROUP BY c.name
 );
 --> statement-breakpoint
 -- A link pointing at a branch could see every leaf beneath it, so its scope
--- collapses to the Purposes of that whole subtree — no wider, no narrower.
+-- becomes the Purposes of that whole subtree. Because leaves merge by name,
+-- this can hand the link a Purpose that is also funded from a pot the link
+-- never pointed at — see the note in the header; ADR-0002 decided it.
 INSERT INTO `share_link_purposes` ("share_link_id", "purpose_id")
 WITH RECURSIVE covered(share_link_id, category_id) AS (
 	SELECT share_link_id, category_id FROM `share_link_categories`
@@ -97,7 +119,10 @@ SELECT DISTINCT v.share_link_id, p.id
 FROM covered v
 JOIN `categories` c ON c.id = v.category_id
 JOIN `purposes` p ON p.name = c.name
-WHERE NOT EXISTS (SELECT 1 FROM `categories` x WHERE x.parent_id = c.id)
+WHERE (
+		c.parent_id IS NOT NULL
+		AND NOT EXISTS (SELECT 1 FROM `categories` x WHERE x.parent_id = c.id)
+	)
 	OR EXISTS (SELECT 1 FROM `transactions` t WHERE t.category_id = c.id);
 --> statement-breakpoint
 CREATE TABLE `__new_transactions` (

@@ -16,12 +16,18 @@ import { uuidv7 } from "uuidv7";
  * dimensions in the first place. Re-introducing nesting on either side later is
  * a single `ALTER TABLE ADD COLUMN`, exactly as the original one was added.
  *
- * Names are deliberately *not* uniquely indexed. The migration that creates
- * these tables already yields distinct names by construction (it merges the old
- * leaves by name), so a unique index would enforce nothing that is not already
- * true, while turning a user-facing "that name is taken" into a raw SQLite
- * constraint throw inside the actions — and giving this migration a way to fail
- * on real data if two former roots ever happened to share a name.
+ * Names are deliberately *not* uniquely indexed, and the reason differs per
+ * table. `purposes` comes out of the migration already distinct by
+ * construction, since it merges the old leaves by name — an index there would
+ * enforce nothing that is not already true. `funding_sources` copies every
+ * former root verbatim with no dedupe, so it genuinely *could* carry two rows
+ * with one name; indexing it would hand this migration a way to fail on real
+ * data, which is the one thing it must not do.
+ *
+ * Either way the cost is the same: a unique index turns a user-facing "that
+ * name is taken" into a raw SQLite constraint throw inside the actions. If
+ * uniqueness is wanted later it belongs there, as a checked rule with a
+ * message, not here.
  */
 
 /** What the money was used for. */

@@ -17,8 +17,26 @@ type JournalEntry = { idx: number; when: number; tag: string };
  * legacy databases to either replay or skip migrations incorrectly.
  */
 const SCHEMA_PROBES: Record<string, () => boolean> = {
-  "0000_dapper_psylocke": () => tableExists("categories"),
-  "0001_icy_wind_dancer": () => columnExists("categories", "parent_id"),
+  /**
+   * A probe has to stay true once its migration is applied, *forever* — the
+   * walk below stops at the first false one, so a probe that later goes back
+   * to false makes a database look older than it is and replays everything
+   * from 0000 on top of a populated schema.
+   *
+   * That is why 0000 is probed through `transactions` rather than through
+   * `categories`, which it also creates: 0004 drops `categories`, and probing
+   * for it would have made every post-0004 database with no ledger look
+   * brand-new. `transactions` is created by 0000 and never dropped — 0004
+   * rebuilds it in place, which is a different thing.
+   */
+  "0000_dapper_psylocke": () => tableExists("transactions"),
+  /**
+   * Same hazard one migration later: `categories.parent_id` cannot be observed
+   * once 0004 has taken the table away, so "the table is gone" counts as
+   * having got past this point.
+   */
+  "0001_icy_wind_dancer": () =>
+    columnExists("categories", "parent_id") || !tableExists("categories"),
   /**
    * 0002 both creates share_links and drops categories.is_public/share_token,
    * so it is tempting to probe for both halves. Don't: baselining is
@@ -107,11 +125,14 @@ function stampBaselineIfNeeded(): void {
 
   // Fresh database → let the migrator create everything from 0000.
   //
-  // `categories` is the sentinel even though 0004 drops it: a pre-ledger
-  // database predates 0004 by definition, so it always still has the table,
-  // and anything that has been through 0004 was managed by the migrator and
-  // already returned above on a non-empty ledger.
-  if (!tableExists("categories")) return;
+  // `transactions` is the sentinel because it is the one table every version
+  // of this schema has had. `categories` used to serve here and can no longer:
+  // after 0004 it is gone, so an existing database that has lost its ledger —
+  // through `db:push`, or through dropping the ledger deliberately to
+  // re-baseline — would have been mistaken for an empty one and had 0000
+  // replayed on top of it, which dies on "table transactions already exists"
+  // at startup.
+  if (!tableExists("transactions")) return;
 
   // Pre-migration database. Walk migrations in journal order and stamp the
   // ledger at the last one whose schema change is already present, so only

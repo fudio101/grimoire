@@ -373,10 +373,18 @@ describe("runMigrations", () => {
         source,
         "SELECT count(*) AS n FROM categories WHERE parent_id IS NULL"
       );
+      // The migration's own rule: a leaf below a root, or anything holding
+      // transactions. On any database where the old leaf-only rule held —
+      // which is every database the application itself produced — this is
+      // exactly "distinct leaf names".
       const distinctLeafNames = countOf(
         source,
         `SELECT count(DISTINCT name) AS n FROM categories c
-         WHERE NOT EXISTS (SELECT 1 FROM categories x WHERE x.parent_id = c.id)`
+         WHERE (
+             c.parent_id IS NOT NULL
+             AND NOT EXISTS (SELECT 1 FROM categories x WHERE x.parent_id = c.id)
+           )
+           OR EXISTS (SELECT 1 FROM transactions t WHERE t.category_id = c.id)`
       );
       const shareLinkCount = countOf(
         source,
@@ -457,4 +465,111 @@ describe("runMigrations", () => {
       }
     }
   );
+
+  it("re-baselines a fully migrated database that has lost its ledger, instead of replaying 0000 onto it", () => {
+    // Dropping `__drizzle_migrations` is the documented way to re-baseline a
+    // database, and `db:push` produces the same shape: current schema, no
+    // ledger. Before the probes were made drop-proof this took the
+    // "brand-new database" path and replayed 0000 over a populated schema,
+    // which dies on `table transactions already exists` — at startup, since
+    // instrumentation calls runMigrations().
+    const dbPath = path.join(tmpDir, "ledgerless.db");
+    useDb(dbPath);
+    runMigrations();
+
+    const seeded = getSqlite();
+    seeded
+      .prepare("INSERT INTO funding_sources (id, name) VALUES (?, ?)")
+      .run("pot-1", "Nguồn A");
+    seeded
+      .prepare("INSERT INTO purposes (id, name) VALUES (?, ?)")
+      .run("purpose-1", "Mục X");
+    seeded
+      .prepare(
+        `INSERT INTO transactions (id, amount, note, date, purpose_id, funding_source_id)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run("txn-1", 17000, "", "2026-02-02T09:00", "purpose-1", "pot-1");
+    seeded.exec(`DROP TABLE "__drizzle_migrations"`);
+    closeDatabase();
+
+    expect(() => runMigrations()).not.toThrow();
+
+    const after = getSqlite();
+    // Stamped, not replayed: one baseline row at the newest migration and
+    // nothing run on top of it.
+    const ledger = ledgerRows(after);
+    expect(ledger).toHaveLength(1);
+    expect(ledger[0].hash).toBe("baseline");
+
+    // The control that makes "it didn't throw" mean something — the data is
+    // still there and still joins across both dimensions.
+    expect(
+      after
+        .prepare(
+          `SELECT t.amount, p.name AS purpose, f.name AS funding
+           FROM transactions t
+           JOIN purposes p ON p.id = t.purpose_id
+           JOIN funding_sources f ON f.id = t.funding_source_id
+           WHERE t.id = 'txn-1'`
+        )
+        .get()
+    ).toEqual({ amount: 17000, purpose: "Mục X", funding: "Nguồn A" });
+  });
+
+  it("gives a childless pot a Funding Source but no Purpose, unless it was spent from directly", () => {
+    const dbPath = path.join(tmpDir, "childless-roots.db");
+    useDb(dbPath);
+    const sqlite = getSqlite();
+    for (const tag of TAGS.slice(0, 4)) applyRawMigration(sqlite, tag);
+
+    const addCategory = sqlite.prepare(
+      "INSERT INTO categories (id, name, parent_id) VALUES (?, ?, ?)"
+    );
+    // A pot created and never spent from.
+    addCategory.run("pot-unused", "Nguồn chưa dùng", null);
+    // A pot spent from directly — legal under the old leaf-only rule, since a
+    // childless root is its own leaf.
+    addCategory.run("pot-direct", "Nguồn dùng thẳng", null);
+    sqlite
+      .prepare(
+        "INSERT INTO transactions (id, amount, note, date, category_id) VALUES (?, ?, ?, ?, ?)"
+      )
+      .run("txn-direct", 19000, "", "2026-03-03T09:00", "pot-direct");
+    closeDatabase();
+
+    runMigrations();
+    const migrated = getSqlite();
+
+    // Both are pots...
+    expect(
+      (
+        migrated
+          .prepare("SELECT name FROM funding_sources ORDER BY name")
+          .all() as {
+          name: string;
+        }[]
+      ).map((r) => r.name)
+    ).toEqual(["Nguồn chưa dùng", "Nguồn dùng thẳng"]);
+
+    // ...but only the one actually spent from is also a Purpose. Minting one
+    // for the unused pot would invent a spending purpose never recorded.
+    expect(
+      (
+        migrated.prepare("SELECT name FROM purposes").all() as {
+          name: string;
+        }[]
+      ).map((r) => r.name)
+    ).toEqual(["Nguồn dùng thẳng"]);
+
+    // And its transaction survived, pointing at both.
+    expect(
+      migrated
+        .prepare(
+          `SELECT purpose_id IS NOT NULL AS p, funding_source_id = 'pot-direct' AS f
+           FROM transactions WHERE id = 'txn-direct'`
+        )
+        .get()
+    ).toEqual({ p: 1, f: 1 });
+  });
 });
