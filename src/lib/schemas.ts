@@ -109,14 +109,15 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /**
- * The `fromMonth`/`toMonth`/`category` triple, as the transactions server
- * function accepts it. Moved here (rather than left inline in
+ * The month range plus the two dimensions, as the transactions server function
+ * accepts it. Moved here (rather than left inline in
  * queries.functions.ts, where it originated) ahead of the Next.js migration:
  * a `"use server"` file may only export async functions, so this value export
  * would be a hard compile error there.
  */
 export const transactionFilterSchema = monthRangeSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type TransactionFilters = z.infer<typeof transactionFilterSchema>;
@@ -135,7 +136,10 @@ export const publicReportSchema = monthRangeSchema.extend({
   // never be a code, without imposing the 8-character write floor on links that
   // were handed out before that floor existed.
   code: z.string().regex(SHARE_CODE_SHAPE),
-  category: z.string().optional(),
+  // Purpose only. A share link's scope is one-dimensional by decision
+  // (ADR-0002), so there is deliberately no `fundingSource` here: readers see
+  // every Funding Source of the Purposes they were given.
+  purpose: z.string().optional(),
 });
 
 export type PublicReportSearch = Omit<

@@ -1,28 +1,21 @@
 import "server-only";
 import { db } from "@/lib/db";
 import {
-  categories,
+  fundingSources,
+  purposes,
   transactions,
   shareLinks,
-  shareLinkCategories,
+  shareLinkPurposes,
 } from "@/lib/db/schema";
 import { eq, and, gte, lt, desc, sql, inArray } from "drizzle-orm";
-import { getDescendantIds } from "@/lib/category-tree";
 import type { ShareLink } from "@/lib/db/schema";
 
-export async function getCategories() {
-  return db.select().from(categories).orderBy(categories.name);
+export async function getPurposes() {
+  return db.select().from(purposes).orderBy(purposes.name);
 }
 
-/**
- * Expand a category id to itself plus all descendants. Transactions only ever
- * sit on leaf categories, so filtering by a parent rolls up the whole subtree.
- */
-async function getSubtreeCategoryIds(rootId: string): Promise<string[]> {
-  const all = await db
-    .select({ id: categories.id, parentId: categories.parentId })
-    .from(categories);
-  return [rootId, ...getDescendantIds(rootId, all)];
+export async function getFundingSources() {
+  return db.select().from(fundingSources).orderBy(fundingSources.name);
 }
 
 function nextMonthStart(month: string): string {
@@ -32,42 +25,77 @@ function nextMonthStart(month: string): string {
   return `${nextYear}-${String(nextMon).padStart(2, "0")}-01`;
 }
 
-export async function getTransactions(filters?: {
-  fromMonth?: string;
-  toMonth?: string;
-  categoryId?: string;
-}) {
+/** Every column the list and report views render, joined to both dimensions. */
+const transactionSelection = {
+  id: transactions.id,
+  amount: transactions.amount,
+  note: transactions.note,
+  date: transactions.date,
+  purposeId: transactions.purposeId,
+  purposeName: purposes.name,
+  fundingSourceId: transactions.fundingSourceId,
+  fundingSourceName: fundingSources.name,
+  createdAt: transactions.createdAt,
+} as const;
+
+/**
+ * Inner joins, not left: both foreign keys are `NOT NULL` and enforced (the
+ * connection sets `foreign_keys = ON`), so a row with no Purpose or no Funding
+ * Source cannot exist. A left join here would only add a `| null` to every
+ * caller's type for a case the database forbids.
+ */
+function selectTransactions() {
+  return db
+    .select(transactionSelection)
+    .from(transactions)
+    .innerJoin(purposes, eq(transactions.purposeId, purposes.id))
+    .innerJoin(
+      fundingSources,
+      eq(transactions.fundingSourceId, fundingSources.id)
+    );
+}
+
+function monthConditions(filters?: { fromMonth?: string; toMonth?: string }) {
   const conditions = [];
-
-  if (filters?.categoryId) {
-    const subtreeIds = await getSubtreeCategoryIds(filters.categoryId);
-    conditions.push(inArray(transactions.categoryId, subtreeIds));
-  }
-
   if (filters?.fromMonth) {
     conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
   }
-
   if (filters?.toMonth) {
     conditions.push(lt(transactions.date, nextMonthStart(filters.toMonth)));
   }
+  return conditions;
+}
 
-  const rows = await db
-    .select({
-      id: transactions.id,
-      amount: transactions.amount,
-      note: transactions.note,
-      date: transactions.date,
-      categoryId: transactions.categoryId,
-      categoryName: categories.name,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+export type TransactionFilterInput = {
+  fromMonth?: string;
+  toMonth?: string;
+  purposeId?: string;
+  fundingSourceId?: string;
+};
+
+/**
+ * The transaction list, narrowed by any combination of the two dimensions.
+ *
+ * Both filters are plain column comparisons. Selecting a Purpose used to mean
+ * expanding a subtree — a second query, then an `IN` over its ids — which is
+ * what made "what has this cost in total?" unanswerable: the matching leaves
+ * sat in different branches and the filter took one id. Flat dimensions make
+ * the two questions independent, so asking both at once is an `AND` rather
+ * than a contradiction.
+ */
+export async function getTransactions(filters?: TransactionFilterInput) {
+  const conditions = monthConditions(filters);
+
+  if (filters?.purposeId) {
+    conditions.push(eq(transactions.purposeId, filters.purposeId));
+  }
+  if (filters?.fundingSourceId) {
+    conditions.push(eq(transactions.fundingSourceId, filters.fundingSourceId));
+  }
+
+  return selectTransactions()
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
-
-  return rows;
 }
 
 /**
@@ -102,14 +130,14 @@ export async function getTotalsByMonth(
 }
 
 /**
- * The categories used most in recent history, for the quick-pick chips.
+ * The Purposes used most in recent history, for the quick-pick chips.
  *
  * Ranked by frequency first and recency second: the point is to surface the
- * handful of categories that cover most entries, so one tap replaces opening
- * the picker at all. Restricted to a trailing window so a category used heavily
- * a year ago and abandoned since does not hold a slot forever.
+ * handful that cover most entries, so one tap replaces opening the picker at
+ * all. Restricted to a trailing window so a Purpose used heavily a year ago
+ * and abandoned since does not hold a slot forever.
  */
-export async function getRecentCategories(
+export async function getRecentPurposes(
   limit = 8,
   windowDays = 90
 ): Promise<{ id: string; name: string }[]> {
@@ -118,22 +146,22 @@ export async function getRecentCategories(
     .slice(0, 10);
 
   return db
-    .select({ id: categories.id, name: categories.name })
+    .select({ id: purposes.id, name: purposes.name })
     .from(transactions)
-    .innerJoin(categories, eq(transactions.categoryId, categories.id))
+    .innerJoin(purposes, eq(transactions.purposeId, purposes.id))
     .where(gte(transactions.date, since))
-    .groupBy(categories.id, categories.name)
+    .groupBy(purposes.id, purposes.name)
     .orderBy(desc(sql`count(*)`), desc(sql`max(${transactions.date})`))
     .limit(limit);
 }
 
-export type ShareLinkWithCategories = ShareLink & {
-  categoryIds: string[];
-  categoryNames: string[];
+export type ShareLinkWithPurposes = ShareLink & {
+  purposeIds: string[];
+  purposeNames: string[];
 };
 
-/** All share links with their selected category ids and names, for management. */
-export async function getShareLinks(): Promise<ShareLinkWithCategories[]> {
+/** All share links with their selected Purpose ids and names, for management. */
+export async function getShareLinks(): Promise<ShareLinkWithPurposes[]> {
   const links = await db
     .select()
     .from(shareLinks)
@@ -141,27 +169,27 @@ export async function getShareLinks(): Promise<ShareLinkWithCategories[]> {
 
   const rows = await db
     .select({
-      shareLinkId: shareLinkCategories.shareLinkId,
-      categoryId: shareLinkCategories.categoryId,
-      categoryName: categories.name,
+      shareLinkId: shareLinkPurposes.shareLinkId,
+      purposeId: shareLinkPurposes.purposeId,
+      purposeName: purposes.name,
     })
-    .from(shareLinkCategories)
-    .leftJoin(categories, eq(shareLinkCategories.categoryId, categories.id));
+    .from(shareLinkPurposes)
+    .innerJoin(purposes, eq(shareLinkPurposes.purposeId, purposes.id));
 
   return links.map((link) => {
     const own = rows.filter((r) => r.shareLinkId === link.id);
     return {
       ...link,
-      categoryIds: own.map((r) => r.categoryId),
-      categoryNames: own.map((r) => r.categoryName ?? "—"),
+      purposeIds: own.map((r) => r.purposeId),
+      purposeNames: own.map((r) => r.purposeName),
     };
   });
 }
 
-/** Enabled share link plus its category ids, resolved from a public code. */
+/** Enabled share link plus its Purpose ids, resolved from a public code. */
 export async function getShareLinkByCode(
   code: string
-): Promise<{ link: ShareLink; categoryIds: string[] } | null> {
+): Promise<{ link: ShareLink; purposeIds: string[] } | null> {
   const [link] = await db
     .select()
     .from(shareLinks)
@@ -170,51 +198,39 @@ export async function getShareLinkByCode(
   if (!link) return null;
 
   const rows = await db
-    .select({ categoryId: shareLinkCategories.categoryId })
-    .from(shareLinkCategories)
-    .where(eq(shareLinkCategories.shareLinkId, link.id));
+    .select({ purposeId: shareLinkPurposes.purposeId })
+    .from(shareLinkPurposes)
+    .where(eq(shareLinkPurposes.shareLinkId, link.id));
 
-  return { link, categoryIds: rows.map((r) => r.categoryId) };
+  return { link, purposeIds: rows.map((r) => r.purposeId) };
 }
 
-function monthConditions(
+function purposeConditions(
   ids: string[],
   filters?: { fromMonth?: string; toMonth?: string }
 ) {
-  const conditions = [inArray(transactions.categoryId, ids)];
-  if (filters?.fromMonth) {
-    conditions.push(gte(transactions.date, `${filters.fromMonth}-01`));
-  }
-  if (filters?.toMonth) {
-    conditions.push(lt(transactions.date, nextMonthStart(filters.toMonth)));
-  }
-  return conditions;
+  return [inArray(transactions.purposeId, ids), ...monthConditions(filters)];
 }
 
-/** Transactions across an explicit set of category ids, with category names. */
-export async function getTransactionsForCategories(
+/**
+ * Transactions across an explicit set of Purposes, from every Funding Source.
+ *
+ * This is what a share link reads through. Scope is one-dimensional by
+ * decision (ADR-0002): a link names Purposes, and its readers see the whole
+ * Gross cost of each, however it was funded.
+ */
+export async function getTransactionsForPurposes(
   ids: string[],
   filters?: { fromMonth?: string; toMonth?: string }
 ) {
   if (ids.length === 0) return [];
 
-  return db
-    .select({
-      id: transactions.id,
-      amount: transactions.amount,
-      note: transactions.note,
-      date: transactions.date,
-      categoryId: transactions.categoryId,
-      categoryName: categories.name,
-      createdAt: transactions.createdAt,
-    })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(and(...monthConditions(ids, filters)))
+  return selectTransactions()
+    .where(and(...purposeConditions(ids, filters)))
     .orderBy(desc(transactions.date), desc(transactions.createdAt));
 }
 
-export async function getTotalForCategories(
+export async function getTotalForPurposes(
   ids: string[],
   filters?: { fromMonth?: string; toMonth?: string }
 ): Promise<number> {
@@ -223,7 +239,7 @@ export async function getTotalForCategories(
   const [result] = await db
     .select({ total: sql<number>`coalesce(sum(${transactions.amount}), 0)` })
     .from(transactions)
-    .where(and(...monthConditions(ids, filters)));
+    .where(and(...purposeConditions(ids, filters)));
 
   return result?.total ?? 0;
 }

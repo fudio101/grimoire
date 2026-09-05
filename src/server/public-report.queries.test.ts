@@ -1,74 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { db } from "@/lib/db";
-import {
-  categories,
-  shareLinkCategories,
-  shareLinks,
-  transactions,
-} from "@/lib/db/schema";
 import { getPublicReport } from "@/server/public-report.queries";
+import {
+  FUNDING,
+  PURPOSE,
+  SHARE_CODE,
+  TXN,
+  seedTwoDimensions,
+} from "@/test/fixtures";
 import { withTempDatabase } from "@/test/temp-db";
 
 /**
- * A small category tree, deliberately shaped so the tests below can prove
- * three things at once: a share link's own scope isn't leaked past, an
- * out-of-scope drill-down attempt (`?category=`) is ignored rather than
- * honoured, and a transaction's category path never names an ancestor
- * outside the link's scope.
- *
- *   Ăn uống (cat-a, root, OUT of the link's scope)
- *   └─ Nhà hàng (cat-b, IN scope)
- *      └─ Cơm trưa (cat-c, IN scope)
- *   Di chuyển (cat-d, separate root, OUT of scope, has its own transaction)
- *
- * The link "test-code" shares only {cat-b, cat-c}.
+ * The link scopes to {Mục X, Mục Y}; Mục Z is deliberately outside it and has
+ * a transaction of its own, so "out of scope stays invisible" is checkable
+ * against something that actually exists rather than against nothing.
  */
-async function seed(): Promise<void> {
-  await db.insert(categories).values([
-    { id: "cat-a", name: "Ăn uống", parentId: null },
-    { id: "cat-b", name: "Nhà hàng", parentId: "cat-a" },
-    { id: "cat-c", name: "Cơm trưa", parentId: "cat-b" },
-    { id: "cat-d", name: "Di chuyển", parentId: null },
-  ]);
+withTempDatabase("public-report-test", seedTwoDimensions);
 
-  await db.insert(shareLinks).values({
-    id: "link-1",
-    code: "test-code",
-    name: "Test link",
-    enabled: true,
-  });
-
-  await db.insert(shareLinkCategories).values([
-    { shareLinkId: "link-1", categoryId: "cat-b" },
-    { shareLinkId: "link-1", categoryId: "cat-c" },
-  ]);
-
-  await db.insert(transactions).values([
-    {
-      id: "txn-b",
-      amount: 100000,
-      note: "",
-      date: "2026-01-15T10:00",
-      categoryId: "cat-b",
-    },
-    {
-      id: "txn-c",
-      amount: 50000,
-      note: "",
-      date: "2026-01-16T10:00",
-      categoryId: "cat-c",
-    },
-    {
-      id: "txn-d",
-      amount: 999999,
-      note: "",
-      date: "2026-01-17T10:00",
-      categoryId: "cat-d",
-    },
-  ]);
-}
-
-withTempDatabase("public-report-test", seed);
+const SCOPED_TOTAL =
+  TXN.janXA.amount +
+  TXN.febXA.amount +
+  TXN.febXB.amount +
+  TXN.febYA.amount +
+  TXN.marXA.amount;
 
 describe("getPublicReport", () => {
   it("returns null for an unknown or disabled share code", async () => {
@@ -77,62 +30,125 @@ describe("getPublicReport", () => {
     ).resolves.toBeNull();
   });
 
-  it("scopes totals and rows to exactly the link's own categories (positive control)", async () => {
-    const report = await getPublicReport({ code: "test-code" });
+  it("scopes rows and totals to exactly the link's own Purposes", async () => {
+    const report = await getPublicReport({ code: SHARE_CODE });
+
     expect(report).not.toBeNull();
-    expect(report!.total).toBe(150000); // cat-b + cat-c, never cat-d's 999999
-    expect(report!.transactions.map((t) => t.id).sort()).toEqual([
-      "txn-b",
-      "txn-c",
-    ]);
+    expect(report!.total).toBe(SCOPED_TOTAL);
+    expect(report!.transactions.map((t) => t.id).sort()).toEqual(
+      [
+        TXN.janXA.id,
+        TXN.febXA.id,
+        TXN.febXB.id,
+        TXN.febYA.id,
+        TXN.marXA.id,
+      ].sort()
+    );
+    // Mục Z is not in the link's scope and never appears.
+    expect(report!.transactions.map((t) => t.purposeId)).not.toContain(
+      PURPOSE.z
+    );
   });
 
-  it("narrows correctly when drilling into an in-scope category", async () => {
+  it("returns a shared Purpose across every Funding Source that paid for it", async () => {
+    // ADR-0002: scope is one-dimensional, so a link naming a Purpose shows its
+    // whole Gross cost however it was funded.
     const report = await getPublicReport({
-      code: "test-code",
-      category: "cat-c",
-    });
-    expect(report!.total).toBe(50000);
-    expect(report!.transactions.map((t) => t.id)).toEqual(["txn-c"]);
-  });
-
-  it("ignores a hand-crafted ?category= outside the link's own scope rather than widening it", async () => {
-    // cat-a (the parent of the link's own scope) and cat-d are both outside
-    // {cat-b, cat-c} — drilling into either must not change the result from
-    // the unfiltered report, and must never pull in cat-d's transaction.
-    const unfiltered = await getPublicReport({ code: "test-code" });
-    const viaParent = await getPublicReport({
-      code: "test-code",
-      category: "cat-a",
-    });
-    const viaUnrelatedRoot = await getPublicReport({
-      code: "test-code",
-      category: "cat-d",
+      code: SHARE_CODE,
+      purpose: PURPOSE.x,
     });
 
-    expect(viaParent).toEqual(unfiltered);
-    expect(viaUnrelatedRoot).toEqual(unfiltered);
-    expect(viaParent!.total).toBe(150000);
+    expect(new Set(report!.transactions.map((t) => t.fundingSourceId))).toEqual(
+      new Set([FUNDING.a, FUNDING.b])
+    );
+    expect(report!.total).toBe(
+      TXN.janXA.amount + TXN.febXA.amount + TXN.febXB.amount + TXN.marXA.amount
+    );
   });
 
-  it("never names an out-of-scope ancestor in a transaction's category path", async () => {
-    const report = await getPublicReport({ code: "test-code" });
-    const txnC = report!.transactions.find((t) => t.id === "txn-c")!;
+  it("narrows to an in-scope Purpose (the positive control)", async () => {
+    const report = await getPublicReport({
+      code: SHARE_CODE,
+      purpose: PURPOSE.y,
+    });
 
-    // The real path to "Cơm trưa" is Ăn uống → Nhà hàng → Cơm trưa, but "Ăn
-    // uống" (cat-a) is outside this link's scope and must never appear.
-    expect(txnC.categoryPathParts).toEqual(["Nhà hàng", "Cơm trưa"]);
-    expect(txnC.categoryPathParts).not.toContain("Ăn uống");
+    expect(report!.total).toBe(TXN.febYA.amount);
+    expect(report!.transactions.map((t) => t.id)).toEqual([TXN.febYA.id]);
+    // Narrowing really narrowed: this is less than the unscoped figure.
+    expect(report!.total).toBeLessThan(SCOPED_TOTAL);
   });
 
-  it("lists filter categories against the nearest in-scope ancestor, not the true parent", async () => {
-    const report = await getPublicReport({ code: "test-code" });
-    const catB = report!.filterCategories.find((c) => c.id === "cat-b")!;
-    const catC = report!.filterCategories.find((c) => c.id === "cat-c")!;
+  it("ignores a hand-crafted ?purpose= outside the link's scope rather than honouring it", async () => {
+    // The security boundary. Paired with the test above — which proves an
+    // in-scope value *is* honoured — so a filter that silently did nothing at
+    // all could not masquerade as a working guard.
+    const unfiltered = await getPublicReport({ code: SHARE_CODE });
+    const viaOutOfScope = await getPublicReport({
+      code: SHARE_CODE,
+      purpose: PURPOSE.z,
+    });
+    const viaNonexistent = await getPublicReport({
+      code: SHARE_CODE,
+      purpose: "no-such-purpose",
+    });
 
-    // cat-b's real parent (cat-a) is out of scope, so it has no in-scope ancestor.
-    expect(catB.parentId).toBeNull();
-    // cat-c's real parent (cat-b) IS in scope.
-    expect(catC.parentId).toBe("cat-b");
+    expect(viaOutOfScope).toEqual(unfiltered);
+    expect(viaNonexistent).toEqual(unfiltered);
+    expect(viaOutOfScope!.total).toBe(SCOPED_TOTAL);
+    expect(viaOutOfScope!.transactions.map((t) => t.id)).not.toContain(
+      TXN.febZA.id
+    );
+  });
+
+  it("cannot be widened by a Funding Source parameter, because it does not read one", async () => {
+    // Scope is one-dimensional (ADR-0002). An extra key on the input is not
+    // part of the contract and must not change the answer.
+    const unfiltered = await getPublicReport({ code: SHARE_CODE });
+    const withExtraKey = await getPublicReport({
+      code: SHARE_CODE,
+      ...({ fundingSource: FUNDING.b } as Record<string, string>),
+    });
+
+    expect(withExtraKey).toEqual(unfiltered);
+  });
+
+  it("ships the link's own Purposes as a flat list, and nothing else", async () => {
+    const report = await getPublicReport({ code: SHARE_CODE });
+
+    expect(report!.filterPurposes).toEqual([
+      { id: PURPOSE.x, name: "Mục X" },
+      { id: PURPOSE.y, name: "Mục Y" },
+    ]);
+    // No hierarchy to re-parent, and no out-of-scope name to leak.
+    expect(report!.filterPurposes.map((p) => p.id)).not.toContain(PURPOSE.z);
+    for (const purpose of report!.filterPurposes) {
+      expect(Object.keys(purpose).sort()).toEqual(["id", "name"]);
+    }
+  });
+
+  it("names both dimensions on every row it ships", async () => {
+    const report = await getPublicReport({ code: SHARE_CODE });
+    const row = report!.transactions.find((t) => t.id === TXN.febXB.id)!;
+
+    expect(row).toMatchObject({
+      purposeName: "Mục X",
+      fundingSourceName: "Nguồn B",
+    });
+  });
+
+  it("reports the previous month only for a single-month view", async () => {
+    const singleMonth = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-02",
+      toMonth: "2026-02",
+    });
+    expect(singleMonth!.previousTotal).toBe(TXN.janXA.amount);
+
+    const range = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-01",
+      toMonth: "2026-03",
+    });
+    expect(range!.previousTotal).toBeNull();
   });
 });

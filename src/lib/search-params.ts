@@ -27,7 +27,8 @@ export function parseOverviewSearch(search: unknown): OverviewSearch {
 }
 
 const transactionSearchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type TransactionSearch = z.infer<typeof transactionSearchSchema>;
@@ -37,14 +38,14 @@ export function parseTransactionSearch(search: unknown): TransactionSearch {
 }
 
 /**
- * Same shape as `parseTransactionSearch` today — both are `monthRangeSearchSchema`
- * plus an optional `category` — but kept as its own function rather than a
- * shared alias, since the public report and the dashboard's own transactions
- * screen are different surfaces with different callers and no reason to be
- * forced to change in lockstep if one's validation needs diverge later.
+ * Deliberately *not* the same shape as `parseTransactionSearch`: the dashboard
+ * filters on both dimensions, while a share link's scope is one-dimensional by
+ * decision (ADR-0002), so the public report reads `purpose` and nothing else.
+ * A `fundingSource` parameter here would be ignored by the query layer anyway;
+ * leaving it out of the schema is what says so out loud.
  */
 const publicReportSearchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
 });
 
 export type PublicReportUrlSearch = z.infer<typeof publicReportSearchSchema>;
@@ -57,7 +58,7 @@ export function parsePublicReportSearch(
 
 /**
  * Next's async `searchParams` prop hands back an array for a repeated key
- * (`?category=a&category=b`); `URLSearchParams.get()` — what every client
+ * (`?purpose=a&purpose=b`); `URLSearchParams.get()` — what every client
  * component here uses to read the same URL — always returns the first
  * occurrence. Narrowing here, before either `parseXSearch` sees the value, is
  * what keeps the server and client side deriving the same key from the same

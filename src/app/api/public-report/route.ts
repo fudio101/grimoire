@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     code: searchParams.get("code") ?? "",
     fromMonth: searchParams.get("fromMonth") ?? undefined,
     toMonth: searchParams.get("toMonth") ?? undefined,
-    category: searchParams.get("category") ?? undefined,
+    purpose: searchParams.get("purpose") ?? undefined,
   });
   if (!parsed.success) {
     return Response.json({ error: "Yêu cầu không hợp lệ." }, { status: 400 });
