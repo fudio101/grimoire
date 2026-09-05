@@ -65,9 +65,14 @@ COPY --from=builder --chown=grimoire:nodejs /app/drizzle ./drizzle
 USER grimoire
 EXPOSE 3000
 
-# `node -e` rather than curl/wget: node:26-alpine ships neither, and adding one
-# to the runtime image just to poll a local port is a package (and a CVE feed)
-# bought for three lines of script. Node is already PID 1 here.
+# `node -e` rather than wget: node:26-alpine does ship BusyBox wget (an earlier
+# version of this comment claimed otherwise — it was wrong), but BusyBox wget
+# reports only transport failures. It cannot read `{ ok: false }` out of a 503
+# body, which is the case this endpoint exists to signal. Node is already PID 1
+# here, so using it costs nothing.
+#
+# ⚠️ A `healthcheck:` block in the compose file OVERRIDES this one. If the
+# deployed stack declares its own, this never runs — see docs/adr/0001.
 #
 # start-period is 30s, not the interval, because runMigrations() in
 # src/instrumentation.node.ts runs on first request against the real volume and

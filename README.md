@@ -60,6 +60,34 @@ pnpm run dev                 # migrations apply automatically on startup
 | `pnpm run db:push`      | Push schema directly (local iteration only) |
 | `pnpm run db:studio`    | Open Drizzle Studio   |
 
+## Deployment & ingress
+
+Requests reach the app through a **Cloudflare Tunnel**, not a published port:
+
+```
+browser → Cloudflare edge → cloudflared → Traefik → grimoire:3000
+```
+
+`cloudflared` runs as a container on the same `traefik_network` Docker network and dials out, so **no port is published on the host** — there is no direct route to the origin. Two things follow, and both matter when changing anything security-related:
+
+- **`CF-Connecting-IP` is the client IP to trust.** Cloudflare sets it as a single value and it survives the hops intact. This holds *only* while the origin stays unreachable directly; publishing a host port would let a caller set that header themselves.
+- **Verify response headers against the real hostname.** Cloudflare can alter or minify what it forwards, so `curl -I` against localhost shows what the app emitted, not what a visitor gets.
+
+The full record, including what is verified and what is still inferred, is in [`docs/adr/0001-cloudflare-tunnel-ingress.md`](docs/adr/0001-cloudflare-tunnel-ingress.md).
+
+Note that `docker-compose.yml` in this repo is a **reference example**: production runs from a Dockge-managed stack on the VPS. Beware that a compose file can also *override* what the image declares — a `healthcheck:` block there supersedes the image's own `HEALTHCHECK`, for instance.
+
+The public hostname is `grimoire.fudio101.com`.
+
+## Security headers
+
+Set in two places, on purpose:
+
+- **`next.config.ts`** — the static ones: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`.
+- **`src/proxy.ts`** — the `Content-Security-Policy`, which carries a fresh per-request nonce and so cannot be static. `script-src` is strict (nonce + `'strict-dynamic'`, no `'unsafe-inline'`); `style-src` keeps `'unsafe-inline'` because CSP has no nonce mechanism for `style="..."` attributes, which the virtualized table and every popover rely on.
+
+`src/proxy.ts` is **not** an auth boundary and must not become one — that stays in `src/server/auth-guard.ts`.
+
 ## Docker
 
 Pre-built images are published to GHCR on each tagged release. The runtime image is ~347MB.

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "@/styles/app.css";
 import {
   DEFAULT_THEME_PREFERENCE,
@@ -51,6 +51,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
+  /*
+   * Next attaches the nonce to its own framework and page bundles by parsing
+   * the CSP header off the request, but it cannot know about a script this
+   * file writes by hand — so `src/proxy.ts` also forwards the value as
+   * `x-nonce` for exactly this one tag.
+   */
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const raw = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const themePreference = isThemePreference(raw)
     ? raw
@@ -75,7 +82,10 @@ export default async function RootLayout({
       <head>
         {/* Same inline, dependency-free init script as __root.tsx: must run
             synchronously in <head>, before the browser paints anything. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
       </head>
       <body className="antialiased">
         <Providers themePreference={themePreference}>{children}</Providers>
