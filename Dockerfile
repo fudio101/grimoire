@@ -65,6 +65,22 @@ COPY --from=builder --chown=grimoire:nodejs /app/drizzle ./drizzle
 USER grimoire
 EXPOSE 3000
 
+# `node -e` rather than curl/wget: node:26-alpine ships neither, and adding one
+# to the runtime image just to poll a local port is a package (and a CVE feed)
+# bought for three lines of script. Node is already PID 1 here.
+#
+# start-period is 30s, not the interval, because runMigrations() in
+# src/instrumentation.node.ts runs on first request against the real volume and
+# can include the auto-baseline pass over a pre-existing database. Failures
+# during the start period do not count toward `retries`, so being generous here
+# is free, while being too tight restarts the container mid-migration.
+#
+# 127.0.0.1, not localhost: the server binds HOSTNAME=0.0.0.0, and resolving
+# `localhost` inside the container can hand back ::1 first, where nothing is
+# listening — a healthcheck that fails for a reason unrelated to health.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>r.ok?r.json():Promise.reject()).then(b=>process.exit(b.ok?0:1)).catch(()=>process.exit(1))"
+
 # node as PID 1 (no srvx) keeps signal handling direct — instrumentation.node.ts's
 # own SIGTERM/SIGINT handlers close the database and exit cleanly.
 CMD ["node", "server.js"]

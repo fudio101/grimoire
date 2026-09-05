@@ -1,3 +1,14 @@
+# ⚠️ Reference example — this file is NOT what runs production.
+#
+# Verified 2026-09-05: the live container is created from a Dockge-managed
+# stack on the VPS, reached through a Cloudflare Tunnel
+# (Cloudflare edge → cloudflared → Traefik → grimoire:3000, all on the
+# `traefik_network` Docker network) and publishing no host port at all — while
+# this file still declares `ports: 3000:3000`. The two have diverged.
+#
+# So: editing this file changes nothing on the server. Anything that must
+# actually reach production has to be baked into the image (see the Dockerfile)
+# or applied to the Dockge stack by hand. Tracked in issue #125.
 services:
   grimoire:
     image: ghcr.io/fugo101/grimoire:latest
@@ -12,6 +23,21 @@ services:
       - DATABASE_URL=/app/data/data.db
     volumes:
       - grimoire-data:/app/data
+    # Mirrors the Dockerfile's own HEALTHCHECK so a `docker compose up` from
+    # this file behaves like the shipped image. The image's version is the one
+    # that counts — it travels with the pull; this block does not.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>r.ok?r.json():Promise.reject()).then(b=>process.exit(b.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
 
 volumes:
   grimoire-data:

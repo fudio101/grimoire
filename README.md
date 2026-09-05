@@ -64,6 +64,12 @@ pnpm run dev                 # migrations apply automatically on startup
 
 Pre-built images are published to GHCR on each tagged release. The runtime image is ~347MB.
 
+The image carries its own `HEALTHCHECK`, so `docker ps` reports `(healthy)` / `(unhealthy)` with no extra
+configuration. It polls `/api/health` on the container's own port, which runs a single `SELECT 1` against
+SQLite — enough to catch a process that still accepts connections after losing its database (a detached
+volume, a connection closed by a botched shutdown), which a plain port check would report as healthy.
+`start-period` is 30s so the migrations that run on first request can finish before a failing check counts.
+
 ```bash
 # Using pre-built image
 docker run -d -p 3000:3000 \
