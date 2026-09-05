@@ -113,6 +113,20 @@ SQLite via better-sqlite3 with Drizzle ORM (`src/lib/db/index.ts`). WAL mode + 5
 - **Build output:** `.next/standalone` (self-contained `server.js` + a minimal traced `node_modules`) + `.next/static` + `public/` + `drizzle/`. Next's output-file-tracing can miss a deep/computed `require()` path under pnpm's virtual store — hit twice so far (`better-sqlite3`'s prebuilds, `@swc/helpers`), both fixed via an explicit `outputFileTracingIncludes` glob in `next.config.ts`; worth knowing the pattern before a third instance. `TZ=Asia/Ho_Chi_Minh` needs `apk add --no-cache tzdata` on the `node:26-alpine` runner stage — the env var alone silently does nothing.
 - **Release process:** GitHub Flow. Release-Please creates version bump PRs. Docker images published to GHCR on tagged releases. The runtime image is ~347MB (down from 597MB before the Next.js migration).
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `fugo101/grimoire`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
