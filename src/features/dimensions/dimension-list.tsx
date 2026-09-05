@@ -60,6 +60,14 @@ export function DimensionList({
       }
       await invalidateDimension(queryClient, copy);
     },
+    onError: () => {
+      // Server Actions throw for a malformed id, for a non-auth error
+      // re-thrown by the guard, and for a foreign-key failure. Next redacts
+      // the message before it reaches the client, so without this the admin
+      // gets "An unexpected response was received from the server." in the
+      // middle of a Vietnamese screen.
+      toastError("Không xoá được. Vui lòng thử lại.");
+    },
   });
 
   if (entries.length === 0) {

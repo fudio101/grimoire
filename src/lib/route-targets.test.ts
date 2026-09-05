@@ -61,10 +61,18 @@ function resolvesToARoute(routePath: string): boolean {
 describe("query-options route paths", () => {
   it("finds the fetched paths at all (control for the regex below)", () => {
     const paths = fetchedApiPaths();
-    // If the shape of the file changes so the regex stops matching, every
-    // assertion below would pass vacuously. This is what stops that.
-    expect(paths.length).toBeGreaterThanOrEqual(6);
-    expect(new Set(paths).size).toBe(paths.length);
+    // Exact, not a floor: with `>=` one path could quietly stop matching the
+    // extraction regex and every assertion below would still pass, which is
+    // the failure mode this control exists to prevent.
+    expect(paths).toEqual([
+      "/api/purposes",
+      "/api/funding-sources",
+      "/api/transactions",
+      "/api/overview",
+      "/api/recent-purposes",
+      "/api/share-links",
+      "/api/public-report",
+    ]);
   });
 
   it("resolves every fetched path to a real Route Handler", () => {
@@ -87,8 +95,13 @@ describe("query-options route paths", () => {
 
 describe("next.config.ts redirect destinations", () => {
   it("finds the destinations at all (control for the regex below)", () => {
-    const destinations = redirectDestinations();
-    expect(destinations.length).toBeGreaterThanOrEqual(4);
+    // Exact, for the same reason as the API paths above: a floor lets one
+    // destination stop matching the regex with nothing to show for it.
+    expect(redirectDestinations()).toEqual([
+      "/dashboard",
+      "/dashboard/manage/links",
+      "/dashboard/manage/purposes",
+    ]);
   });
 
   it("points every redirect at a route that exists", () => {

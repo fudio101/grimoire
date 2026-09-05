@@ -159,4 +159,11 @@ ALTER TABLE `__new_transactions` RENAME TO `transactions`;--> statement-breakpoi
 CREATE INDEX `transactions_purpose_id_date_idx` ON `transactions` (`purpose_id`,`date`);--> statement-breakpoint
 CREATE INDEX `transactions_date_idx` ON `transactions` (`date`);--> statement-breakpoint
 DROP TABLE `share_link_categories`;--> statement-breakpoint
-DROP TABLE `categories`;
+DROP TABLE `categories`;--> statement-breakpoint
+-- Confined to this migration. Drizzle wraps *every* pending migration in one
+-- BEGIN/COMMIT, and `defer_foreign_keys` only resets at transaction end — so
+-- without this a later migration running in the same batch (a fresh database
+-- applies 0000-0004 together) would silently inherit deferred foreign keys it
+-- never asked for, turning a violation that should fail at its own statement
+-- into a bare "FOREIGN KEY constraint failed" at COMMIT naming nothing.
+PRAGMA defer_foreign_keys = OFF;

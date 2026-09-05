@@ -20,7 +20,7 @@ import type { OverviewData, PublicReport, TransactionRow } from "@/lib/types";
  * client round-trip left for either to save.
  *
  * The paths below are plain strings that no compiler checks, so
- * `query-options.test.ts` asserts each one resolves to a real `route.ts`. A
+ * `route-targets.test.ts` asserts each one resolves to a real `route.ts`. A
  * renamed route would otherwise fail only at runtime, and only on the client
  * half — an RSC prefetch calls the query function directly and would still
  * render, which reads as a hydration bug rather than a dead route.

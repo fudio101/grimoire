@@ -129,12 +129,21 @@ export function TransactionForm({
   };
 
   /**
-   * Every Purpose is attachable now, so the quick-pick chips no longer have to
-   * be filtered down to the ones a transaction is allowed to sit on — the
-   * leaf-only rule went with the hierarchy (ADR-0001). Whatever the recent
-   * query returns can be offered as-is.
+   * Every Purpose is attachable now, so the chips no longer have to be
+   * filtered down to the ones a transaction is *allowed* to sit on — the
+   * leaf-only rule went with the hierarchy (ADR-0001).
+   *
+   * They are still intersected with `purposes`, for a different reason: the
+   * two lists come from different caches. `recentPurposes` is refetched each
+   * time this form mounts, while `purposes` was seeded once by the page's RSC
+   * prefetch — so on a tab left open, a chip can name a Purpose the select
+   * below has never heard of. Tapping it would set a value the select cannot
+   * label, leaving a field that reads unselected while holding one.
    */
-  const recentPurposes = recent ?? [];
+  const knownPurposeIds = new Set(purposes.map((p) => p.id));
+  const recentPurposes = (recent ?? []).filter((p) =>
+    knownPurposeIds.has(p.id)
+  );
 
   return (
     <form
@@ -190,7 +199,7 @@ export function TransactionForm({
       <form.Field name="purposeId">
         {(field) => (
           <div className="space-y-2">
-            <Label>Mục đích chi</Label>
+            <Label htmlFor="transaction-purpose">Mục đích chi</Label>
 
             {recentPurposes.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -214,6 +223,7 @@ export function TransactionForm({
             )}
 
             <DimensionSelect
+              id="transaction-purpose"
               options={purposes}
               value={field.state.value || null}
               onChange={(id) => field.handleChange(id ?? "")}
@@ -232,8 +242,9 @@ export function TransactionForm({
       <form.Field name="fundingSourceId">
         {(field) => (
           <div className="space-y-2">
-            <Label>Nguồn tiền</Label>
+            <Label htmlFor="transaction-funding-source">Nguồn tiền</Label>
             <DimensionSelect
+              id="transaction-funding-source"
               options={fundingSources}
               value={field.state.value || null}
               onChange={(id) => field.handleChange(id ?? "")}

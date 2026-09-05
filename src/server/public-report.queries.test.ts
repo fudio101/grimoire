@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { shareLinkPurposes, transactions } from "@/lib/db/schema";
+import { shareLinkPurposes, shareLinks, transactions } from "@/lib/db/schema";
 import { getPublicReport } from "@/server/public-report.queries";
 import {
   FUNDING,
@@ -27,10 +27,33 @@ const SCOPED_TOTAL =
   TXN.marXA.amount;
 
 describe("getPublicReport", () => {
-  it("returns null for an unknown or disabled share code", async () => {
+  it("returns null for an unknown share code", async () => {
     await expect(
       getPublicReport({ code: "does-not-exist" })
     ).resolves.toBeNull();
+  });
+
+  it("returns null for a share code the admin has disabled", async () => {
+    // The `enabled = true` filter in `getShareLinkByCode` is what makes the
+    // "tắt" switch on the management screen mean anything: without it, a link
+    // the admin has explicitly turned off keeps serving the full report to
+    // anyone still holding the URL.
+    await expect(getPublicReport({ code: SHARE_CODE })).resolves.not.toBeNull();
+
+    await db
+      .update(shareLinks)
+      .set({ enabled: false })
+      .where(eq(shareLinks.code, SHARE_CODE));
+
+    await expect(getPublicReport({ code: SHARE_CODE })).resolves.toBeNull();
+
+    // ...and re-enabling brings it back, so the null above is the flag being
+    // honoured rather than the link having been damaged.
+    await db
+      .update(shareLinks)
+      .set({ enabled: true })
+      .where(eq(shareLinks.code, SHARE_CODE));
+    await expect(getPublicReport({ code: SHARE_CODE })).resolves.not.toBeNull();
   });
 
   it("scopes rows and totals to exactly the link's own Purposes", async () => {
@@ -115,25 +138,25 @@ describe("getPublicReport", () => {
     expect(withExtraKey).toEqual(unfiltered);
   });
 
-  it("shows nothing, not everything, when a link's scope is empty", async () => {
+  it("answers 'no report' for a link whose scope is empty, rather than an empty report", async () => {
     // Reachable: deleting an unused Purpose detaches it from every link that
-    // named it, and a link can end up naming none. An empty `IN ()` that fell
-    // through to "no filter" would turn the narrowest link into the widest —
-    // so the direction this fails in is the whole point.
+    // named it, and the migration leaves an empty scope behind for a link that
+    // pointed only at a pot never spent from. An empty report would present a
+    // broken link as a healthy one on a quiet month; `null` sends the reader
+    // to the same "not found" screen an unknown code gets.
+    //
+    // The direction matters most: an empty `IN ()` that fell through to "no
+    // filter" would turn the narrowest link into the widest.
     await db
       .delete(shareLinkPurposes)
       .where(eq(shareLinkPurposes.shareLinkId, "link-1"));
 
-    const report = await getPublicReport({ code: SHARE_CODE });
+    await expect(getPublicReport({ code: SHARE_CODE })).resolves.toBeNull();
 
-    expect(report).not.toBeNull();
-    expect(report!.transactions).toEqual([]);
-    expect(report!.total).toBe(0);
-    expect(report!.filterPurposes).toEqual([]);
-
-    // The control: those rows are still in the database, so "nothing" is the
-    // scope being respected rather than an empty fixture.
+    // The controls: the rows and the link row both still exist, so `null` is
+    // the empty scope being honoured rather than an empty database.
     expect(await db.select().from(transactions)).not.toHaveLength(0);
+    expect(await db.select().from(shareLinks)).toHaveLength(1);
   });
 
   it("ships the link's own Purposes as a flat list, and nothing else", async () => {

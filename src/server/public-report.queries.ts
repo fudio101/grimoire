@@ -32,6 +32,20 @@ export async function getPublicReport(
   if (!result) return null;
 
   const { link, purposeIds } = result;
+
+  /**
+   * A link with no Purposes in scope is not a link that shows nothing — it is
+   * a link that cannot show anything, and answering with an empty report would
+   * present it as a healthy link on a month with no spending. The reader would
+   * be told to keep checking a URL that will never show them anything.
+   *
+   * Reachable: deleting an unused Purpose detaches it from every link naming
+   * it, and the migration leaves an empty scope behind for a link that pointed
+   * only at a pot never spent from. Answering `null` — the same "no report"
+   * every unknown or disabled code gets — is both honest and fail-closed.
+   */
+  if (purposeIds.length === 0) return null;
+
   const linkSet = new Set(purposeIds);
 
   /**

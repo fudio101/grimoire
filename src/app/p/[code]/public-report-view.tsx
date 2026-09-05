@@ -206,13 +206,18 @@ function ReportBody({
        */}
       {filterPurposes.length > 1 && (
         <div className="space-y-1.5">
-          <Label>Xem theo mục đích chi</Label>
+          <Label htmlFor="public-report-purpose">Xem theo mục đích chi</Label>
           <DimensionSelect
+            id="public-report-purpose"
             options={filterPurposes}
             value={purpose ?? null}
             onChange={onPurposeChange}
             placeholder="Tất cả mục đích chi"
             emptyOption="Tất cả mục đích chi"
+            unknownLabel="Mục đích chi không còn tồn tại"
+            // 48px, not the default 44/40: this is the phone-first public
+            // surface and its one control should be the easiest to hit.
+            triggerClassName="h-12"
           />
         </div>
       )}

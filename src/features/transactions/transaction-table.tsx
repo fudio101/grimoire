@@ -34,6 +34,11 @@ export function TransactionTable({
         queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
       ]);
     },
+    onError: () => {
+      // See the note in dimension-list.tsx: a thrown Server Action arrives
+      // redacted and in English, so it needs its own Vietnamese path.
+      toastError("Không xoá được giao dịch. Vui lòng thử lại.");
+    },
   });
 
   // Rows arrive render-ready: both dimensions' names travel with the row from

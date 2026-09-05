@@ -2,13 +2,15 @@ import { z } from "zod";
 import { monthRangeSearchSchema, monthSchema } from "@/lib/schemas";
 
 /**
- * One parser per search-param route, shared by whatever reads the URL: a
- * server `page.tsx` parses its own `searchParams` prop and its paired client
- * view parses `useSearchParams()` off the same URL, and the App Router gives
- * neither side a shared choke point the way a router's own `validateSearch`
- * would. Routing both through the same function here is what keeps them
- * deriving identical query keys instead of each building its own schema and
- * risking two different answers for the same URL.
+ * One parser per search-param route, and one place the URL contract is
+ * written down.
+ *
+ * A server `page.tsx` parses its own `searchParams` prop and hands the result
+ * to its paired client view, which uses it to build both its query key and the
+ * hrefs it navigates to. The App Router gives neither side a shared choke
+ * point the way a router's own `validateSearch` would, so the parse, the query
+ * key and the href are three places one parameter name could be spelled
+ * differently. Naming it once, here, is what stops that.
  *
  * All three are lenient (`.catch(undefined)`, matching `monthRangeSearchSchema`):
  * a malformed value degrades to "no bound" rather than throwing. URLs get

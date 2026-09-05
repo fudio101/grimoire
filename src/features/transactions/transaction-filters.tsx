@@ -48,21 +48,27 @@ export function TransactionFilters({
       />
 
       <DimensionSelect
+        // No visible label on this row — the "everything" text is the only
+        // clue — so each control needs an accessible name of its own.
+        ariaLabel="Lọc theo mục đích chi"
         options={purposes}
         value={purpose ?? null}
         onChange={onPurposeChange}
         placeholder="Tất cả mục đích chi"
         emptyOption="Tất cả mục đích chi"
+        unknownLabel="Mục đích chi không còn tồn tại"
         className="sm:w-[220px]"
       />
 
       {fundingSources && onFundingSourceChange && (
         <DimensionSelect
+          ariaLabel="Lọc theo nguồn tiền"
           options={fundingSources}
           value={fundingSource ?? null}
           onChange={onFundingSourceChange}
           placeholder="Tất cả nguồn tiền"
           emptyOption="Tất cả nguồn tiền"
+          unknownLabel="Nguồn tiền không còn tồn tại"
           className="sm:w-[220px]"
         />
       )}

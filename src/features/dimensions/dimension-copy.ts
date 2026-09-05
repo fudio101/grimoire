@@ -52,8 +52,10 @@ export const PURPOSE_COPY: DimensionCopy = {
 export const FUNDING_SOURCE_COPY: DimensionCopy = {
   queryKey: "fundingSources",
   // No `shareLinks`: a link's scope is one-dimensional (ADR-0002), so nothing
-  // about a Funding Source can change what a link shows in that list.
-  invalidates: ["transactions", "overview", "recentPurposes"],
+  // about a Funding Source can change what a link shows in that list. No
+  // `recentPurposes` either — that query returns Purposes, which a write here
+  // cannot touch.
+  invalidates: ["transactions", "overview"],
   plural: "Nguồn tiền",
   nameLabel: "Tên nguồn tiền",
   namePlaceholder: "Tiền lấy từ đâu?",

@@ -68,11 +68,14 @@ export type TransactionInput = z.infer<typeof transactionSchema>;
  * a single schema would have to pick one word or say neither.
  */
 export const purposeSchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên mục đích chi").max(100),
+  // Trimmed before the length check, so three spaces is an empty name rather
+  // than a valid one that renders as a blank row in every list and an
+  // unlabelled option in every picker.
+  name: z.string().trim().min(1, "Vui lòng nhập tên mục đích chi").max(100),
 });
 
 export const fundingSourceSchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên nguồn tiền").max(100),
+  name: z.string().trim().min(1, "Vui lòng nhập tên nguồn tiền").max(100),
 });
 
 /**

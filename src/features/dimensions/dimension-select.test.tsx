@@ -34,10 +34,10 @@ const EVERYTHING = "Tất cả";
  * raw value for form submission, so "the id does not appear anywhere in the
  * HTML" would be false even when the label is perfectly correct.
  */
-function triggerLabel(
+function markup(
   props: Partial<Parameters<typeof DimensionSelect>[0]> = {}
 ): string {
-  const html = renderToStaticMarkup(
+  return renderToStaticMarkup(
     <DimensionSelect
       options={OPTIONS}
       value={null}
@@ -46,6 +46,25 @@ function triggerLabel(
       {...props}
     />
   );
+}
+
+/**
+ * Whether the trigger carries the `data-placeholder` *attribute*.
+ *
+ * Matched as an attribute rather than as a substring: the trigger's class list
+ * contains the Tailwind variant `data-placeholder:text-muted-foreground`, which
+ * is present on every render and would make a plain `toContain` always true.
+ */
+function showsPlaceholder(
+  props: Partial<Parameters<typeof DimensionSelect>[0]> = {}
+): boolean {
+  return / data-placeholder(=|\s|>)/.test(markup(props));
+}
+
+function triggerLabel(
+  props: Partial<Parameters<typeof DimensionSelect>[0]> = {}
+): string {
+  const html = markup(props);
   const match = html.match(/data-slot="select-value"[^>]*>([\s\S]*?)<\/span>/);
   if (!match) throw new Error("no select-value element in the rendered markup");
   return match[1];
@@ -89,5 +108,36 @@ describe("DimensionSelect trigger label", () => {
         expect(label).not.toContain("gone-from-the-list");
       }
     }
+  });
+
+  it("distinguishes a stale filter value from 'everything'", () => {
+    // On the filter row `placeholder` and `emptyOption` are the same string,
+    // so without `unknownLabel` a select filtering to zero rows would read
+    // exactly like one filtering nothing at all.
+    const everything = triggerLabel({ value: null, emptyOption: EVERYTHING });
+    const stale = triggerLabel({
+      value: "gone-from-the-list",
+      emptyOption: EVERYTHING,
+      unknownLabel: "Không còn tồn tại",
+    });
+
+    expect(everything).toBe(EVERYTHING);
+    expect(stale).toBe("Không còn tồn tại");
+    expect(stale).not.toBe(everything);
+  });
+
+  it("marks an unanswered required select as showing a placeholder", () => {
+    // Base UI derives `data-placeholder` from `value != null`, and the styling
+    // that greys the prompt hangs off it. Passing the sentinel would make a
+    // required-but-empty select render in full foreground, reading as answered
+    // until the form refused to submit.
+    expect(showsPlaceholder({ value: null })).toBe(true);
+
+    // The controls: a real choice is not a placeholder, and neither is an
+    // explicit "everything", which is a genuine selection.
+    expect(showsPlaceholder({ value: "opt-1" })).toBe(false);
+    expect(showsPlaceholder({ value: null, emptyOption: EVERYTHING })).toBe(
+      false
+    );
   });
 });

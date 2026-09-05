@@ -24,7 +24,7 @@ describe("pickSearchParam", () => {
   });
 });
 
-describe("search-param parsers agree on the same URL (server/client query-key parity)", () => {
+describe("search-param parsers agree on the same URL (one URL, one query key)", () => {
   it("parseOverviewSearch: valid month passes through", () => {
     expect(parseOverviewSearch({ month: "2026-08" })).toEqual({
       month: "2026-08",
@@ -155,9 +155,9 @@ describe("readXSearch: the routes and the schemas cannot drift apart", () => {
   });
 
   it("narrows a repeated parameter the way URLSearchParams.get() does", () => {
-    // Next hands a server page an array for `?purpose=a&purpose=b`; the
-    // client reads the first value, so the server must too or the two derive
-    // different query keys from one URL.
+    // Next hands a server page an array for `?purpose=a&purpose=b`, while
+    // `URLSearchParams.get()` — how the same URL reads anywhere else — returns
+    // the first. Narrowing the same way keeps one URL meaning one query key.
     expect(readTransactionSearch({ purpose: ["a", "b"] }).purpose).toBe("a");
     expect(readPublicReportSearch({ purpose: ["a", "b"] }).purpose).toBe("a");
   });

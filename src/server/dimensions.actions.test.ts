@@ -81,6 +81,49 @@ describe("Purpose management", () => {
     expect(Object.keys(rows[0]).sort()).toEqual(["createdAt", "id", "name"]);
   });
 
+  it("refuses a name another Purpose already uses, and creates nothing", async () => {
+    // `schema.ts` ships no unique index on purpose — it would hand the
+    // migration a way to fail on real data — and says the rule belongs in the
+    // actions as a checked rule with a message. This is that rule. Duplicates
+    // would be unresolvable on screen now that the breadcrumb which used to
+    // tell same-named leaves apart went with the tree.
+    const before = await purposeNames();
+
+    const result = await createPurpose({ name: "Mục X" });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/đã có mục đích chi tên này/i);
+    expect(await purposeNames()).toEqual(before);
+
+    // The control: a name nobody uses is still accepted.
+    await expect(createPurpose({ name: "Mục hoàn toàn mới" })).resolves.toEqual(
+      { success: true }
+    );
+  });
+
+  it("refuses a rename onto another Purpose's name, but allows a no-op rename", async () => {
+    expect((await updatePurpose(PURPOSE.x, { name: "Mục Y" })).success).toBe(
+      false
+    );
+
+    // Re-saving a row under its own unchanged name is not a collision.
+    await expect(updatePurpose(PURPOSE.x, { name: "Mục X" })).resolves.toEqual({
+      success: true,
+    });
+  });
+
+  it("rejects a name that is only whitespace", async () => {
+    // Untrimmed, three spaces passes `min(1)` and renders as a blank row in
+    // every list and an unlabelled option in every picker.
+    await expect(createPurpose({ name: "   " })).rejects.toThrow();
+
+    // The control: the same name with content in it is fine.
+    await expect(
+      createPurpose({ name: "  Mục có khoảng trắng  " })
+    ).resolves.toEqual({ success: true });
+    expect(await purposeNames()).toContain("Mục có khoảng trắng");
+  });
+
   it("renames a Purpose in place", async () => {
     await expect(
       updatePurpose(PURPOSE.x, { name: "Mục X đổi tên" })
@@ -178,6 +221,19 @@ describe("Funding Source management", () => {
     expect(Object.keys(rows[0]).sort()).toEqual(["createdAt", "id", "name"]);
   });
 
+  it("refuses a name another Funding Source already uses", async () => {
+    const result = await createFundingSource({ name: "Nguồn A" });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/đã có nguồn tiền tên này/i);
+
+    // The control, and the proof the two dimensions have separate namespaces:
+    // a Purpose's name is free to use as a Funding Source.
+    await expect(createFundingSource({ name: "Mục X" })).resolves.toEqual({
+      success: true,
+    });
+  });
+
   it("renames a Funding Source in place", async () => {
     await expect(
       updateFundingSource(FUNDING.a, { name: "Nguồn A đổi tên" })
@@ -221,6 +277,10 @@ describe("Funding Source management", () => {
     expect((await deleteFundingSource(UNUSED_FUNDING)).success).toBe(false);
 
     expect(await fundingNames()).toEqual(before);
+    // The control its Purpose twin carries: with a session that same delete
+    // goes through, so the three refusals above are the guard.
+    await signIn();
+    expect((await deleteFundingSource(UNUSED_FUNDING)).success).toBe(true);
   });
 });
 

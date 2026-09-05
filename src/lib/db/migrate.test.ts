@@ -18,7 +18,11 @@ const MIGRATIONS_DIR = path.join(REPO_ROOT, "drizzle");
 // `it.skipIf` below) rather than failing on an environment difference that
 // isn't a real bug. The "stops at first missing probe" test further down
 // covers the same core baseline logic using only git-tracked fixtures, so
-// this file's coverage isn't CI-only-degraded, just extra-verified locally.
+// this file's coverage isn't CI-only-degraded, just extra-verified locally —
+// and every *data* transform 0004 performs (the leaf merge, the funding-source
+// carry-over, the share-link scope backfill) is covered below by git-tracked
+// fixtures, because a transform asserted only against the snapshot is a
+// transform CI cannot see break.
 const REAL_SNAPSHOT = path.join(REPO_ROOT, "grimoire-data.tar.gz");
 const hasRealSnapshot = fs.existsSync(REAL_SNAPSHOT);
 
@@ -515,6 +519,141 @@ describe("runMigrations", () => {
         )
         .get()
     ).toEqual({ amount: 17000, purpose: "Mục X", funding: "Nguồn A" });
+  });
+
+  it("merges same-named leaves from different branches into one Purpose", () => {
+    // The confusion that started this whole change, in fixture form: the same
+    // spending purpose recorded under two different pots. Git-tracked, so CI
+    // sees this break — the snapshot test that also covers it never runs there.
+    const dbPath = path.join(tmpDir, "merge.db");
+    useDb(dbPath);
+    const sqlite = getSqlite();
+    for (const tag of TAGS.slice(0, 4)) applyRawMigration(sqlite, tag);
+
+    const addCategory = sqlite.prepare(
+      "INSERT INTO categories (id, name, parent_id) VALUES (?, ?, ?)"
+    );
+    addCategory.run("pot-a", "Nguồn A", null);
+    addCategory.run("pot-b", "Nguồn B", null);
+    addCategory.run("leaf-a", "Mục X", "pot-a");
+    addCategory.run("leaf-b", "Mục X", "pot-b"); // same name, other branch
+    addCategory.run("leaf-c", "Mục Y", "pot-a");
+    const addTxn = sqlite.prepare(
+      "INSERT INTO transactions (id, amount, note, date, category_id) VALUES (?, ?, ?, ?, ?)"
+    );
+    addTxn.run("txn-a", 11000, "", "2026-01-01T09:00", "leaf-a");
+    addTxn.run("txn-b", 22000, "", "2026-01-02T09:00", "leaf-b");
+    addTxn.run("txn-c", 33000, "", "2026-01-03T09:00", "leaf-c");
+    closeDatabase();
+
+    runMigrations();
+    const migrated = getSqlite();
+
+    // Two Purposes from three leaves, and two Funding Sources from two roots.
+    expect(
+      (
+        migrated.prepare("SELECT name FROM purposes ORDER BY name").all() as {
+          name: string;
+        }[]
+      ).map((r) => r.name)
+    ).toEqual(["Mục X", "Mục Y"]);
+    expect(countOf(migrated, "SELECT count(*) AS n FROM funding_sources")).toBe(
+      2
+    );
+
+    // The two "Mục X" transactions now share one Purpose — the total the tree
+    // could not produce — while keeping the pots that tell them apart.
+    const mucX = migrated
+      .prepare(
+        `SELECT t.id, f.name AS funding
+         FROM transactions t
+         JOIN purposes p ON p.id = t.purpose_id
+         JOIN funding_sources f ON f.id = t.funding_source_id
+         WHERE p.name = 'Mục X' ORDER BY t.id`
+      )
+      .all() as { id: string; funding: string }[];
+    expect(mucX).toEqual([
+      { id: "txn-a", funding: "Nguồn A" },
+      { id: "txn-b", funding: "Nguồn B" },
+    ]);
+
+    // The control that the merge did not simply collapse everything: the
+    // third transaction is still on its own Purpose.
+    expect(
+      countOf(
+        migrated,
+        `SELECT count(*) AS n FROM transactions t
+         JOIN purposes p ON p.id = t.purpose_id WHERE p.name = 'Mục Y'`
+      )
+    ).toBe(1);
+    // Former roots kept their ids; merged leaves did not keep theirs.
+    expect(
+      countOf(
+        migrated,
+        "SELECT count(*) AS n FROM funding_sources WHERE id IN ('pot-a','pot-b')"
+      )
+    ).toBe(2);
+    expect(
+      countOf(
+        migrated,
+        "SELECT count(*) AS n FROM purposes WHERE id IN ('leaf-a','leaf-b','leaf-c')"
+      )
+    ).toBe(0);
+  });
+
+  it("carries a share link's scope across, collapsed to the Purposes it already covered", () => {
+    // The migration's other consequential data transform, and the one whose
+    // loss is silent: delete the backfill and every link keeps working while
+    // showing nothing. Git-tracked for the same reason as the merge above.
+    const dbPath = path.join(tmpDir, "share-scope.db");
+    useDb(dbPath);
+    const sqlite = getSqlite();
+    for (const tag of TAGS.slice(0, 4)) applyRawMigration(sqlite, tag);
+
+    const addCategory = sqlite.prepare(
+      "INSERT INTO categories (id, name, parent_id) VALUES (?, ?, ?)"
+    );
+    addCategory.run("pot-a", "Nguồn A", null);
+    addCategory.run("pot-b", "Nguồn B", null);
+    addCategory.run("leaf-a", "Mục X", "pot-a");
+    addCategory.run("leaf-b", "Mục X", "pot-b");
+    addCategory.run("leaf-c", "Mục Y", "pot-a");
+    addCategory.run("leaf-d", "Mục Z", "pot-b");
+    sqlite
+      .prepare(
+        "INSERT INTO share_links (id, code, name, enabled) VALUES (?, ?, ?, 1)"
+      )
+      .run("link-1", "sharecode1", "Link");
+    const addScope = sqlite.prepare(
+      "INSERT INTO share_link_categories (share_link_id, category_id) VALUES (?, ?)"
+    );
+    // Scoped to a whole branch plus one leaf from the other — so the collapse
+    // has both an expansion and a plain mapping to get right.
+    addScope.run("link-1", "pot-a");
+    addScope.run("link-1", "leaf-b");
+    closeDatabase();
+
+    runMigrations();
+    const migrated = getSqlite();
+
+    const scope = (
+      migrated
+        .prepare(
+          `SELECT p.name FROM share_link_purposes s
+           JOIN purposes p ON p.id = s.purpose_id
+           WHERE s.share_link_id = 'link-1' ORDER BY p.name`
+        )
+        .all() as { name: string }[]
+    ).map((r) => r.name);
+
+    // pot-a's subtree gave "Mục X" and "Mục Y"; leaf-b gave "Mục X" again,
+    // which collapses rather than duplicating.
+    expect(scope).toEqual(["Mục X", "Mục Y"]);
+    // And the control that makes the list mean something: "Mục Z" existed and
+    // was never shared, so a backfill that grabbed everything would show here.
+    expect(scope).not.toContain("Mục Z");
+    expect(countOf(migrated, "SELECT count(*) AS n FROM purposes")).toBe(3);
+    expect(countOf(migrated, "SELECT count(*) AS n FROM share_links")).toBe(1);
   });
 
   it("gives a childless pot a Funding Source but no Purpose, unless it was spent from directly", () => {

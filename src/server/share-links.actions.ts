@@ -30,7 +30,11 @@ export async function createShareLink(
   }
 
   const name = data.name?.trim() || null;
-  const { purposeIds } = data;
+  // De-duplicated because the junction's primary key is the pair: a form that
+  // submits the same Purpose twice would otherwise raise a raw constraint
+  // error out of the Server Action. `allPurposesExist` already compares
+  // against the distinct count, so the two now agree on what was asked for.
+  const purposeIds = [...new Set(data.purposeIds)];
   if (!(await allPurposesExist(purposeIds))) {
     return { success: false, error: PURPOSE_NOT_FOUND };
   }
@@ -76,7 +80,7 @@ export async function updateShareLink(
   }
 
   const name = data.name?.trim() || null;
-  const { purposeIds } = data;
+  const purposeIds = [...new Set(data.purposeIds)];
   if (!(await allPurposesExist(purposeIds))) {
     return { success: false, error: PURPOSE_NOT_FOUND };
   }

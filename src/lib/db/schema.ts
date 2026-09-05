@@ -103,8 +103,8 @@ export const transactions = sqliteTable(
   },
   /**
    * SQLite does not index foreign-key columns on its own, so without these
-   * every read of this table is a full scan — including the guards that run on
-   * each Purpose and Funding Source delete.
+   * every read of this table is a full scan — including the guard that runs on
+   * each Purpose delete.
    *
    * `(purpose_id, date)` is composite and in that order because the filtered
    * list query constrains the Purpose first and then narrows by month; leading
@@ -113,9 +113,13 @@ export const transactions = sqliteTable(
    * unfiltered list and the monthly rollups — which the composite cannot help,
    * since its leading column is absent from them.
    *
-   * The funding dimension gets no index of its own: it is the smaller of the
-   * two by design (a handful of pots), so a filter on it alone is not selective
-   * enough to be worth an index until the row count says otherwise.
+   * The funding dimension gets no index of its own, as the spec decided: it is
+   * the smaller of the two by design (a handful of pots), so a filter on it
+   * alone is not selective enough to be worth one. Be honest about the cost —
+   * `EXPLAIN QUERY PLAN` confirms both the Funding-Source delete guard and a
+   * Funding-Source-only filter are full scans. At a few hundred rows that is
+   * cheaper than the index; revisit when the table stops being small, not
+   * before.
    */
   (t) => [
     index("transactions_purpose_id_date_idx").on(t.purposeId, t.date),
