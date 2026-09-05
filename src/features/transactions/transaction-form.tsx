@@ -51,9 +51,10 @@ type TransactionFormProps = {
  * The fast path is: type the amount, tap a chip, tap a chip, Save. Both
  * dimensions are chip rows — every option on screen, one tap each — the same
  * control as the filter rows, so the form reads the way the rest of the app
- * does. That also retires the separate "recent Purposes" quick-pick row this
- * form used to render above a select: with every Purpose already one tap
- * away, a second row of the same names was two places to look for one thing.
+ * does. That also retired the separate "recent Purposes" quick-pick row this
+ * form used to render above a select, along with the query and route that fed
+ * it: with every Purpose already one tap away, a second row of the same names
+ * was two places to look for one thing.
  */
 export function TransactionForm({
   purposes,
@@ -85,7 +86,6 @@ export function TransactionForm({
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["transactions"] }),
       queryClient.invalidateQueries({ queryKey: ["overview"] }),
-      queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
     ]);
 
   const form = useForm({

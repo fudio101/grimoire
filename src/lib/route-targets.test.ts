@@ -69,7 +69,6 @@ describe("query-options route paths", () => {
       "/api/funding-sources",
       "/api/transactions",
       "/api/overview",
-      "/api/recent-purposes",
       "/api/share-links",
       "/api/public-report",
     ]);
@@ -87,9 +86,11 @@ describe("query-options route paths", () => {
     // deliberately removed must not resolve.
     expect(fs.existsSync(routeFileFor("/api/categories"))).toBe(false);
     expect(fs.existsSync(routeFileFor("/api/recent-categories"))).toBe(false);
+    // Retired under #138 with the quick-pick row it fed: every Purpose is a
+    // chip on the form now, so "recent" ones had nowhere left to go.
+    expect(fs.existsSync(routeFileFor("/api/recent-purposes"))).toBe(false);
     // ...while the ones that replaced them do.
     expect(fs.existsSync(routeFileFor("/api/purposes"))).toBe(true);
-    expect(fs.existsSync(routeFileFor("/api/recent-purposes"))).toBe(true);
   });
 });
 

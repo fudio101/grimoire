@@ -129,32 +129,6 @@ export async function getTotalsByMonth(
     .orderBy(monthExpr);
 }
 
-/**
- * The Purposes used most in recent history, for the quick-pick chips.
- *
- * Ranked by frequency first and recency second: the point is to surface the
- * handful that cover most entries, so one tap replaces opening the picker at
- * all. Restricted to a trailing window so a Purpose used heavily a year ago
- * and abandoned since does not hold a slot forever.
- */
-export async function getRecentPurposes(
-  limit = 8,
-  windowDays = 90
-): Promise<{ id: string; name: string }[]> {
-  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-
-  return db
-    .select({ id: purposes.id, name: purposes.name })
-    .from(transactions)
-    .innerJoin(purposes, eq(transactions.purposeId, purposes.id))
-    .where(gte(transactions.date, since))
-    .groupBy(purposes.id, purposes.name)
-    .orderBy(desc(sql`count(*)`), desc(sql`max(${transactions.date})`))
-    .limit(limit);
-}
-
 export type ShareLinkWithPurposes = ShareLink & {
   purposeIds: string[];
   purposeNames: string[];

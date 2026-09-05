@@ -61,14 +61,6 @@ export const overviewQueryOptions = (month: string) =>
     queryFn: () => fetchJson<OverviewData>("/api/overview", { month }),
   });
 
-/** Invalidated by the bare ["recentPurposes"] key on any transaction write. */
-export const recentPurposesQueryOptions = () =>
-  queryOptions({
-    queryKey: ["recentPurposes"] as const,
-    queryFn: () =>
-      fetchJson<{ id: string; name: string }[]>("/api/recent-purposes"),
-  });
-
 export const shareLinksQueryOptions = () =>
   queryOptions({
     queryKey: ["shareLinks"] as const,

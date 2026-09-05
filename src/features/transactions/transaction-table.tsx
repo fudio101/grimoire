@@ -31,7 +31,6 @@ export function TransactionTable({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
-        queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
       ]);
     },
     onError: () => {
