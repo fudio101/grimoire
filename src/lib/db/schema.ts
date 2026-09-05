@@ -5,17 +5,42 @@ import {
   real,
   index,
   primaryKey,
-  type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 
-export const categories = sqliteTable("categories", {
+/**
+ * The two dimensions of a transaction, as flat and independent tables (ADR-0001).
+ *
+ * Neither carries a parent column: the hierarchy is what conflated the two
+ * dimensions in the first place. Re-introducing nesting on either side later is
+ * a single `ALTER TABLE ADD COLUMN`, exactly as the original one was added.
+ *
+ * Names are deliberately *not* uniquely indexed. The migration that creates
+ * these tables already yields distinct names by construction (it merges the old
+ * leaves by name), so a unique index would enforce nothing that is not already
+ * true, while turning a user-facing "that name is taken" into a raw SQLite
+ * constraint throw inside the actions — and giving this migration a way to fail
+ * on real data if two former roots ever happened to share a name.
+ */
+
+/** What the money was used for. */
+export const purposes = sqliteTable("purposes", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
   name: text("name").notNull(),
-  parentId: text("parent_id").references((): AnySQLiteColumn => categories.id),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+/** The pot the money was drawn from. */
+export const fundingSources = sqliteTable("funding_sources", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  name: text("name").notNull(),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
@@ -33,17 +58,22 @@ export const shareLinks = sqliteTable("share_links", {
     .default(sql`(datetime('now'))`),
 });
 
-export const shareLinkCategories = sqliteTable(
-  "share_link_categories",
+/**
+ * A share link's scope, expressed over Purposes only (ADR-0002). Readers of a
+ * link see every Funding Source of the shared Purposes; the permission model
+ * stays one-dimensional so it can be verified by reading it.
+ */
+export const shareLinkPurposes = sqliteTable(
+  "share_link_purposes",
   {
     shareLinkId: text("share_link_id")
       .notNull()
       .references(() => shareLinks.id),
-    categoryId: text("category_id")
+    purposeId: text("purpose_id")
       .notNull()
-      .references(() => categories.id),
+      .references(() => purposes.id),
   },
-  (t) => [primaryKey({ columns: [t.shareLinkId, t.categoryId] })]
+  (t) => [primaryKey({ columns: [t.shareLinkId, t.purposeId] })]
 );
 
 export const transactions = sqliteTable(
@@ -55,31 +85,39 @@ export const transactions = sqliteTable(
     amount: real("amount").notNull(),
     note: text("note").notNull().default(""),
     date: text("date").notNull(), // ISO datetime string YYYY-MM-DDTHH:mm
-    categoryId: text("category_id")
+    purposeId: text("purpose_id")
       .notNull()
-      .references(() => categories.id),
+      .references(() => purposes.id),
+    fundingSourceId: text("funding_source_id")
+      .notNull()
+      .references(() => fundingSources.id),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),
   },
   /**
    * SQLite does not index foreign-key columns on its own, so without these
-   * every read of this table is a full scan — including the two guards that run
-   * on each category write (the delete check and parentCanAdoptChildren).
+   * every read of this table is a full scan — including the guards that run on
+   * each Purpose and Funding Source delete.
    *
-   * `(category_id, date)` is composite and in that order because the filtered
-   * list query constrains the category first and then narrows by month; leading
-   * with `date` would leave the category predicate to a scan of the range. The
-   * standalone `(date)` index serves the queries with no category at all — the
+   * `(purpose_id, date)` is composite and in that order because the filtered
+   * list query constrains the Purpose first and then narrows by month; leading
+   * with `date` would leave the Purpose predicate to a scan of the range. The
+   * standalone `(date)` index serves the queries with no Purpose at all — the
    * unfiltered list and the monthly rollups — which the composite cannot help,
    * since its leading column is absent from them.
+   *
+   * The funding dimension gets no index of its own: it is the smaller of the
+   * two by design (a handful of pots), so a filter on it alone is not selective
+   * enough to be worth an index until the row count says otherwise.
    */
   (t) => [
-    index("transactions_category_id_date_idx").on(t.categoryId, t.date),
+    index("transactions_purpose_id_date_idx").on(t.purposeId, t.date),
     index("transactions_date_idx").on(t.date),
   ]
 );
 
-export type Category = typeof categories.$inferSelect;
+export type Purpose = typeof purposes.$inferSelect;
+export type FundingSource = typeof fundingSources.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type ShareLink = typeof shareLinks.$inferSelect;

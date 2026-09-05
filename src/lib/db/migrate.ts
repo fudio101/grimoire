@@ -29,6 +29,14 @@ const SCHEMA_PROBES: Record<string, () => boolean> = {
    */
   "0002_glamorous_gambit": () => tableExists("share_links"),
   "0003_modern_jazinda": () => indexExists("transactions_date_idx"),
+  /**
+   * 0004 replaces the category tree with the two dimensions. Probe the funding
+   * column rather than the `purposes` table: the two arrive together today, but
+   * the column is the half whose absence means the transactions rebuild has not
+   * happened, and the rebuild is the half whose replay is fatal.
+   */
+  "0004_many_imperial_guard": () =>
+    columnExists("transactions", "funding_source_id"),
 };
 
 /**
@@ -98,6 +106,11 @@ function stampBaselineIfNeeded(): void {
   if (tracked.n > 0) return; // already managed by the migrator
 
   // Fresh database → let the migrator create everything from 0000.
+  //
+  // `categories` is the sentinel even though 0004 drops it: a pre-ledger
+  // database predates 0004 by definition, so it always still has the table,
+  // and anything that has been through 0004 was managed by the migrator and
+  // already returned above on a non-empty ledger.
   if (!tableExists("categories")) return;
 
   // Pre-migration database. Walk migrations in journal order and stamp the
