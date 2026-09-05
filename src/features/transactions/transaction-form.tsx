@@ -9,6 +9,10 @@ import { SubmitButton } from "@/components/submit-button";
 import { CurrencyInput } from "@/components/currency-input";
 import { DimensionSelect } from "@/features/dimensions/dimension-select";
 import {
+  FUNDING_SOURCE_COPY,
+  PURPOSE_COPY,
+} from "@/features/dimensions/dimension-copy";
+import {
   createTransaction,
   updateTransaction,
 } from "@/server/transactions.actions";
@@ -182,7 +186,11 @@ export function TransactionForm({
               id={field.name}
               name={field.name}
               type="text"
-              placeholder="Chi tiêu cho gì?"
+              // Not "what was it spent on?" — that is the Purpose question two
+              // fields down, and asking it twice in a row, once for free text
+              // and once for a choice, is exactly the kind of distinction
+              // without a difference this whole change is removing.
+              placeholder="Mua gì, ở đâu? (không bắt buộc)"
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={(e) => field.handleChange(e.target.value)}
@@ -195,11 +203,17 @@ export function TransactionForm({
        * Two independent choices, in the order they are usually known: what the
        * money went on, then which pot it came out of. Neither constrains the
        * other — that independence is the entire point of the model (ADR-0001).
+       *
+       * Labelled with the question each answers rather than the noun, from
+       * `dimension-copy.ts` so the form asks in exactly the words the filter
+       * rows do. The pickers stay selects: a required choice with no
+       * "everything" answer is a different control from a filter, and the
+       * select-in-a-drawer combination was verified on a phone under #137.
        */}
       <form.Field name="purposeId">
         {(field) => (
           <div className="space-y-2">
-            <Label htmlFor="transaction-purpose">Mục đích chi</Label>
+            <Label htmlFor="transaction-purpose">{PURPOSE_COPY.question}</Label>
 
             {recentPurposes.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -242,7 +256,9 @@ export function TransactionForm({
       <form.Field name="fundingSourceId">
         {(field) => (
           <div className="space-y-2">
-            <Label htmlFor="transaction-funding-source">Nguồn tiền</Label>
+            <Label htmlFor="transaction-funding-source">
+              {FUNDING_SOURCE_COPY.question}
+            </Label>
             <DimensionSelect
               id="transaction-funding-source"
               options={fundingSources}

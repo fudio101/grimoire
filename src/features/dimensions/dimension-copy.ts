@@ -19,6 +19,24 @@ export type DimensionCopy = {
   invalidates: readonly string[];
   /** Plural, for headings and counts. */
   plural: string;
+  /**
+   * The prompt wherever the user is *choosing* one of these — the filter rows
+   * and the transaction form. A question, not a noun: the person this app is
+   * for parses "what was the money for?" faster than "Purpose", and the
+   * screen should say what to do rather than name an abstraction. Headings
+   * and table columns keep the short noun (`plural`), because there the word
+   * labels a thing rather than asks for a decision.
+   */
+  question: string;
+  /** The chip that clears a filter back to everything. */
+  everything: string;
+  /**
+   * The chip shown when a filter names something that no longer exists — an
+   * id left in a URL after the thing was renamed or deleted. Distinct from
+   * `everything` on purpose: without it, a filter matching zero rows would
+   * read exactly like no filter at all.
+   */
+  unknown: string;
   nameLabel: string;
   namePlaceholder: string;
   createLabel: string;
@@ -39,6 +57,9 @@ export const PURPOSE_COPY: DimensionCopy = {
    */
   invalidates: ["transactions", "overview", "recentPurposes", "shareLinks"],
   plural: "Mục đích chi",
+  question: "Tiền dùng để làm gì?",
+  everything: "Tất cả",
+  unknown: "Mục đích chi không còn tồn tại",
   nameLabel: "Tên mục đích chi",
   namePlaceholder: "Tiền dùng để làm gì?",
   createLabel: "Thêm mục đích chi",
@@ -57,6 +78,9 @@ export const FUNDING_SOURCE_COPY: DimensionCopy = {
   // cannot touch.
   invalidates: ["transactions", "overview"],
   plural: "Nguồn tiền",
+  question: "Tiền lấy từ đâu?",
+  everything: "Tất cả",
+  unknown: "Nguồn tiền không còn tồn tại",
   nameLabel: "Tên nguồn tiền",
   namePlaceholder: "Tiền lấy từ đâu?",
   createLabel: "Thêm nguồn tiền",

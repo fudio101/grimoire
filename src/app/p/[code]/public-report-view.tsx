@@ -4,10 +4,10 @@ import { useMemo, useTransition } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PurposeBreakdown } from "@/features/overview/purpose-breakdown";
-import { DimensionSelect } from "@/features/dimensions/dimension-select";
+import { DimensionChips } from "@/features/dimensions/dimension-chips";
+import { PURPOSE_COPY } from "@/features/dimensions/dimension-copy";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
@@ -203,23 +203,19 @@ function ReportBody({
        * server would ignore that parameter and offering it would be a lie.
        * Whatever is picked here is intersected server-side with the link's own
        * scope, so a hand-edited URL cannot widen it.
+       *
+       * The same chips as the dashboard, so whoever the admin shares this with
+       * sees something the admin can explain over the phone. The chips are
+       * 48px on a phone by construction — this is the phone-first public
+       * surface and its one control should be the easiest thing to hit.
        */}
       {filterPurposes.length > 1 && (
-        <div className="space-y-1.5">
-          <Label htmlFor="public-report-purpose">Xem theo mục đích chi</Label>
-          <DimensionSelect
-            id="public-report-purpose"
-            options={filterPurposes}
-            value={purpose ?? null}
-            onChange={onPurposeChange}
-            placeholder="Tất cả mục đích chi"
-            emptyOption="Tất cả mục đích chi"
-            unknownLabel="Mục đích chi không còn tồn tại"
-            // 48px, not the default 44/40: this is the phone-first public
-            // surface and its one control should be the easiest to hit.
-            triggerClassName="h-12"
-          />
-        </div>
+        <DimensionChips
+          options={filterPurposes}
+          value={purpose ?? null}
+          onChange={onPurposeChange}
+          copy={PURPOSE_COPY}
+        />
       )}
 
       <div className="grid gap-6 md:grid-cols-2 md:items-start">

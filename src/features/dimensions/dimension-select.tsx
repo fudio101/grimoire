@@ -16,9 +16,10 @@ export type DimensionOption = { id: string; name: string };
  * way — a flat set of names with no nesting to drill into.
  *
  * This replaces a 400-line modal drill-down picker that existed only because
- * the options were a tree. #138 replaces it again with tappable chips; a plain
- * select is the deliberately unremarkable middle step that keeps the app
- * working while the model changes underneath it.
+ * the options were a tree. On the filter rows it has since been replaced in
+ * turn by `DimensionChips`; it remains the picker on the transaction form,
+ * where the choice is required and has no "everything" answer, so a chip row
+ * would be a different control pretending to be the same one.
  *
  * `emptyOption`, when given, is the "no choice / everything" entry. Base UI's
  * Select cannot carry an empty-string item value, so it is modelled as `null`
