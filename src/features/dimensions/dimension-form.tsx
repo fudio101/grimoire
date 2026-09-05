@@ -53,7 +53,7 @@ export function DimensionForm({
         return;
       }
 
-      await invalidateDimension(queryClient, copy.queryKey);
+      await invalidateDimension(queryClient, copy);
       form.reset({ name: "" });
       onSuccess?.();
     },
@@ -108,18 +108,21 @@ export function DimensionForm({
 
 /**
  * Both dimensions' names render inside the transaction table and both roll up
- * into the overview, so renaming one has to clear more than its own list.
- * Exported so the list's delete path invalidates exactly the same set — the
- * two used to be written out separately and were a natural place to drift.
+ * into the overview, so writing to one has to clear more than its own list.
+ * What else goes is declared per dimension in `dimension-copy.ts` — Purposes
+ * additionally clear `shareLinks`, since a link's scope is made of them.
+ *
+ * Exported so the list's delete path invalidates exactly the same set. The two
+ * paths used to spell the keys out separately, which is a natural place for
+ * them to drift.
  */
 export function invalidateDimension(
   queryClient: ReturnType<typeof useQueryClient>,
-  queryKey: string
+  copy: DimensionCopy
 ): Promise<unknown> {
-  return Promise.all([
-    queryClient.invalidateQueries({ queryKey: [queryKey] }),
-    queryClient.invalidateQueries({ queryKey: ["transactions"] }),
-    queryClient.invalidateQueries({ queryKey: ["overview"] }),
-    queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
-  ]);
+  return Promise.all(
+    [copy.queryKey, ...copy.invalidates].map((key) =>
+      queryClient.invalidateQueries({ queryKey: [key] })
+    )
+  );
 }

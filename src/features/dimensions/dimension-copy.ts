@@ -10,10 +10,13 @@ import type { z } from "zod";
  * that survives someone editing one of them later.
  *
  * `queryKey` is the bare cache key for this dimension's own list, matching
- * `query-options.ts`.
+ * `query-options.ts`; `invalidates` is every *other* key a write to this
+ * dimension makes stale, spelled out rather than inferred.
  */
 export type DimensionCopy = {
   queryKey: "purposes" | "fundingSources";
+  /** Bare cache keys a create, rename or delete here invalidates. */
+  invalidates: readonly string[];
   /** Plural, for headings and counts. */
   plural: string;
   nameLabel: string;
@@ -28,6 +31,13 @@ export type DimensionCopy = {
 
 export const PURPOSE_COPY: DimensionCopy = {
   queryKey: "purposes",
+  /**
+   * `shareLinks` is here because a link's scope is a list of Purposes: the
+   * links screen renders their names, and deleting one detaches it from every
+   * link that named it. Without this the management screen keeps showing a
+   * Purpose that no longer exists, or the name it used to have.
+   */
+  invalidates: ["transactions", "overview", "recentPurposes", "shareLinks"],
   plural: "Mục đích chi",
   nameLabel: "Tên mục đích chi",
   namePlaceholder: "Tiền dùng để làm gì?",
@@ -41,6 +51,9 @@ export const PURPOSE_COPY: DimensionCopy = {
 
 export const FUNDING_SOURCE_COPY: DimensionCopy = {
   queryKey: "fundingSources",
+  // No `shareLinks`: a link's scope is one-dimensional (ADR-0002), so nothing
+  // about a Funding Source can change what a link shows in that list.
+  invalidates: ["transactions", "overview", "recentPurposes"],
   plural: "Nguồn tiền",
   nameLabel: "Tên nguồn tiền",
   namePlaceholder: "Tiền lấy từ đâu?",

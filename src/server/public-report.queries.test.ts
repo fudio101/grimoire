@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { shareLinkPurposes, transactions } from "@/lib/db/schema";
 import { getPublicReport } from "@/server/public-report.queries";
 import {
   FUNDING,
@@ -110,6 +113,27 @@ describe("getPublicReport", () => {
     });
 
     expect(withExtraKey).toEqual(unfiltered);
+  });
+
+  it("shows nothing, not everything, when a link's scope is empty", async () => {
+    // Reachable: deleting an unused Purpose detaches it from every link that
+    // named it, and a link can end up naming none. An empty `IN ()` that fell
+    // through to "no filter" would turn the narrowest link into the widest —
+    // so the direction this fails in is the whole point.
+    await db
+      .delete(shareLinkPurposes)
+      .where(eq(shareLinkPurposes.shareLinkId, "link-1"));
+
+    const report = await getPublicReport({ code: SHARE_CODE });
+
+    expect(report).not.toBeNull();
+    expect(report!.transactions).toEqual([]);
+    expect(report!.total).toBe(0);
+    expect(report!.filterPurposes).toEqual([]);
+
+    // The control: those rows are still in the database, so "nothing" is the
+    // scope being respected rather than an empty fixture.
+    expect(await db.select().from(transactions)).not.toHaveLength(0);
   });
 
   it("ships the link's own Purposes as a flat list, and nothing else", async () => {

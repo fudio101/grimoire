@@ -58,7 +58,7 @@ export function DimensionList({
         toastError(result.error);
         return;
       }
-      await invalidateDimension(queryClient, copy.queryKey);
+      await invalidateDimension(queryClient, copy);
     },
   });
 

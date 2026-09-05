@@ -7,8 +7,10 @@ A lightweight, self-hosted expense tracker. Vietnamese UI, VNĐ currency, SQLite
 ## Features
 
 - Single-user admin with JWT session
-- Transaction logging — amount, note, datetime, category
-- Category management with public sharing via secure URLs
+- Transaction logging — amount, note, datetime, and two independent dimensions: a **Purpose** (what the money was for) and a **Funding Source** (which pot it came from)
+- A Purpose's total across every Funding Source, with the funding split beneath it
+- Filtering by either dimension independently, or by both
+- Purpose and Funding Source management, with public sharing via secure URLs
 - Month range filtering for transactions
 - Mobile-first responsive design with drawer/dialog components
 - Sortable, virtualized transaction table
@@ -163,7 +165,7 @@ src/
 ├── app/
 │   ├── api/                       # Route Handlers (client-side reads)
 │   ├── dashboard/                 # readSession()-guarded pages
-│   │   ├── manage/{categories,links}/
+│   │   ├── manage/{purposes,funding-sources,links}/
 │   │   └── transactions/
 │   ├── login/
 │   ├── p/[code]/                  # Public shared report (own not-found/error)
@@ -174,7 +176,7 @@ src/
 │   ├── *.queries.ts               # Plain read functions (overview, public-report)
 │   └── auth-guard.ts, http-auth.ts
 ├── features/
-│   └── transactions/, categories/, share-links/, overview/, public-report/
+│   └── transactions/, dimensions/, share-links/, overview/, public-report/
 ├── components/
 │   ├── ui/                        # Base UI components (dialog, select, button, etc.)
 │   ├── responsive-modal.tsx       # Desktop dialog / mobile drawer
