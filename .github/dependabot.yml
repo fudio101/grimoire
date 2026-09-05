@@ -18,3 +18,8 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+    ignore:
+      # react-table v9 renames the row-model factories and drops the 1-arg
+      # ColumnDef generic; migrate it in its own PR, not inside a group bump.
+      - dependency-name: "@tanstack/react-table"
+        update-types: ["version-update:semver-major"]
