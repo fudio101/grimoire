@@ -14,11 +14,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { transactionTableFeatures } from "@/features/transactions/table-features";
+import {
+  transactionTableFeatures,
+  type TransactionTableFeatures,
+} from "@/features/transactions/table-features";
 import { TransactionCardList } from "@/features/transactions/transaction-card-list";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
-import type { TransactionTableFeatures } from "@/features/transactions/table-features";
 import type { TransactionTableRow } from "@/lib/types";
 
 /**
