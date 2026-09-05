@@ -70,10 +70,15 @@ export function TransactionDataTable({
 
   const rows = table.getRowModel().rows;
 
-  // React Compiler correctly skips memoizing here — TanStack Virtual's API is
-  // why, not a bug. v8's `useReactTable` needed the same suppression; v9's
-  // store-backed `useTable` no longer trips the rule, so this is the only one
-  // left.
+  // The one suppression in the codebase, and still required: removing the line
+  // below reproduces the warning at `estimateSize`. TanStack Virtual's API is
+  // why, not a bug — v8's `useReactTable` needed the same suppression, while
+  // v9's store-backed `useTable` no longer trips the rule.
+  //
+  // This comment used to assert that the React Compiler "correctly skips
+  // memoizing here", which was written before the compiler was ever switched
+  // on. It is on now, but that claim was never observed and is not restated:
+  // what is verified is the lint rule's behaviour, not the compiler's bailout.
   // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: rows.length,
