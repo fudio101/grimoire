@@ -39,6 +39,8 @@ Those checks prove the code compiles and is formatted — nothing more. **Behavi
 
 Node version is pinned to 26 by `.nvmrc`, and CI plus the Docker image match it.
 
+**TypeScript runs side-by-side (TS 7 + TS 6).** `tsc` is TypeScript 7 (the Go compiler), installed as `"@typescript/native": "npm:typescript@^7"`; the `typescript` specifier is aliased to `@typescript/typescript6`, which is what still ships a JS compiler API. typescript-eslint cannot use TS 7 until TS ships a new API (7.1) — [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) is open and locked — so the lint layer resolves `typescript` and gets TS 6. Consequences: `pnpm run typecheck` is TS 7, `pnpm run lint` and Next's own type step are TS 6, and `experimental.useTypeScriptCli: false` in `next.config.ts` is load-bearing (Next 16.3 otherwise looks for `typescript/bin/tsc`, which the TS 6 alias package does not ship — it has `bin/tsc6`). Collapse this back to a single `typescript` dependency once typescript-eslint supports TS 7.
+
 ## Setup
 
 ```bash

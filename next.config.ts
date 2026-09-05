@@ -33,6 +33,22 @@ const nextConfig: NextConfig = {
     ],
   },
   typedRoutes: true,
+  /**
+   * TypeScript runs side-by-side per the TS 7 release notes: `typescript` is
+   * aliased to `@typescript/typescript6` (the compiler *API*, which
+   * typescript-eslint still needs — typescript-eslint#10940 is open and locked
+   * until TS ships a new API in 7.1), while `@typescript/native` is real TS 7
+   * and owns the `tsc` binary that `pnpm run typecheck` calls.
+   *
+   * Next 16.3 defaults `useTypeScriptCli` to true, which looks for
+   * `typescript/bin/tsc`. The TS 6 alias package only ships `bin/tsc6`, so that
+   * default fails the dependency check outright ("do not have the required
+   * package(s) installed"). Pointing Next back at the API path is what makes
+   * the alias work.
+   */
+  experimental: {
+    useTypeScriptCli: false,
+  },
   // Old TanStack Router paths, kept live for bookmarks/screenshots that named
   // them — same redirects those routes' now-deleted src/routes/index.tsx,
   // dashboard/categories.tsx, dashboard/links.tsx and dashboard/manage/index.tsx
