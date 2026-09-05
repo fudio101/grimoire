@@ -29,13 +29,15 @@ Accepted exceptions: **recharts** (what shadcn's chart is built on — TanStack 
 | `pnpm run lint:fix` | ESLint auto-fix |
 | `pnpm run format` | Prettier format |
 | `pnpm run format:check` | Prettier check (runs in CI) |
+| `pnpm run test` | Vitest, single run (runs in CI) |
+| `pnpm run test:watch` | Vitest in watch mode |
 | `pnpm run db:push` | Push Drizzle schema to SQLite (local iteration only) |
 | `pnpm run db:generate` | Generate a versioned migration from schema changes |
 | `pnpm run db:studio` | Open Drizzle Studio for DB inspection |
 
-There is no test framework configured. CI (`.github/workflows/ci.yml`) runs lint, `format:check`, type-check, and build on a self-hosted Linux runner. Fork PRs are blocked from CI. The runner is a small, swap-less box, so `ci.yml` sets `MALLOC_ARENA_MAX`/`NODE_OPTIONS` at the job level as a standing memory mitigation — don't remove them without knowing why (a real CI OOM incident is what put them there).
+Tests run on Vitest (`pnpm run test`). They drive real SQLite files rather than mocking the database, and the one test that seeds from the gitignored production snapshot self-skips where that file is absent. CI (`.github/workflows/ci.yml`) runs lint, `format:check`, type-check, the test suite, `pnpm audit`, and build on a self-hosted Linux runner. Fork PRs are blocked from CI. The runner is a small, swap-less box, so `ci.yml` sets `MALLOC_ARENA_MAX`/`NODE_OPTIONS` at the job level as a standing memory mitigation — don't remove them without knowing why (a real CI OOM incident is what put them there).
 
-Those checks prove the code compiles and is formatted — nothing more. **Behaviour has to be verified by running it**, and a check that something is now rejected means little on its own: pair it with a control that must still pass, or a broken build looks identical to a working guard. Migrations especially need exercising against a copy of a real `data.db`, not just a fresh one — the fresh path is the one that cannot break.
+Those checks prove the code compiles, is formatted, and passes the tests that happen to exist — the suite is thin and covers nothing like every path. **Behaviour has to be verified by running it**, and a check that something is now rejected means little on its own: pair it with a control that must still pass, or a broken build looks identical to a working guard. Migrations especially need exercising against a copy of a real `data.db`, not just a fresh one — the fresh path is the one that cannot break.
 
 Node version is pinned to 26 by `.nvmrc`, and CI plus the Docker image match it.
 
