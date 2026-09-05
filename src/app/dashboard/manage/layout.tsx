@@ -1,14 +1,19 @@
 import { NavLink } from "@/components/nav-link";
 
 const TABS = [
-  { href: "/dashboard/manage/categories", label: "Danh mục" },
-  { href: "/dashboard/manage/links", label: "Link công khai" },
+  { href: "/dashboard/manage/purposes", label: "Mục đích chi" },
+  { href: "/dashboard/manage/funding-sources", label: "Nguồn tiền" },
+  { href: "/dashboard/manage/links", label: "Link" },
 ] as const;
 
 /**
- * Categories and share links are both "set it up once" screens, so they
- * share a tab rather than each taking a slot in the bottom bar next to the
- * two screens used daily.
+ * The two dimensions and the share links are all "set it up once" screens, so
+ * they share a tab rather than each taking a slot in the bottom bar next to
+ * the two screens used daily.
+ *
+ * Three tabs now rather than two, and the Vietnamese for these dimensions is
+ * longer than the word it replaces — "Link công khai" is shortened to "Link"
+ * to buy the room back. #138 checks the whole set against a narrow phone.
  *
  * Built from plain nav links rather than the Tabs component on purpose.
  * Tabs is a tab-*panel* widget: it owns the selected value and pairs each

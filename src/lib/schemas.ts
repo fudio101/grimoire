@@ -45,18 +45,34 @@ export const monthRangeSearchSchema = z.object({
   toMonth: monthSchema.optional().catch(undefined),
 });
 
+/**
+ * Both dimensions are required on every transaction. There is no "unassigned"
+ * state and no default: a payment always came from somewhere and went towards
+ * something, and letting either be blank would put rows in the one place a
+ * roll-up cannot account for them.
+ */
 export const transactionSchema = z.object({
   amount: z.number().positive("Số tiền phải lớn hơn 0"),
   note: z.string().max(500),
   date: z.string().min(1, "Vui lòng chọn thời gian"),
-  categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
+  purposeId: z.string().min(1, "Vui lòng chọn mục đích chi"),
+  fundingSourceId: z.string().min(1, "Vui lòng chọn nguồn tiền"),
 });
 
 export type TransactionInput = z.infer<typeof transactionSchema>;
 
-export const categorySchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên danh mục").max(100),
-  parentId: z.string().nullable().optional(),
+/**
+ * The two dimensions carry the same shape — a name, and nothing else. They get
+ * their own schemas anyway, rather than one shared `dimensionSchema`, because
+ * the validation message is the whole user-facing difference between them and
+ * a single schema would have to pick one word or say neither.
+ */
+export const purposeSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên mục đích chi").max(100),
+});
+
+export const fundingSourceSchema = z.object({
+  name: z.string().min(1, "Vui lòng nhập tên nguồn tiền").max(100),
 });
 
 /**
@@ -64,7 +80,8 @@ export const categorySchema = z.object({
  * a form's values must be typed as the schema's *input* rather than its output.
  * These differ wherever a field is optional.
  */
-export type CategoryFormValues = z.input<typeof categorySchema>;
+export type PurposeFormValues = z.input<typeof purposeSchema>;
+export type FundingSourceFormValues = z.input<typeof fundingSourceSchema>;
 
 /**
  * A share-link code, as accepted on write.
@@ -96,7 +113,8 @@ export const shareLinkSchema = z.object({
     )
     .optional()
     .or(z.literal("")),
-  categoryIds: z.array(z.string()).min(1, "Chọn ít nhất 1 danh mục"),
+  // Purposes only — a link's scope is one-dimensional by decision (ADR-0002).
+  purposeIds: z.array(z.string()).min(1, "Chọn ít nhất 1 mục đích chi"),
 });
 
 export type ShareLinkFormValues = z.input<typeof shareLinkSchema>;

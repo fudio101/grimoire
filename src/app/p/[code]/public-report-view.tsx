@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CategoryBreakdown } from "@/features/overview/category-breakdown";
-import { CategoryPickerField } from "@/features/categories/category-picker";
+import { PurposeBreakdown } from "@/features/overview/purpose-breakdown";
+import { DimensionSelect } from "@/features/dimensions/dimension-select";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
@@ -17,8 +17,11 @@ import { useDelayedPending } from "@/hooks/use-delayed-pending";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { publicReportQueryOptions } from "@/lib/query-options";
 import type { PublicReportUrlSearch } from "@/lib/search-params";
-import type { TransactionTableRow } from "@/lib/types";
-import type { CategoryLike } from "@/lib/category-tree";
+import type {
+  PurposeOption,
+  PurposeTotal,
+  TransactionTableRow,
+} from "@/lib/types";
 import type { ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { PublicShell } from "./public-shell";
@@ -27,7 +30,7 @@ function buildHref(code: string, next: Partial<PublicReportUrlSearch>): Route {
   const params = new URLSearchParams();
   if (next.fromMonth) params.set("fromMonth", next.fromMonth);
   if (next.toMonth) params.set("toMonth", next.toMonth);
-  if (next.category) params.set("category", next.category);
+  if (next.purpose) params.set("purpose", next.purpose);
   const qs = params.toString();
   // Non-literal string: typedRoutes can't validate a query-string-bearing
   // href against its route table, so this is the documented escape hatch.
@@ -77,15 +80,15 @@ export function PublicReportView({
         transactions={report.transactions}
         total={report.total}
         previousTotal={report.previousTotal}
-        filterCategories={report.filterCategories}
+        filterPurposes={report.filterPurposes}
         month={month}
-        category={search.category}
+        purpose={search.purpose}
         themePreference={themePreference}
         showPending={showPending}
         onMonthChange={(next) =>
           navigate({ fromMonth: next ?? undefined, toMonth: next ?? undefined })
         }
-        onCategoryChange={(next) => navigate({ category: next ?? undefined })}
+        onPurposeChange={(next) => navigate({ purpose: next ?? undefined })}
       />
     </PublicShell>
   );
@@ -96,11 +99,11 @@ function ReportBody({
   transactions,
   total,
   previousTotal,
-  filterCategories,
+  filterPurposes,
   month,
-  category,
+  purpose,
   onMonthChange,
-  onCategoryChange,
+  onPurposeChange,
   themePreference,
   showPending,
 }: {
@@ -108,11 +111,11 @@ function ReportBody({
   transactions: TransactionTableRow[];
   total: number;
   previousTotal: number | null;
-  filterCategories: CategoryLike[];
+  filterPurposes: PurposeOption[];
   month: string | null;
-  category: string | undefined;
+  purpose: string | undefined;
   onMonthChange: (month: string | null) => void;
-  onCategoryChange: (category: string | null) => void;
+  onPurposeChange: (purpose: string | null) => void;
   themePreference: ThemePreference;
   showPending: boolean;
 }) {
@@ -121,22 +124,46 @@ function ReportBody({
   const isWide = useMediaQuery("(min-width: 768px)");
 
   /**
-   * Spending per top-level category, rolled up in the browser.
+   * Spending per Purpose, with its funding split, rolled up in the browser.
    *
-   * No server work is needed: every row already carries `categoryPathParts`,
-   * resolved server-side so the category tree never ships to an anonymous
-   * visitor, and its first element is exactly the top-level name.
+   * No server work is needed: every row already carries both dimensions by id
+   * and by name. Keyed by **id**, not by name — the old version bucketed on the
+   * name it had to dig out of a breadcrumb, so two distinct entries sharing a
+   * name silently merged into one bar. Nothing collided in practice, but the
+   * flat model makes same-named entries no less possible and this is the roll-up
+   * a reader trusts.
+   *
+   * The funding split is shown here on purpose: ADR-0002 decided a link's
+   * readers may see how much of a cost was covered rather than self-paid.
    */
-  const byCategory = useMemo(() => {
-    const buckets = new Map<
-      string,
-      { id: string; name: string; total: number }
-    >();
+  const byPurpose = useMemo(() => {
+    const buckets = new Map<string, PurposeTotal>();
     for (const tx of transactions) {
-      const name = tx.categoryPathParts[0] ?? "Khác";
-      const existing = buckets.get(name);
-      if (existing) existing.total += tx.amount;
-      else buckets.set(name, { id: name, name, total: tx.amount });
+      let bucket = buckets.get(tx.purposeId);
+      if (!bucket) {
+        bucket = {
+          id: tx.purposeId,
+          name: tx.purposeName,
+          total: 0,
+          byFundingSource: [],
+        };
+        buckets.set(tx.purposeId, bucket);
+      }
+      bucket.total += tx.amount;
+
+      const share = bucket.byFundingSource.find(
+        (s) => s.id === tx.fundingSourceId
+      );
+      if (share) share.total += tx.amount;
+      else
+        bucket.byFundingSource.push({
+          id: tx.fundingSourceId,
+          name: tx.fundingSourceName,
+          total: tx.amount,
+        });
+    }
+    for (const bucket of buckets.values()) {
+      bucket.byFundingSource.sort((a, b) => b.total - a.total);
     }
     return [...buckets.values()].sort((a, b) => b.total - a.total);
   }, [transactions]);
@@ -171,31 +198,28 @@ function ReportBody({
       />
 
       {/*
-       * The same drill-down picker the dashboard uses, driven by the scoped
-       * tree the server ships. It replaces a flat select whose every option
-       * repeated its whole "A / B / C" path.
+       * Exactly the Purposes this link was given, and no Funding Source
+       * control at all: a link's scope is one-dimensional (ADR-0002), so the
+       * server would ignore that parameter and offering it would be a lie.
+       * Whatever is picked here is intersected server-side with the link's own
+       * scope, so a hand-edited URL cannot widen it.
        */}
-      {filterCategories.length > 1 && (
+      {filterPurposes.length > 1 && (
         <div className="space-y-1.5">
-          <Label>Xem theo nhóm</Label>
-          <CategoryPickerField
-            categories={filterCategories}
-            value={category ?? null}
-            onChange={(id) => onCategoryChange(id)}
-            // Picking a parent means its whole subtree, intersected
-            // server-side with what this link is allowed to show.
-            selectable="all"
-            clearLabel="Tất cả các nhóm"
-            placeholder="Tất cả các nhóm"
-            title="Xem theo nhóm"
-            className="h-12"
+          <Label>Xem theo mục đích chi</Label>
+          <DimensionSelect
+            options={filterPurposes}
+            value={purpose ?? null}
+            onChange={onPurposeChange}
+            placeholder="Tất cả mục đích chi"
+            emptyOption="Tất cả mục đích chi"
           />
         </div>
       )}
 
       <div className="grid gap-6 md:grid-cols-2 md:items-start">
         <div className="min-w-0 space-y-6">
-          <CategoryBreakdown items={byCategory} total={total} />
+          <PurposeBreakdown items={byPurpose} total={total} />
 
           {/*
            * One frame, not two. The chart card collapses itself on a phone —

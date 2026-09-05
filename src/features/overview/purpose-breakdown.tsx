@@ -1,21 +1,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { formatVND } from "@/lib/format";
+import type { PurposeTotal } from "@/lib/types";
 
 /**
- * Ranked magnitude, so: horizontal bars, sorted, one colour.
+ * What the money was spent on, ranked.
  *
- * Every bar is the same hue on purpose. Colour here would encode rank, and rank
- * is already encoded by order and by length — worse, a per-rank palette means
- * the same category changes colour as spending shifts month to month, which is
- * exactly the "colour follows rank, not entity" mistake. Length carries the
- * magnitude; the name and the amount are text beside it.
+ * This is the chart the whole change exists for. It used to roll up to the
+ * root category — which pot the money came out of — and so answered a question
+ * nobody was asking on the headline screen. It groups by Purpose now.
+ *
+ * Ranked magnitude, so: horizontal bars, sorted, one colour. Every bar is the
+ * same hue on purpose. Colour here would encode rank, and rank is already
+ * encoded by order and by length — worse, a per-rank palette means the same
+ * Purpose changes colour as spending shifts month to month, which is exactly
+ * the "colour follows rank, not entity" mistake. Length carries the magnitude;
+ * the name and the amount are text beside it.
+ *
+ * Under each bar sits the same figure split by Funding Source. The shares
+ * partition exactly the rows the bar sums, so they always add back up to it —
+ * which is what lets the reader treat the smaller numbers as parts of the
+ * bigger one rather than as a second, possibly disagreeing, measurement.
  */
-export function CategoryBreakdown({
+export function PurposeBreakdown({
   items,
   total,
 }: {
-  items: { id: string; name: string; total: number }[];
+  items: PurposeTotal[];
   total: number;
 }) {
   return (
@@ -60,6 +71,22 @@ export function CategoryBreakdown({
                       {Math.round(pct)}%
                     </span>
                   </div>
+                  {/*
+                   * Only worth showing when there is a split to show: one
+                   * Funding Source would just restate the figure above it.
+                   */}
+                  {item.byFundingSource.length > 1 && (
+                    <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
+                      {item.byFundingSource.map((share) => (
+                        <li key={share.id}>
+                          {share.name}{" "}
+                          <span className="tabular-nums">
+                            {formatVND(share.total)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}

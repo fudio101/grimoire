@@ -69,3 +69,46 @@ export function pickSearchParam(
 ): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+/** Next's `searchParams` prop, before any narrowing. */
+export type RawSearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * The parsers a `page.tsx` actually calls: hand them Next's raw
+ * `searchParams` and they pick and validate in one step.
+ *
+ * This exists because the two halves used to be spelled out at each call site
+ * — `parseXSearch({ purpose: pickSearchParam(raw.purpose), ... })` — which put
+ * the parameter's *name* in two places per route and gave nothing a chance to
+ * notice when they disagreed. The parsers take `unknown` (Next's shape is
+ * genuinely unknown) so a mistyped key is not an excess-property error, and
+ * zod strips what it does not recognise, so the wrong name reads as "absent"
+ * rather than as a mistake. That is precisely how `/p/[code]` kept reading
+ * `?category=` after the parameter had been renamed: SSR silently ignored the
+ * filter while the client honoured it, which is a server/client query-key
+ * mismatch presenting as a hydration flicker.
+ *
+ * With the names written once, here, the routes cannot drift from the schemas.
+ */
+export function readOverviewSearch(raw: RawSearchParams): OverviewSearch {
+  return parseOverviewSearch({ month: pickSearchParam(raw.month) });
+}
+
+export function readTransactionSearch(raw: RawSearchParams): TransactionSearch {
+  return parseTransactionSearch({
+    fromMonth: pickSearchParam(raw.fromMonth),
+    toMonth: pickSearchParam(raw.toMonth),
+    purpose: pickSearchParam(raw.purpose),
+    fundingSource: pickSearchParam(raw.fundingSource),
+  });
+}
+
+export function readPublicReportSearch(
+  raw: RawSearchParams
+): PublicReportUrlSearch {
+  return parsePublicReportSearch({
+    fromMonth: pickSearchParam(raw.fromMonth),
+    toMonth: pickSearchParam(raw.toMonth),
+    purpose: pickSearchParam(raw.purpose),
+  });
+}

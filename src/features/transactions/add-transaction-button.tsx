@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveModal } from "@/components/responsive-modal";
 import { TransactionForm } from "@/features/transactions/transaction-form";
-import type { Category } from "@/lib/db/schema";
+import type { FundingSource, Purpose } from "@/lib/db/schema";
 
 /**
  * Two presentations of one thing: the inline button at the top of the
@@ -11,10 +11,12 @@ import type { Category } from "@/lib/db/schema";
  * shell (mobile), which is reachable from any tab.
  */
 export function AddTransactionButton({
-  categories,
+  purposes,
+  fundingSources,
   appearance = "inline",
 }: {
-  categories: Category[];
+  purposes: Purpose[];
+  fundingSources: FundingSource[];
   appearance?: "inline" | "floating";
 }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +46,8 @@ export function AddTransactionButton({
       trigger={trigger}
     >
       <TransactionForm
-        categories={categories}
+        purposes={purposes}
+        fundingSources={fundingSources}
         onSuccess={() => setOpen(false)}
       />
     </ResponsiveModal>

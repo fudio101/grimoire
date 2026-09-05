@@ -3,7 +3,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
 import { publicReportQueryOptions } from "@/lib/query-options";
 import { SHARE_CODE_SHAPE } from "@/lib/schemas";
-import { parsePublicReportSearch, pickSearchParam } from "@/lib/search-params";
+import { readPublicReportSearch } from "@/lib/search-params";
 import { getPublicReport } from "@/server/public-report.queries";
 import { PublicReportView } from "./public-report-view";
 
@@ -24,11 +24,7 @@ export default async function PublicReportPage({
   if (!SHARE_CODE_SHAPE.test(code)) notFound();
 
   const raw = await searchParams;
-  const search = parsePublicReportSearch({
-    fromMonth: pickSearchParam(raw.fromMonth),
-    toMonth: pickSearchParam(raw.toMonth),
-    category: pickSearchParam(raw.category),
-  });
+  const search = readPublicReportSearch(raw);
 
   // Direct call, not a fetch to `/api/public-report` — see the self-fetch
   // note in `src/lib/query-options.ts`'s header comment.

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { CategoryBreakdown } from "@/features/overview/category-breakdown";
+import { PurposeBreakdown } from "@/features/overview/purpose-breakdown";
 import { MonthStepper } from "@/features/overview/month-stepper";
 import { MonthlyTrendChart } from "@/features/overview/monthly-trend-chart";
 import { StatTile, TotalCard } from "@/features/overview/summary-cards";
@@ -57,7 +57,7 @@ export function OverviewView({ month }: { month: string }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <CategoryBreakdown items={data.byRootCategory} total={data.total} />
+        <PurposeBreakdown items={data.byPurpose} total={data.total} />
         <MonthlyTrendChart series={data.monthlySeries} />
       </div>
     </div>

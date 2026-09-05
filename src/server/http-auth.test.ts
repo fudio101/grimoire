@@ -17,7 +17,7 @@ vi.mock("@/server/auth-guard", async (importOriginal) => {
 });
 
 function makeRequest(headers: Record<string, string>): Request {
-  return new Request("https://grimoire.example.com/api/categories", {
+  return new Request("https://grimoire.example.com/api/purposes", {
     headers,
   });
 }

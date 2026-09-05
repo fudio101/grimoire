@@ -5,17 +5,18 @@ import { TransactionForm } from "@/features/transactions/transaction-form";
 import { TransactionDataTable } from "@/features/transactions/transaction-data-table";
 import { transactionColumns } from "@/features/transactions/columns";
 import { deleteTransaction } from "@/server/transactions.actions";
-import { getCategoryPathParts, indexCategories } from "@/lib/category-tree";
 import { toastError } from "@/lib/toast";
-import type { Category } from "@/lib/db/schema";
-import type { TransactionRow, TransactionTableRow } from "@/lib/types";
+import type { FundingSource, Purpose } from "@/lib/db/schema";
+import type { TransactionTableRow } from "@/lib/types";
 
 export function TransactionTable({
   transactions,
-  categories,
+  purposes,
+  fundingSources,
 }: {
-  transactions: TransactionRow[];
-  categories: Category[];
+  transactions: TransactionTableRow[];
+  purposes: Purpose[];
+  fundingSources: FundingSource[];
 }) {
   const [editingTx, setEditingTx] = useState<TransactionTableRow | null>(null);
   const queryClient = useQueryClient();
@@ -30,24 +31,15 @@ export function TransactionTable({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["overview"] }),
-        queryClient.invalidateQueries({ queryKey: ["recentCategories"] }),
+        queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
       ]);
     },
   });
 
-  // The dashboard owns the category list, so it resolves paths here with the
-  // shared helper. This used to be a second, hand-written implementation of
-  // getCategoryPathParts living in this file.
-  const rows: TransactionTableRow[] = useMemo(() => {
-    // Built once per memo rather than once per row — getCategoryPathParts
-    // would otherwise index the whole category list for every transaction.
-    const byId = indexCategories(categories);
-    return transactions.map((tx) => ({
-      ...tx,
-      categoryPathParts: getCategoryPathParts(tx.categoryId, byId),
-    }));
-  }, [transactions, categories]);
-
+  // Rows arrive render-ready: both dimensions' names travel with the row from
+  // the query. This used to index the whole category list and walk an ancestor
+  // chain per row just to build a breadcrumb.
+  //
   // Both handlers are stable references — a useState setter and TanStack
   // Query's mutate — so the columns are built once.
   const columns = useMemo(
@@ -62,7 +54,7 @@ export function TransactionTable({
   return (
     <>
       <TransactionDataTable
-        data={rows}
+        data={transactions}
         columns={columns}
         onEdit={setEditingTx}
         onDelete={remove.mutate}
@@ -76,13 +68,15 @@ export function TransactionTable({
       >
         {editingTx && (
           <TransactionForm
-            categories={categories}
+            purposes={purposes}
+            fundingSources={fundingSources}
             defaultValues={{
               id: editingTx.id,
               amount: editingTx.amount,
               note: editingTx.note,
               date: editingTx.date,
-              categoryId: editingTx.categoryId,
+              purposeId: editingTx.purposeId,
+              fundingSourceId: editingTx.fundingSourceId,
             }}
             onSuccess={() => setEditingTx(null)}
           />

@@ -4,6 +4,8 @@ import {
   parsePublicReportSearch,
   parseTransactionSearch,
   pickSearchParam,
+  readPublicReportSearch,
+  readTransactionSearch,
 } from "@/lib/search-params";
 
 describe("pickSearchParam", () => {
@@ -100,5 +102,63 @@ describe("search-param parsers agree on the same URL (server/client query-key pa
     expect(parsePublicReportSearch(narrowed).purpose).toBe(
       parseTransactionSearch(narrowed).purpose
     );
+  });
+});
+
+describe("readXSearch: the routes and the schemas cannot drift apart", () => {
+  /**
+   * These read Next's raw `searchParams` shape directly, which is the whole
+   * point: the parsers take `unknown`, so a page spelling a parameter wrongly
+   * is not a type error — zod just strips the unrecognised key and the filter
+   * silently does nothing on the server while the client honours it. Naming
+   * each parameter once, inside these functions, is what removes that; these
+   * tests pin the names they use.
+   */
+  it("readTransactionSearch picks up both dimensions and the month range", () => {
+    expect(
+      readTransactionSearch({
+        fromMonth: "2026-01",
+        toMonth: "2026-08",
+        purpose: "purpose-1",
+        fundingSource: "pot-1",
+      })
+    ).toEqual({
+      fromMonth: "2026-01",
+      toMonth: "2026-08",
+      purpose: "purpose-1",
+      fundingSource: "pot-1",
+    });
+  });
+
+  it("readPublicReportSearch picks up the Purpose and ignores a Funding Source", () => {
+    expect(
+      readPublicReportSearch({
+        fromMonth: "2026-01",
+        toMonth: "2026-01",
+        purpose: "purpose-1",
+        fundingSource: "pot-1",
+      })
+    ).toEqual({
+      fromMonth: "2026-01",
+      toMonth: "2026-01",
+      purpose: "purpose-1",
+    });
+  });
+
+  it("ignores the retired parameter name on both surfaces", () => {
+    // The negative half: `?category=` is not a filter any more, on either
+    // route. Paired with the positive cases above, so "no filter applied"
+    // cannot be mistaken for "no filter ever applied".
+    const retired = { category: "purpose-1" };
+    expect(readTransactionSearch(retired).purpose).toBeUndefined();
+    expect(readPublicReportSearch(retired).purpose).toBeUndefined();
+  });
+
+  it("narrows a repeated parameter the way URLSearchParams.get() does", () => {
+    // Next hands a server page an array for `?purpose=a&purpose=b`; the
+    // client reads the first value, so the server must too or the two derive
+    // different query keys from one URL.
+    expect(readTransactionSearch({ purpose: ["a", "b"] }).purpose).toBe("a");
+    expect(readPublicReportSearch({ purpose: ["a", "b"] }).purpose).toBe("a");
   });
 });

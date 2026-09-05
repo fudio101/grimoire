@@ -96,7 +96,7 @@ export function TransactionCardList({
                     {row.note || "Không có ghi chú"}
                   </ItemTitle>
                   <ItemDescription className="truncate">
-                    {row.categoryPathParts.join(" › ") || "—"}
+                    {row.purposeName} · {row.fundingSourceName}
                   </ItemDescription>
                   <ItemDescription>
                     {formatRelativeDay(row.date)} · {formatTime(row.date)}
