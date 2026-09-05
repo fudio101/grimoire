@@ -3,9 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { DimensionChips } from "@/features/dimensions/dimension-chips";
 
 /**
- * The chips replace `DimensionSelect` on the filter rows, and each behaviour
- * pinned here was first pinned on the select because a real bug lost it. See
- * `dimension-select.test.tsx` for the pattern and the history.
+ * The chips replaced a `DimensionSelect` (since deleted) on the filter rows
+ * and then on the form, and each behaviour pinned here was first pinned on
+ * that select because a real bug lost it: a trigger that showed a sentinel and
+ * then a raw uuid, a stale filter that read as "everything", a required field
+ * that read as answered, a 48px target lost to a wrapper.
  *
  * Server-rendered rather than driven in a browser: the pressed state, the
  * label and the accessible name are all decided during render, so static
@@ -131,6 +133,37 @@ describe("DimensionChips", () => {
     expect(html).toMatch(
       /role="group"[^>]*aria-labelledby=|aria-labelledby="[^"]+"[^>]*role="group"/
     );
+  });
+
+  /**
+   * The form's mode. No "everything" to fall back on, and — the property the
+   * select had to be taught via `data-placeholder` — an unanswered field
+   * must look unanswered rather than pressed.
+   */
+  describe("required", () => {
+    it("has no 'everything' chip", () => {
+      expect(chips({ required: true }).map((c) => c.text)).toEqual([
+        "Lựa chọn một",
+        "Lựa chọn hai",
+      ]);
+    });
+
+    it("presses nothing until a choice is made", () => {
+      expect(pressedOf(chips({ required: true, value: null }))).toEqual([]);
+    });
+
+    it("presses exactly the chosen option (positive control)", () => {
+      expect(
+        pressedOf(chips({ required: true, value: "opt-2" })).map((c) => c.text)
+      ).toEqual(["Lựa chọn hai"]);
+    });
+
+    it("still flags a stale value instead of showing nothing pressed", () => {
+      // An edit form opened on a row whose Purpose was since deleted: the
+      // field holds a value, and the user must be able to see and clear it.
+      const stale = chips({ required: true, value: "gone-from-the-list" });
+      expect(pressedOf(stale).map((c) => c.text)).toEqual([COPY.unknown]);
+    });
   });
 
   /**
