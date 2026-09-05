@@ -90,6 +90,35 @@ const nextConfig: NextConfig = {
      */
     turbopackRustReactCompiler: true,
   },
+  /**
+   * Static headers only. The Content-Security-Policy is set in `src/proxy.ts`
+   * instead, because it carries a per-request nonce and nothing here can vary
+   * per request.
+   *
+   * `X-Frame-Options` is redundant with the CSP's `frame-ancestors 'none'` for
+   * any browser released this decade, and is kept for the ones that are not.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            // The app asks for none of these. Denying them means an injected
+            // script cannot ask on its behalf either.
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   // Old TanStack Router paths, kept live for bookmarks/screenshots that named
   // them — same redirects those routes' now-deleted src/routes/index.tsx,
   // dashboard/categories.tsx, dashboard/links.tsx and dashboard/manage/index.tsx
