@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import type { TransactionFilters, PublicReportSearch } from "@/lib/schemas";
-import type { Category } from "@/lib/db/schema";
-import type { ShareLinkWithCategories } from "@/lib/db/queries";
+import type { FundingSource, Purpose } from "@/lib/db/schema";
+import type { ShareLinkWithPurposes } from "@/lib/db/queries";
 import type { OverviewData, PublicReport, TransactionRow } from "@/lib/types";
 
 /**
@@ -18,11 +18,24 @@ import type { OverviewData, PublicReport, TransactionRow } from "@/lib/types";
  * both directly, server-side, on every navigation (`readSession()` in
  * `app/dashboard/layout.tsx`, `cookies()` in the root layout) — there is no
  * client round-trip left for either to save.
+ *
+ * The paths below are plain strings that no compiler checks, so
+ * `query-options.test.ts` asserts each one resolves to a real `route.ts`. A
+ * renamed route would otherwise fail only at runtime, and only on the client
+ * half — an RSC prefetch calls the query function directly and would still
+ * render, which reads as a hydration bug rather than a dead route.
  */
-export const categoriesQueryOptions = () =>
+export const purposesQueryOptions = () =>
   queryOptions({
-    queryKey: ["categories"] as const,
-    queryFn: () => fetchJson<Category[]>("/api/categories"),
+    queryKey: ["purposes"] as const,
+    queryFn: () => fetchJson<Purpose[]>("/api/purposes"),
+  });
+
+/** The second dimension. Independent of Purposes, and keyed separately. */
+export const fundingSourcesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["fundingSources"] as const,
+    queryFn: () => fetchJson<FundingSource[]>("/api/funding-sources"),
   });
 
 export const transactionsQueryOptions = (filters: TransactionFilters) =>
@@ -32,7 +45,8 @@ export const transactionsQueryOptions = (filters: TransactionFilters) =>
       fetchJson<TransactionRow[]>("/api/transactions", {
         fromMonth: filters.fromMonth,
         toMonth: filters.toMonth,
-        category: filters.category,
+        purpose: filters.purpose,
+        fundingSource: filters.fundingSource,
       }),
   });
 
@@ -47,18 +61,18 @@ export const overviewQueryOptions = (month: string) =>
     queryFn: () => fetchJson<OverviewData>("/api/overview", { month }),
   });
 
-/** Invalidated by the bare ["recentCategories"] key on any transaction write. */
-export const recentCategoriesQueryOptions = () =>
+/** Invalidated by the bare ["recentPurposes"] key on any transaction write. */
+export const recentPurposesQueryOptions = () =>
   queryOptions({
-    queryKey: ["recentCategories"] as const,
+    queryKey: ["recentPurposes"] as const,
     queryFn: () =>
-      fetchJson<{ id: string; name: string }[]>("/api/recent-categories"),
+      fetchJson<{ id: string; name: string }[]>("/api/recent-purposes"),
   });
 
 export const shareLinksQueryOptions = () =>
   queryOptions({
     queryKey: ["shareLinks"] as const,
-    queryFn: () => fetchJson<ShareLinkWithCategories[]>("/api/share-links"),
+    queryFn: () => fetchJson<ShareLinkWithPurposes[]>("/api/share-links"),
   });
 
 export const publicReportQueryOptions = (
@@ -72,6 +86,6 @@ export const publicReportQueryOptions = (
         code,
         fromMonth: search.fromMonth,
         toMonth: search.toMonth,
-        category: search.category,
+        purpose: search.purpose,
       }),
   });
