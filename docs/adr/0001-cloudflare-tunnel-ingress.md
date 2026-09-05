@@ -44,7 +44,7 @@ Consequences that follow from this, and that other work is entitled to rely on:
 - **Response headers must be verified against the real hostname.** Cloudflare sits between the origin and the browser and can inject, alter, or minify. `curl -I` against localhost proves what the app emitted, not what a visitor receives.
 - **`docker-compose.yml` in this repo is not the deploy artifact.** Production is created from a Dockge-managed stack on the VPS. Tracked in issue #125.
 
-  "Only what is baked into the image reaches production" is the right instinct but not a rule: a compose file can *override* what the image declares. The deployed stack sets its own `healthcheck:` (`wget -qO- http://127.0.0.1:3000`), which **supersedes the image's `HEALTHCHECK` entirely** — so the `/api/health` check added in #126 does not run in production until that block is removed or repointed. PR #126 claimed the opposite; this is the correction. The same applies to `environment:`, `volumes:` and `networks:`.
+  "Only what is baked into the image reaches production" is the right instinct but not a rule: a compose file can *override* what the image declares. The deployed stack sets its own `healthcheck:` (`wget -qO- http://127.0.0.1:3000`), which **supersedes the image's `HEALTHCHECK` entirely**. That block predates `/api/health` and is correct for the image currently running; the point to carry forward is that removing it is a required step when the release carrying #126 is deployed, not an optional tidy-up — otherwise the new check silently never runs. PR #126 described the image's `HEALTHCHECK` as the one that ships, which is true only where compose does not override it. The same override applies to `environment:`, `volumes:` and `networks:`.
 
 ## Consequences
 
