@@ -1,9 +1,7 @@
 import { useRef } from "react";
 import {
   flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
+  useTable,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
@@ -16,6 +14,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import {
+  transactionTableFeatures,
+  type TransactionTableFeatures,
+} from "@/features/transactions/table-features";
 import { TransactionCardList } from "@/features/transactions/transaction-card-list";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -39,7 +41,7 @@ export function TransactionDataTable({
   onDelete,
 }: {
   data: TransactionTableRow[];
-  columns: ColumnDef<TransactionTableRow>[];
+  columns: ColumnDef<TransactionTableFeatures, TransactionTableRow>[];
   emptyMessage: string;
   onEdit?: (row: TransactionTableRow) => void;
   onDelete?: (id: string) => void;
@@ -59,19 +61,20 @@ export function TransactionDataTable({
   // does not reshuffle.
   const initialSorting: SortingState = [{ id: "date", desc: true }];
 
-  // React Compiler correctly skips memoizing here — TanStack Table's API is
-  // why, not a bug.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: transactionTableFeatures,
     data,
     columns,
     initialState: { sorting: initialSorting },
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   const rows = table.getRowModel().rows;
 
+  // React Compiler correctly skips memoizing here — TanStack Virtual's API is
+  // why, not a bug. v8's `useReactTable` needed the same suppression; v9's
+  // store-backed `useTable` no longer trips the rule, so this is the only one
+  // left.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -191,7 +194,10 @@ export function TransactionDataTable({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {row.getVisibleCells().map((cell) => (
+                {/* `getVisibleCells` belongs to v9's columnVisibilityFeature,
+                    which this table does not register — no column is ever
+                    hidden, so the core `getAllCells` is the same list. */}
+                {row.getAllCells().map((cell) => (
                   <td
                     key={cell.id}
                     className="flex min-w-0 items-center px-2 py-2 align-middle"
