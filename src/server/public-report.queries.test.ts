@@ -1,9 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { closeDatabase, db } from "@/lib/db";
-import { runMigrations } from "@/lib/db/migrate";
+import { describe, expect, it } from "vitest";
+import { db } from "@/lib/db";
 import {
   categories,
   shareLinkCategories,
@@ -11,8 +7,7 @@ import {
   transactions,
 } from "@/lib/db/schema";
 import { getPublicReport } from "@/server/public-report.queries";
-
-let tmpDir: string;
+import { withTempDatabase } from "@/test/temp-db";
 
 /**
  * A small category tree, deliberately shaped so the tests below can prove
@@ -73,21 +68,7 @@ async function seed(): Promise<void> {
   ]);
 }
 
-beforeEach(async () => {
-  tmpDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "grimoire-public-report-test-")
-  );
-  closeDatabase();
-  process.env.DATABASE_URL = path.join(tmpDir, "test.db");
-  runMigrations();
-  await seed();
-});
-
-afterEach(() => {
-  closeDatabase();
-  delete process.env.DATABASE_URL;
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-});
+withTempDatabase("public-report-test", seed);
 
 describe("getPublicReport", () => {
   it("returns null for an unknown or disabled share code", async () => {
