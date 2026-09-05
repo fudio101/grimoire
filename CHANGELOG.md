@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.3.0](https://github.com/fugo101/grimoire/compare/v2.2.1...v2.3.0) (2026-09-05)
+
+
+### 🚀 Features
+
+* add a health endpoint and a container healthcheck ([#126](https://github.com/fugo101/grimoire/issues/126)) ([5a71d5a](https://github.com/fugo101/grimoire/commit/5a71d5a5fb68449997e3f6d76bb88d942050a9a6))
+* **security:** add security headers and a nonce-based CSP ([#130](https://github.com/fugo101/grimoire/issues/130)) ([edf44e1](https://github.com/fugo101/grimoire/commit/edf44e1bb89519525ad8cc9828c4f9a6b7ae2cda))
+
+
+### ⚡ Performance
+
+* enable the React Compiler through Turbopack's Rust port ([#129](https://github.com/fugo101/grimoire/issues/129)) ([bb3558f](https://github.com/fugo101/grimoire/commit/bb3558f753aedf0b4f028de4bb456867875d5b35))
+
 ## [2.2.1](https://github.com/fugo101/grimoire/compare/v2.2.0...v2.2.1) (2026-09-05)
 
 
