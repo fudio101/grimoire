@@ -1,4 +1,8 @@
-import { DimensionSelect } from "@/features/dimensions/dimension-select";
+import { DimensionChips } from "@/features/dimensions/dimension-chips";
+import {
+  FUNDING_SOURCE_COPY,
+  PURPOSE_COPY,
+} from "@/features/dimensions/dimension-copy";
 import type { FundingSource, Purpose } from "@/lib/db/schema";
 import { MonthRangeFilter } from "./month-range-filter";
 
@@ -6,17 +10,17 @@ import { MonthRangeFilter } from "./month-range-filter";
  * Driven entirely by props rather than reading `/dashboard/transactions`'s
  * own search state directly: the caller owns navigation via `router.push`.
  *
- * Two independent selects, each clearable back to "everything" on its own.
- * Under the tree this was one control that could not express the question the
- * user actually had — the same Purpose lived in two branches, so no single
- * value selected it — and clearing it was the only way out of a narrowed view.
+ * Two rows of chips, one per dimension, each with its own "everything" chip.
+ * Every option is on screen at once and any of them is one tap away — the
+ * shape #131 asked for, replacing the two selects that stood in while the
+ * model changed underneath them. Under the tree before that, this was one
+ * control that could not express the question the user actually had — the
+ * same Purpose lived in two branches, so no single value selected it — and
+ * clearing it was the only way out of a narrowed view.
  *
- * The Funding Source half is optional so this can serve a caller that has only
- * one dimension to offer. `/p/[code]` is that case in principle — a share
- * link's scope is one-dimensional (ADR-0002), so offering a filter the query
- * ignores would be a lie — but it composes its own controls today rather than
- * using this, since its month stepper differs. #138 replaces both selects with
- * tappable chips and is where the two surfaces converge on one shape.
+ * `/p/[code]` renders the same two `DimensionChips` rows but composes them
+ * itself, because its month control is a stepper rather than a range picker.
+ * The shape is shared even though this wrapper is not.
  */
 export function TransactionFilters({
   purposes,
@@ -30,48 +34,36 @@ export function TransactionFilters({
   onFundingSourceChange,
 }: {
   purposes: Purpose[];
-  fundingSources?: FundingSource[];
+  fundingSources: FundingSource[];
   fromMonth: string | undefined;
   toMonth: string | undefined;
   purpose: string | undefined;
-  fundingSource?: string | undefined;
+  fundingSource: string | undefined;
   onMonthChange: (fromMonth: string | null, toMonth: string | null) => void;
   onPurposeChange: (purpose: string | null) => void;
-  onFundingSourceChange?: (fundingSource: string | null) => void;
+  onFundingSourceChange: (fundingSource: string | null) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+    <div className="flex flex-col gap-4">
       <MonthRangeFilter
         fromMonth={fromMonth ?? null}
         toMonth={toMonth ?? null}
         onChange={onMonthChange}
       />
 
-      <DimensionSelect
-        // No visible label on this row — the "everything" text is the only
-        // clue — so each control needs an accessible name of its own.
-        ariaLabel="Lọc theo mục đích chi"
+      <DimensionChips
         options={purposes}
         value={purpose ?? null}
         onChange={onPurposeChange}
-        placeholder="Tất cả mục đích chi"
-        emptyOption="Tất cả mục đích chi"
-        unknownLabel="Mục đích chi không còn tồn tại"
-        className="sm:w-[220px]"
+        copy={PURPOSE_COPY}
       />
 
-      {fundingSources && onFundingSourceChange && (
-        <DimensionSelect
-          ariaLabel="Lọc theo nguồn tiền"
-          options={fundingSources}
-          value={fundingSource ?? null}
-          onChange={onFundingSourceChange}
-          placeholder="Tất cả nguồn tiền"
-          emptyOption="Tất cả nguồn tiền"
-          unknownLabel="Nguồn tiền không còn tồn tại"
-          className="sm:w-[220px]"
-        />
-      )}
+      <DimensionChips
+        options={fundingSources}
+        value={fundingSource ?? null}
+        onChange={onFundingSourceChange}
+        copy={FUNDING_SOURCE_COPY}
+      />
     </div>
   );
 }

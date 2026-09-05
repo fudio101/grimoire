@@ -78,9 +78,9 @@ Mutations invalidate rather than revalidate a path. The bare prefix covers every
 
 | Mutation | Invalidates |
 |---|---|
-| transactions | `["transactions"]`, `["overview"]`, `["recentPurposes"]` |
-| Purposes | `["purposes"]`, `["transactions"]`, `["overview"]`, `["recentPurposes"]`, `["shareLinks"]` |
-| Funding Sources | `["fundingSources"]`, `["transactions"]`, `["overview"]`, `["recentPurposes"]` |
+| transactions | `["transactions"]`, `["overview"]` |
+| Purposes | `["purposes"]`, `["transactions"]`, `["overview"]`, `["shareLinks"]` |
+| Funding Sources | `["fundingSources"]`, `["transactions"]`, `["overview"]` |
 | share links | `["shareLinks"]` |
 
 Both dimensions reach into `["transactions"]` because their names render inside the transaction table, and into `["overview"]` because it rolls up by Purpose and splits by Funding Source. Purposes additionally reach into `["shareLinks"]` because a link's scope is a list of Purposes — the links screen renders their names, and deleting one detaches it from every link that named it. Funding Sources deliberately do **not**: a link's scope is one-dimensional (ADR-0002). The per-dimension list lives in `src/features/dimensions/dimension-copy.ts`. Sign-out has no session query to invalidate — it calls `queryClient.removeQueries()` (evict everything, since there's nothing narrower left to target), then `router.replace("/login")`, then `router.refresh()` to clear the App Router's own cached RSC payload so Back doesn't resurrect the dashboard.

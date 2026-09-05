@@ -13,7 +13,11 @@ const TABS = [
  *
  * Three tabs now rather than two, and the Vietnamese for these dimensions is
  * longer than the word it replaces — "Link công khai" is shortened to "Link"
- * to buy the room back. #138 checks the whole set against a narrow phone.
+ * to buy the room back. The tabs are `flex-auto`, not `flex-1`: three equal
+ * thirds of a 360px phone leave ~82px of text room each, and "Mục đích chi"
+ * needs ~85px, so it wrapped onto two lines inside its pill (seen at 360px
+ * under #138). Growing from content width instead, the long tab takes what
+ * it needs and "Link" gives it up — all three fit one line at 360px.
  *
  * Built from plain nav links rather than the Tabs component on purpose.
  * Tabs is a tab-*panel* widget: it owns the selected value and pairs each
@@ -39,7 +43,7 @@ export default function ManageLayout({
       <nav aria-label="Mục quản lý">
         <ul className="flex gap-1 rounded-lg bg-muted p-1">
           {TABS.map((tab) => (
-            <li key={tab.href} className="flex-1">
+            <li key={tab.href} className="flex-auto">
               <NavLink
                 href={tab.href}
                 className="flex h-11 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors md:h-9"

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { shareLinkPurposes, shareLinks, transactions } from "@/lib/db/schema";
+import {
+  fundingSources,
+  shareLinkPurposes,
+  shareLinks,
+  transactions,
+} from "@/lib/db/schema";
 import { getPublicReport } from "@/server/public-report.queries";
 import {
   FUNDING,
@@ -126,16 +131,90 @@ describe("getPublicReport", () => {
     );
   });
 
-  it("cannot be widened by a Funding Source parameter, because it does not read one", async () => {
-    // Scope is one-dimensional (ADR-0002). An extra key on the input is not
-    // part of the contract and must not change the answer.
-    const unfiltered = await getPublicReport({ code: SHARE_CODE });
-    const withExtraKey = await getPublicReport({
+  it("narrows to one Funding Source within the link's scope (the positive control)", async () => {
+    // A view filter, not scope (ADR-0002, amendment): the reader looks at one
+    // pot, and sees exactly the scoped rows that pot paid for.
+    const report = await getPublicReport({
       code: SHARE_CODE,
-      ...({ fundingSource: FUNDING.b } as Record<string, string>),
+      fundingSource: FUNDING.b,
     });
 
-    expect(withExtraKey).toEqual(unfiltered);
+    expect(report!.transactions.map((t) => t.id)).toEqual([TXN.febXB.id]);
+    expect(report!.total).toBe(TXN.febXB.amount);
+    expect(report!.total).toBeLessThan(SCOPED_TOTAL);
+    // The Purpose chips are unaffected by the pot chosen — they are scope.
+    expect(report!.filterPurposes.map((p) => p.id)).toEqual([
+      PURPOSE.x,
+      PURPOSE.y,
+    ]);
+  });
+
+  it("cannot be widened by a Funding Source: scope still wins, even combined with an out-of-scope Purpose", async () => {
+    // Nguồn A paid for Mục Z too, but Z is outside the link. Asking for
+    // "everything from A" must still stop at the link's Purposes, and asking
+    // for "Z from A" must fall back to scope rather than leak Z.
+    const fromA = await getPublicReport({
+      code: SHARE_CODE,
+      fundingSource: FUNDING.a,
+    });
+    expect(fromA!.transactions.map((t) => t.id)).not.toContain(TXN.febZA.id);
+    expect(fromA!.transactions.map((t) => t.id).sort()).toEqual(
+      [TXN.janXA.id, TXN.febXA.id, TXN.febYA.id, TXN.marXA.id].sort()
+    );
+
+    const zFromA = await getPublicReport({
+      code: SHARE_CODE,
+      purpose: PURPOSE.z,
+      fundingSource: FUNDING.a,
+    });
+    expect(zFromA!.transactions.map((t) => t.id)).toEqual(
+      fromA!.transactions.map((t) => t.id)
+    );
+    expect(zFromA!.transactions.map((t) => t.purposeId)).not.toContain(
+      PURPOSE.z
+    );
+
+    // A pot that does not exist narrows to nothing rather than to everything.
+    const fromNowhere = await getPublicReport({
+      code: SHARE_CODE,
+      fundingSource: "no-such-pot",
+    });
+    expect(fromNowhere!.transactions).toEqual([]);
+    expect(fromNowhere!.total).toBe(0);
+  });
+
+  it("offers as Funding Source chips exactly the pots that paid for a shared Purpose", async () => {
+    // A third pot that only ever paid for Mục Z — outside the link — must not
+    // be named to the reader, while the two that touched X or Y must.
+    await db.insert(fundingSources).values({ id: "pot-c", name: "Nguồn C" });
+    await db.insert(transactions).values({
+      id: "txn-feb-z-c",
+      amount: 77000,
+      note: "",
+      date: "2026-02-16T09:00",
+      purposeId: PURPOSE.z,
+      fundingSourceId: "pot-c",
+    });
+
+    const report = await getPublicReport({ code: SHARE_CODE });
+
+    expect(report!.filterFundingSources).toEqual([
+      { id: FUNDING.a, name: "Nguồn A" },
+      { id: FUNDING.b, name: "Nguồn B" },
+    ]);
+    expect(report!.filterFundingSources.map((f) => f.id)).not.toContain(
+      "pot-c"
+    );
+    // The list is the link's whole scope, not the current view: narrowing to
+    // one Purpose or one pot leaves the chips where they were.
+    const narrowed = await getPublicReport({
+      code: SHARE_CODE,
+      purpose: PURPOSE.y,
+      fundingSource: FUNDING.a,
+    });
+    expect(narrowed!.filterFundingSources).toEqual(
+      report!.filterFundingSources
+    );
   });
 
   it("answers 'no report' for a link whose scope is empty, rather than an empty report", async () => {
@@ -181,6 +260,30 @@ describe("getPublicReport", () => {
       purposeName: "Mục X",
       fundingSourceName: "Nguồn B",
     });
+  });
+
+  it("compares the previous month within the same pot when one is chosen", async () => {
+    // February from Nguồn A against January from Nguồn A — not January from
+    // every pot, which would make "so với tháng trước" compare unlike things.
+    const fromA = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-02",
+      toMonth: "2026-02",
+      fundingSource: FUNDING.a,
+    });
+    expect(fromA!.total).toBe(TXN.febXA.amount + TXN.febYA.amount);
+    expect(fromA!.previousTotal).toBe(TXN.janXA.amount);
+
+    // The control: Nguồn B paid nothing in January, so its comparison is zero
+    // rather than January's all-pot figure.
+    const fromB = await getPublicReport({
+      code: SHARE_CODE,
+      fromMonth: "2026-02",
+      toMonth: "2026-02",
+      fundingSource: FUNDING.b,
+    });
+    expect(fromB!.total).toBe(TXN.febXB.amount);
+    expect(fromB!.previousTotal).toBe(0);
   });
 
   it("reports the previous month only for a single-month view", async () => {

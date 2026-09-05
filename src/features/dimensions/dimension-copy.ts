@@ -3,11 +3,13 @@ import type { z } from "zod";
 /**
  * Every user-facing word that differs between the two dimensions, in one place.
  *
- * The management screens, the form and the list are shared components — the
- * mechanism is identical — so this is what keeps a Purpose screen from ever
- * saying "nguồn tiền" and vice versa. ADR-0001's whole point is that the two
- * must not be confusable; sharing the code and separating the words is how
- * that survives someone editing one of them later.
+ * The management screens, the form, the filters and the list are shared
+ * components — the mechanism is identical — so this is what keeps a Purpose
+ * screen from ever saying "nguồn tiền" and vice versa. ADR-0001's whole point
+ * is that the two must not be confusable; sharing the code and separating the
+ * words is how that survives someone editing one of them later. A word that is
+ * the *same* for both (the filters' "Tất cả") does not belong here and lives
+ * with the component that renders it.
  *
  * `queryKey` is the bare cache key for this dimension's own list, matching
  * `query-options.ts`; `invalidates` is every *other* key a write to this
@@ -19,6 +21,24 @@ export type DimensionCopy = {
   invalidates: readonly string[];
   /** Plural, for headings and counts. */
   plural: string;
+  /**
+   * The prompt wherever the user is *choosing* one of these — the filter rows
+   * and the transaction form — and, word for word, the placeholder when
+   * *naming* one on the management screen (`namePlaceholder`): "what is the
+   * money for?" is the right hint for both. A question, not a noun: the person
+   * this app is for parses it faster than "Purpose", and the screen should say
+   * what to do rather than name an abstraction. Headings and table columns
+   * keep the short noun (`plural`), because there the word labels a thing
+   * rather than asks for a decision.
+   */
+  question: string;
+  /**
+   * The chip shown when a filter names something that no longer exists — an
+   * id left in a URL after the thing was renamed or deleted. Distinct from
+   * the chips' "Tất cả" on purpose: without it, a filter matching zero rows
+   * would read exactly like no filter at all.
+   */
+  unknown: string;
   nameLabel: string;
   namePlaceholder: string;
   createLabel: string;
@@ -29,6 +49,9 @@ export type DimensionCopy = {
   emptyDescription: string;
 };
 
+const PURPOSE_QUESTION = "Tiền dùng để làm gì?";
+const FUNDING_SOURCE_QUESTION = "Tiền lấy từ đâu?";
+
 export const PURPOSE_COPY: DimensionCopy = {
   queryKey: "purposes",
   /**
@@ -37,10 +60,12 @@ export const PURPOSE_COPY: DimensionCopy = {
    * link that named it. Without this the management screen keeps showing a
    * Purpose that no longer exists, or the name it used to have.
    */
-  invalidates: ["transactions", "overview", "recentPurposes", "shareLinks"],
+  invalidates: ["transactions", "overview", "shareLinks"],
   plural: "Mục đích chi",
+  question: PURPOSE_QUESTION,
+  unknown: "Mục đích chi không còn tồn tại",
   nameLabel: "Tên mục đích chi",
-  namePlaceholder: "Tiền dùng để làm gì?",
+  namePlaceholder: PURPOSE_QUESTION,
   createLabel: "Thêm mục đích chi",
   editTitle: "Sửa mục đích chi",
   deleteTitle: "Xoá mục đích chi",
@@ -52,13 +77,13 @@ export const PURPOSE_COPY: DimensionCopy = {
 export const FUNDING_SOURCE_COPY: DimensionCopy = {
   queryKey: "fundingSources",
   // No `shareLinks`: a link's scope is one-dimensional (ADR-0002), so nothing
-  // about a Funding Source can change what a link shows in that list. No
-  // `recentPurposes` either — that query returns Purposes, which a write here
-  // cannot touch.
+  // about a Funding Source can change what a link shows in that list.
   invalidates: ["transactions", "overview"],
   plural: "Nguồn tiền",
+  question: FUNDING_SOURCE_QUESTION,
+  unknown: "Nguồn tiền không còn tồn tại",
   nameLabel: "Tên nguồn tiền",
-  namePlaceholder: "Tiền lấy từ đâu?",
+  namePlaceholder: FUNDING_SOURCE_QUESTION,
   createLabel: "Thêm nguồn tiền",
   editTitle: "Sửa nguồn tiền",
   deleteTitle: "Xoá nguồn tiền",

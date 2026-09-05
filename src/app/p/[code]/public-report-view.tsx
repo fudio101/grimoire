@@ -4,10 +4,13 @@ import { useMemo, useTransition } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PurposeBreakdown } from "@/features/overview/purpose-breakdown";
-import { DimensionSelect } from "@/features/dimensions/dimension-select";
+import { DimensionChips } from "@/features/dimensions/dimension-chips";
+import {
+  FUNDING_SOURCE_COPY,
+  PURPOSE_COPY,
+} from "@/features/dimensions/dimension-copy";
 import { ExpenseChart } from "@/features/transactions/expense-chart";
 import { PublicMonthStepper } from "@/features/public-report/public-month-stepper";
 import { PublicTotalCard } from "@/features/public-report/public-total-card";
@@ -16,8 +19,12 @@ import { useThemePreference } from "@/app/theme-context";
 import { useDelayedPending } from "@/hooks/use-delayed-pending";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { publicReportQueryOptions } from "@/lib/query-options";
-import type { PublicReportUrlSearch } from "@/lib/search-params";
+import {
+  toSearchString,
+  type PublicReportUrlSearch,
+} from "@/lib/search-params";
 import type {
+  DimensionOption,
   PurposeOption,
   PurposeTotal,
   TransactionTableRow,
@@ -27,11 +34,7 @@ import { cn } from "@/lib/utils";
 import { PublicShell } from "./public-shell";
 
 function buildHref(code: string, next: Partial<PublicReportUrlSearch>): Route {
-  const params = new URLSearchParams();
-  if (next.fromMonth) params.set("fromMonth", next.fromMonth);
-  if (next.toMonth) params.set("toMonth", next.toMonth);
-  if (next.purpose) params.set("purpose", next.purpose);
-  const qs = params.toString();
+  const qs = toSearchString(next);
   // Non-literal string: typedRoutes can't validate a query-string-bearing
   // href against its route table, so this is the documented escape hatch.
   return (qs ? `/p/${code}?${qs}` : `/p/${code}`) as Route;
@@ -73,6 +76,19 @@ export function PublicReportView({
     });
   }
 
+  /**
+   * The server intersects `purpose` with the link's scope and falls back to
+   * the *whole* scope when the value is outside it — so an out-of-scope or
+   * stale `?purpose=` is not a filter, and the chips must agree: "Tất cả"
+   * pressed, not a stale chip claiming a narrowing that is not happening.
+   * `fundingSource` is different: the server honours any value (it can only
+   * narrow), so a stale one really does filter to nothing and is passed
+   * through for the chips to flag.
+   */
+  const purpose = report.filterPurposes.some((p) => p.id === search.purpose)
+    ? search.purpose
+    : undefined;
+
   return (
     <PublicShell>
       <ReportBody
@@ -81,14 +97,19 @@ export function PublicReportView({
         total={report.total}
         previousTotal={report.previousTotal}
         filterPurposes={report.filterPurposes}
+        filterFundingSources={report.filterFundingSources}
         month={month}
-        purpose={search.purpose}
+        purpose={purpose}
+        fundingSource={search.fundingSource}
         themePreference={themePreference}
         showPending={showPending}
         onMonthChange={(next) =>
           navigate({ fromMonth: next ?? undefined, toMonth: next ?? undefined })
         }
         onPurposeChange={(next) => navigate({ purpose: next ?? undefined })}
+        onFundingSourceChange={(next) =>
+          navigate({ fundingSource: next ?? undefined })
+        }
       />
     </PublicShell>
   );
@@ -100,10 +121,13 @@ function ReportBody({
   total,
   previousTotal,
   filterPurposes,
+  filterFundingSources,
   month,
   purpose,
+  fundingSource,
   onMonthChange,
   onPurposeChange,
+  onFundingSourceChange,
   themePreference,
   showPending,
 }: {
@@ -112,10 +136,13 @@ function ReportBody({
   total: number;
   previousTotal: number | null;
   filterPurposes: PurposeOption[];
+  filterFundingSources: DimensionOption[];
   month: string | null;
   purpose: string | undefined;
+  fundingSource: string | undefined;
   onMonthChange: (month: string | null) => void;
   onPurposeChange: (purpose: string | null) => void;
+  onFundingSourceChange: (fundingSource: string | null) => void;
   themePreference: ThemePreference;
   showPending: boolean;
 }) {
@@ -198,28 +225,40 @@ function ReportBody({
       />
 
       {/*
-       * Exactly the Purposes this link was given, and no Funding Source
-       * control at all: a link's scope is one-dimensional (ADR-0002), so the
-       * server would ignore that parameter and offering it would be a lie.
-       * Whatever is picked here is intersected server-side with the link's own
-       * scope, so a hand-edited URL cannot widen it.
+       * The same two chip rows as the dashboard, so whoever the admin shares
+       * this with sees something the admin can explain over the phone.
+       *
+       * Purposes: exactly the ones this link was given. Whatever is picked is
+       * intersected server-side with the link's own scope, so a hand-edited
+       * URL cannot widen it — that is the security boundary (ADR-0002).
+       *
+       * Funding Sources: the pots that paid for those Purposes. This is a view
+       * filter, not scope (ADR-0002, amendment): it can only narrow what the
+       * reader already sees, so it needs no intersection.
+       *
+       * A row is hidden when there is nothing to choose between — with one
+       * exception. A `fundingSource` in the URL is honoured by the server
+       * whatever it names, so a one-pot link plus a stale value would show an
+       * empty report with no visible filter and no tap to clear it. The row
+       * therefore also shows whenever a value is set, so the stale chip can
+       * say what is happening and clear it. `purpose` needs no such rule: an
+       * out-of-scope value is already dropped above.
        */}
       {filterPurposes.length > 1 && (
-        <div className="space-y-1.5">
-          <Label htmlFor="public-report-purpose">Xem theo mục đích chi</Label>
-          <DimensionSelect
-            id="public-report-purpose"
-            options={filterPurposes}
-            value={purpose ?? null}
-            onChange={onPurposeChange}
-            placeholder="Tất cả mục đích chi"
-            emptyOption="Tất cả mục đích chi"
-            unknownLabel="Mục đích chi không còn tồn tại"
-            // 48px, not the default 44/40: this is the phone-first public
-            // surface and its one control should be the easiest to hit.
-            triggerClassName="h-12"
-          />
-        </div>
+        <DimensionChips
+          options={filterPurposes}
+          value={purpose ?? null}
+          onChange={onPurposeChange}
+          copy={PURPOSE_COPY}
+        />
+      )}
+      {(filterFundingSources.length > 1 || fundingSource) && (
+        <DimensionChips
+          options={filterFundingSources}
+          value={fundingSource ?? null}
+          onChange={onFundingSourceChange}
+          copy={FUNDING_SOURCE_COPY}
+        />
       )}
 
       <div className="grid gap-6 md:grid-cols-2 md:items-start">
