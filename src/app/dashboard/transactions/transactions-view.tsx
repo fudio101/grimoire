@@ -11,7 +11,8 @@ import { TransactionTable } from "@/features/transactions/transaction-table";
 import { useDelayedPending } from "@/hooks/use-delayed-pending";
 import { formatVND } from "@/lib/format";
 import {
-  categoriesQueryOptions,
+  fundingSourcesQueryOptions,
+  purposesQueryOptions,
   transactionsQueryOptions,
 } from "@/lib/query-options";
 import type { TransactionSearch } from "@/lib/search-params";
@@ -21,7 +22,8 @@ function buildHref(next: Partial<TransactionSearch>): Route {
   const params = new URLSearchParams();
   if (next.fromMonth) params.set("fromMonth", next.fromMonth);
   if (next.toMonth) params.set("toMonth", next.toMonth);
-  if (next.category) params.set("category", next.category);
+  if (next.purpose) params.set("purpose", next.purpose);
+  if (next.fundingSource) params.set("fundingSource", next.fundingSource);
   const qs = params.toString();
   // Non-literal string: typedRoutes can't validate a query-string-bearing
   // href against its route table, so this is the documented escape hatch.
@@ -34,7 +36,10 @@ export function TransactionsView({ search }: { search: TransactionSearch }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const showPending = useDelayedPending(isPending);
-  const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: purposes } = useSuspenseQuery(purposesQueryOptions());
+  const { data: fundingSources } = useSuspenseQuery(
+    fundingSourcesQueryOptions()
+  );
   const { data: transactions } = useSuspenseQuery(
     transactionsQueryOptions(search)
   );
@@ -70,29 +75,41 @@ export function TransactionsView({ search }: { search: TransactionSearch }) {
             which is available from every tab — a second copy here would just
             push the list further down the screen. */}
         <div className="hidden md:block">
-          <AddTransactionButton categories={categories} />
+          <AddTransactionButton
+            purposes={purposes}
+            fundingSources={fundingSources}
+          />
         </div>
       </div>
 
       <TransactionFilters
-        categories={categories}
+        purposes={purposes}
+        fundingSources={fundingSources}
         fromMonth={search.fromMonth}
         toMonth={search.toMonth}
-        category={search.category}
+        purpose={search.purpose}
+        fundingSource={search.fundingSource}
         onMonthChange={(fromMonth, toMonth) =>
           navigate({
             fromMonth: fromMonth ?? undefined,
             toMonth: toMonth ?? undefined,
           })
         }
-        onCategoryChange={(category) =>
-          navigate({ category: category ?? undefined })
+        onPurposeChange={(purpose) =>
+          navigate({ purpose: purpose ?? undefined })
+        }
+        onFundingSourceChange={(fundingSource) =>
+          navigate({ fundingSource: fundingSource ?? undefined })
         }
       />
 
       <ExpenseChart transactions={transactions} />
 
-      <TransactionTable transactions={transactions} categories={categories} />
+      <TransactionTable
+        transactions={transactions}
+        purposes={purposes}
+        fundingSources={fundingSources}
+      />
     </div>
   );
 }

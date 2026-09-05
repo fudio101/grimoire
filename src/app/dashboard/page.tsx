@@ -2,7 +2,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getCurrentMonth } from "@/lib/format";
 import { getQueryClient } from "@/lib/query-client";
 import { overviewQueryOptions } from "@/lib/query-options";
-import { parseOverviewSearch, pickSearchParam } from "@/lib/search-params";
+import { readOverviewSearch } from "@/lib/search-params";
 import { getOverview } from "@/server/overview.queries";
 import { OverviewView } from "./overview-view";
 
@@ -12,9 +12,7 @@ export default async function OverviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
-  const { month: parsedMonth } = parseOverviewSearch({
-    month: pickSearchParam(raw.month),
-  });
+  const { month: parsedMonth } = readOverviewSearch(raw);
   const month = parsedMonth ?? getCurrentMonth();
 
   const queryClient = getQueryClient();

@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShareLinkForm } from "@/features/share-links/share-link-form";
 import { ShareLinkList } from "@/features/share-links/share-link-list";
 import {
-  categoriesQueryOptions,
+  purposesQueryOptions,
   shareLinksQueryOptions,
 } from "@/lib/query-options";
 
 export function LinksView() {
-  const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: purposes } = useSuspenseQuery(purposesQueryOptions());
   const { data: links } = useSuspenseQuery(shareLinksQueryOptions());
 
   return (
-    // Deliberately the same shape as the categories tab: boxed create form
+    // Deliberately the same shape as the two dimension tabs: boxed create form
     // on top, titled list below, and no <h1> — the layout above already
     // owns it.
     <div className="space-y-6">
@@ -23,7 +23,7 @@ export function LinksView() {
           <CardTitle>Tạo link mới</CardTitle>
         </CardHeader>
         <CardContent>
-          <ShareLinkForm categories={categories} />
+          <ShareLinkForm purposes={purposes} />
         </CardContent>
       </Card>
 
@@ -36,7 +36,7 @@ export function LinksView() {
             </span>
           )}
         </h2>
-        <ShareLinkList links={links} categories={categories} />
+        <ShareLinkList links={links} purposes={purposes} />
       </section>
     </div>
   );

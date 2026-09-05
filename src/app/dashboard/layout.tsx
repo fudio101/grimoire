@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getCategories } from "@/lib/db/queries";
+import { getFundingSources, getPurposes } from "@/lib/db/queries";
 import { getQueryClient } from "@/lib/query-client";
-import { categoriesQueryOptions } from "@/lib/query-options";
+import {
+  fundingSourcesQueryOptions,
+  purposesQueryOptions,
+} from "@/lib/query-options";
 import { readSession } from "@/server/auth-guard";
 import { DashboardShell } from "./dashboard-shell";
 
@@ -24,13 +27,20 @@ export default async function DashboardLayout({
   if (!admin) redirect("/login");
 
   const queryClient = getQueryClient();
-  const categories = await getCategories();
-  queryClient.setQueryData(categoriesQueryOptions().queryKey, categories);
+  const [purposes, fundingSources] = await Promise.all([
+    getPurposes(),
+    getFundingSources(),
+  ]);
+  queryClient.setQueryData(purposesQueryOptions().queryKey, purposes);
+  queryClient.setQueryData(
+    fundingSourcesQueryOptions().queryKey,
+    fundingSources
+  );
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       {/*
-       * `DashboardShell` reads categories with `useSuspenseQuery`. The
+       * `DashboardShell` reads both dimensions with `useSuspenseQuery`. The
        * hydrated cache above always has fresh data by the time this renders,
        * so this boundary should never actually suspend visibly — it exists
        * so a cache miss (e.g. right after `queryClient.removeQueries()` on

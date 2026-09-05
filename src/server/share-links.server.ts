@@ -2,7 +2,7 @@ import "server-only";
 import { customAlphabet } from "nanoid";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { categories, shareLinks } from "@/lib/db/schema";
+import { purposes, shareLinks } from "@/lib/db/schema";
 
 // Lowercase alphanumeric only, so generated codes satisfy the shareLinkSchema
 // `code` pattern and survive an unchanged edit round-trip.
@@ -25,13 +25,11 @@ export async function codeTaken(
   return Boolean(row);
 }
 
-/** Existence check for a share link's `categoryIds`, ahead of the FK throw. */
-export async function allCategoriesExist(
-  categoryIds: string[]
-): Promise<boolean> {
+/** Existence check for a share link's `purposeIds`, ahead of the FK throw. */
+export async function allPurposesExist(purposeIds: string[]): Promise<boolean> {
   const rows = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(inArray(categories.id, categoryIds));
-  return rows.length === new Set(categoryIds).size;
+    .select({ id: purposes.id })
+    .from(purposes)
+    .where(inArray(purposes.id, purposeIds));
+  return rows.length === new Set(purposeIds).size;
 }

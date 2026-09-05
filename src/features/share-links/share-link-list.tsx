@@ -28,7 +28,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { toastError } from "@/lib/toast";
-import { CopyButton } from "@/features/categories/copy-button";
+import { CopyButton } from "@/components/copy-button";
 import { ShareLinkForm } from "@/features/share-links/share-link-form";
 import {
   toggleShareLinkEnabled,
@@ -36,17 +36,17 @@ import {
   deleteShareLink,
 } from "@/server/share-links.actions";
 import { shareLinksQueryOptions } from "@/lib/query-options";
-import type { Category } from "@/lib/db/schema";
-import type { ShareLinkWithCategories } from "@/lib/db/queries";
+import type { Purpose } from "@/lib/db/schema";
+import type { ShareLinkWithPurposes } from "@/lib/db/queries";
 
 export function ShareLinkList({
   links,
-  categories,
+  purposes,
 }: {
-  links: ShareLinkWithCategories[];
-  categories: Category[];
+  links: ShareLinkWithPurposes[];
+  purposes: Purpose[];
 }) {
-  const [editing, setEditing] = useState<ShareLinkWithCategories | null>(null);
+  const [editing, setEditing] = useState<ShareLinkWithPurposes | null>(null);
   /**
    * Confirmations are hoisted out of the menu. A ConfirmDialog whose trigger is
    * a menu item is unmounted the moment the menu closes, taking the dialog with
@@ -56,7 +56,7 @@ export function ShareLinkList({
    */
   const [pendingConfirm, setPendingConfirm] = useState<{
     kind: "rotate" | "delete";
-    link: ShareLinkWithCategories;
+    link: ShareLinkWithPurposes;
   } | null>(null);
   const queryClient = useQueryClient();
   const linksKey = shareLinksQueryOptions().queryKey;
@@ -75,8 +75,8 @@ export function ShareLinkList({
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: linksKey });
       const previous =
-        queryClient.getQueryData<ShareLinkWithCategories[]>(linksKey);
-      queryClient.setQueryData<ShareLinkWithCategories[]>(linksKey, (current) =>
+        queryClient.getQueryData<ShareLinkWithPurposes[]>(linksKey);
+      queryClient.setQueryData<ShareLinkWithPurposes[]>(linksKey, (current) =>
         current?.map((l) => (l.id === id ? { ...l, enabled: !l.enabled } : l))
       );
       return { previous };
@@ -145,9 +145,9 @@ export function ShareLinkList({
                   /p/{link.code}
                 </code>
               </div>
-              {link.categoryNames.length > 0 && (
+              {link.purposeNames.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {link.categoryNames.map((name, i) => (
+                  {link.purposeNames.map((name, i) => (
                     <Badge
                       key={`${link.id}-${i}`}
                       variant="secondary"
@@ -234,7 +234,7 @@ export function ShareLinkList({
       ))}
 
       {/*
-       * Same as the category list: editing opens a modal rather than replacing
+       * Same as the dimension lists: editing opens a modal rather than replacing
        * the row, so the list does not reflow under the reader mid-edit.
        */}
       <ConfirmDialog
@@ -268,12 +268,12 @@ export function ShareLinkList({
       >
         {editing && (
           <ShareLinkForm
-            categories={categories}
+            purposes={purposes}
             defaultValues={{
               id: editing.id,
               name: editing.name,
               code: editing.code,
-              categoryIds: editing.categoryIds,
+              purposeIds: editing.purposeIds,
             }}
             onSuccess={() => setEditing(null)}
           />

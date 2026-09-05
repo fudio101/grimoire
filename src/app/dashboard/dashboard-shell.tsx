@@ -12,7 +12,10 @@ import { SubmitButton } from "@/components/submit-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
 import { useThemePreference } from "@/app/theme-context";
-import { categoriesQueryOptions } from "@/lib/query-options";
+import {
+  fundingSourcesQueryOptions,
+  purposesQueryOptions,
+} from "@/lib/query-options";
 import { logout } from "@/server/auth.actions";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +26,7 @@ const NAV: {
   /**
    * "/dashboard" must match exactly or it stays highlighted on every child
    * route. "/dashboard/manage" must NOT, so it stays highlighted while on
-   * .../categories or .../links.
+   * .../purposes, .../funding-sources or .../links.
    */
   exact?: boolean;
 }[] = [
@@ -61,7 +64,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       router.refresh();
     },
   });
-  const { data: categories } = useSuspenseQuery(categoriesQueryOptions());
+  const { data: purposes } = useSuspenseQuery(purposesQueryOptions());
+  const { data: fundingSources } = useSuspenseQuery(
+    fundingSourcesQueryOptions()
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -136,7 +142,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         className="fixed right-4 z-40 md:hidden"
         style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
       >
-        <AddTransactionButton categories={categories} appearance="floating" />
+        <AddTransactionButton
+          purposes={purposes}
+          fundingSources={fundingSources}
+          appearance="floating"
+        />
       </div>
 
       <nav

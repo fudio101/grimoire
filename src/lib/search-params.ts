@@ -2,13 +2,15 @@ import { z } from "zod";
 import { monthRangeSearchSchema, monthSchema } from "@/lib/schemas";
 
 /**
- * One parser per search-param route, shared by whatever reads the URL: a
- * server `page.tsx` parses its own `searchParams` prop and its paired client
- * view parses `useSearchParams()` off the same URL, and the App Router gives
- * neither side a shared choke point the way a router's own `validateSearch`
- * would. Routing both through the same function here is what keeps them
- * deriving identical query keys instead of each building its own schema and
- * risking two different answers for the same URL.
+ * One parser per search-param route, and one place the URL contract is
+ * written down.
+ *
+ * A server `page.tsx` parses its own `searchParams` prop and hands the result
+ * to its paired client view, which uses it to build both its query key and the
+ * hrefs it navigates to. The App Router gives neither side a shared choke
+ * point the way a router's own `validateSearch` would, so the parse, the query
+ * key and the href are three places one parameter name could be spelled
+ * differently. Naming it once, here, is what stops that.
  *
  * All three are lenient (`.catch(undefined)`, matching `monthRangeSearchSchema`):
  * a malformed value degrades to "no bound" rather than throwing. URLs get
@@ -27,7 +29,8 @@ export function parseOverviewSearch(search: unknown): OverviewSearch {
 }
 
 const transactionSearchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type TransactionSearch = z.infer<typeof transactionSearchSchema>;
@@ -37,14 +40,14 @@ export function parseTransactionSearch(search: unknown): TransactionSearch {
 }
 
 /**
- * Same shape as `parseTransactionSearch` today — both are `monthRangeSearchSchema`
- * plus an optional `category` — but kept as its own function rather than a
- * shared alias, since the public report and the dashboard's own transactions
- * screen are different surfaces with different callers and no reason to be
- * forced to change in lockstep if one's validation needs diverge later.
+ * Deliberately *not* the same shape as `parseTransactionSearch`: the dashboard
+ * filters on both dimensions, while a share link's scope is one-dimensional by
+ * decision (ADR-0002), so the public report reads `purpose` and nothing else.
+ * A `fundingSource` parameter here would be ignored by the query layer anyway;
+ * leaving it out of the schema is what says so out loud.
  */
 const publicReportSearchSchema = monthRangeSearchSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
 });
 
 export type PublicReportUrlSearch = z.infer<typeof publicReportSearchSchema>;
@@ -57,7 +60,7 @@ export function parsePublicReportSearch(
 
 /**
  * Next's async `searchParams` prop hands back an array for a repeated key
- * (`?category=a&category=b`); `URLSearchParams.get()` — what every client
+ * (`?purpose=a&purpose=b`); `URLSearchParams.get()` — what every client
  * component here uses to read the same URL — always returns the first
  * occurrence. Narrowing here, before either `parseXSearch` sees the value, is
  * what keeps the server and client side deriving the same key from the same
@@ -67,4 +70,47 @@ export function pickSearchParam(
   value: string | string[] | undefined
 ): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** Next's `searchParams` prop, before any narrowing. */
+export type RawSearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * The parsers a `page.tsx` actually calls: hand them Next's raw
+ * `searchParams` and they pick and validate in one step.
+ *
+ * This exists because the two halves used to be spelled out at each call site
+ * — `parseXSearch({ purpose: pickSearchParam(raw.purpose), ... })` — which put
+ * the parameter's *name* in two places per route and gave nothing a chance to
+ * notice when they disagreed. The parsers take `unknown` (Next's shape is
+ * genuinely unknown) so a mistyped key is not an excess-property error, and
+ * zod strips what it does not recognise, so the wrong name reads as "absent"
+ * rather than as a mistake. That is precisely how `/p/[code]` kept reading
+ * `?category=` after the parameter had been renamed: SSR silently ignored the
+ * filter while the client honoured it, which is a server/client query-key
+ * mismatch presenting as a hydration flicker.
+ *
+ * With the names written once, here, the routes cannot drift from the schemas.
+ */
+export function readOverviewSearch(raw: RawSearchParams): OverviewSearch {
+  return parseOverviewSearch({ month: pickSearchParam(raw.month) });
+}
+
+export function readTransactionSearch(raw: RawSearchParams): TransactionSearch {
+  return parseTransactionSearch({
+    fromMonth: pickSearchParam(raw.fromMonth),
+    toMonth: pickSearchParam(raw.toMonth),
+    purpose: pickSearchParam(raw.purpose),
+    fundingSource: pickSearchParam(raw.fundingSource),
+  });
+}
+
+export function readPublicReportSearch(
+  raw: RawSearchParams
+): PublicReportUrlSearch {
+  return parsePublicReportSearch({
+    fromMonth: pickSearchParam(raw.fromMonth),
+    toMonth: pickSearchParam(raw.toMonth),
+    purpose: pickSearchParam(raw.purpose),
+  });
 }

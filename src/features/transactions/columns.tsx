@@ -6,19 +6,21 @@ import { formatDateTime, formatVND } from "@/lib/format";
 import type { TransactionTableFeatures } from "@/features/transactions/table-features";
 import type { TransactionTableRow } from "@/lib/types";
 
-/** Root → leaf, with the ancestors muted. Same rendering both routes used. */
-function CategoryPath({ row }: { row: TransactionTableRow }) {
-  const path = row.categoryPathParts;
-  if (path.length === 0) return <>{row.categoryName ?? "—"}</>;
-
-  const leaf = path[path.length - 1];
-  const parents = path.slice(0, -1);
+/**
+ * The Purpose, with the Funding Source muted beside it.
+ *
+ * This column used to render a breadcrumb — "Nguồn › Mục" — which read as one
+ * nested thing and put the pot first, in front of the answer to the question
+ * the row is actually about. Two independent values sit side by side instead,
+ * with the one being asked about carrying the emphasis.
+ */
+function Dimensions({ row }: { row: TransactionTableRow }) {
   return (
     <>
-      {parents.length > 0 && (
-        <span className="text-muted-foreground">{parents.join(" › ")} › </span>
-      )}
-      {leaf}
+      {row.purposeName}
+      <span className="ml-2 text-muted-foreground">
+        {row.fundingSourceName}
+      </span>
     </>
   );
 }
@@ -61,12 +63,14 @@ export function transactionColumns(
       ),
     },
     {
-      id: "category",
-      header: "Danh mục",
-      accessorFn: (row) => row.categoryPathParts.join(" › ") || "",
+      id: "dimensions",
+      header: "Mục đích / Nguồn",
+      // Sorted and filtered on the pair as one string, Purpose first, so
+      // ordering follows what the column leads with.
+      accessorFn: (row) => `${row.purposeName} ${row.fundingSourceName}`,
       cell: ({ row }) => (
         <span className="whitespace-nowrap">
-          <CategoryPath row={row.original} />
+          <Dimensions row={row.original} />
         </span>
       ),
     },

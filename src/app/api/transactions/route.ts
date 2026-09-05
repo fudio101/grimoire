@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const parsed = transactionFilterSchema.safeParse({
     fromMonth: searchParams.get("fromMonth") ?? undefined,
     toMonth: searchParams.get("toMonth") ?? undefined,
-    category: searchParams.get("category") ?? undefined,
+    purpose: searchParams.get("purpose") ?? undefined,
+    fundingSource: searchParams.get("fundingSource") ?? undefined,
   });
   if (!parsed.success) {
     return Response.json({ error: "Tham số không hợp lệ." }, { status: 400 });
@@ -20,7 +21,8 @@ export async function GET(request: Request) {
     await getTransactions({
       fromMonth: parsed.data.fromMonth,
       toMonth: parsed.data.toMonth,
-      categoryId: parsed.data.category,
+      purposeId: parsed.data.purpose,
+      fundingSourceId: parsed.data.fundingSource,
     })
   );
 }

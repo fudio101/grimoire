@@ -46,7 +46,7 @@ export function PublicTransactionList({
                 {tx.note || "Không có ghi chú"}
               </ItemTitle>
               <ItemDescription className="text-[0.9375rem]">
-                {tx.categoryPathParts.join(" › ") || "—"}
+                {tx.purposeName} · {tx.fundingSourceName}
               </ItemDescription>
               <ItemDescription className="text-[0.9375rem]">
                 {formatRelativeDay(tx.date)} · {formatTime(tx.date)}

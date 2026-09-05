@@ -45,18 +45,37 @@ export const monthRangeSearchSchema = z.object({
   toMonth: monthSchema.optional().catch(undefined),
 });
 
+/**
+ * Both dimensions are required on every transaction. There is no "unassigned"
+ * state and no default: a payment always came from somewhere and went towards
+ * something, and letting either be blank would put rows in the one place a
+ * roll-up cannot account for them.
+ */
 export const transactionSchema = z.object({
   amount: z.number().positive("Số tiền phải lớn hơn 0"),
   note: z.string().max(500),
   date: z.string().min(1, "Vui lòng chọn thời gian"),
-  categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
+  purposeId: z.string().min(1, "Vui lòng chọn mục đích chi"),
+  fundingSourceId: z.string().min(1, "Vui lòng chọn nguồn tiền"),
 });
 
 export type TransactionInput = z.infer<typeof transactionSchema>;
 
-export const categorySchema = z.object({
-  name: z.string().min(1, "Vui lòng nhập tên danh mục").max(100),
-  parentId: z.string().nullable().optional(),
+/**
+ * The two dimensions carry the same shape — a name, and nothing else. They get
+ * their own schemas anyway, rather than one shared `dimensionSchema`, because
+ * the validation message is the whole user-facing difference between them and
+ * a single schema would have to pick one word or say neither.
+ */
+export const purposeSchema = z.object({
+  // Trimmed before the length check, so three spaces is an empty name rather
+  // than a valid one that renders as a blank row in every list and an
+  // unlabelled option in every picker.
+  name: z.string().trim().min(1, "Vui lòng nhập tên mục đích chi").max(100),
+});
+
+export const fundingSourceSchema = z.object({
+  name: z.string().trim().min(1, "Vui lòng nhập tên nguồn tiền").max(100),
 });
 
 /**
@@ -64,7 +83,8 @@ export const categorySchema = z.object({
  * a form's values must be typed as the schema's *input* rather than its output.
  * These differ wherever a field is optional.
  */
-export type CategoryFormValues = z.input<typeof categorySchema>;
+export type PurposeFormValues = z.input<typeof purposeSchema>;
+export type FundingSourceFormValues = z.input<typeof fundingSourceSchema>;
 
 /**
  * A share-link code, as accepted on write.
@@ -96,7 +116,8 @@ export const shareLinkSchema = z.object({
     )
     .optional()
     .or(z.literal("")),
-  categoryIds: z.array(z.string()).min(1, "Chọn ít nhất 1 danh mục"),
+  // Purposes only — a link's scope is one-dimensional by decision (ADR-0002).
+  purposeIds: z.array(z.string()).min(1, "Chọn ít nhất 1 mục đích chi"),
 });
 
 export type ShareLinkFormValues = z.input<typeof shareLinkSchema>;
@@ -109,14 +130,15 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /**
- * The `fromMonth`/`toMonth`/`category` triple, as the transactions server
- * function accepts it. Moved here (rather than left inline in
+ * The month range plus the two dimensions, as the transactions server function
+ * accepts it. Moved here (rather than left inline in
  * queries.functions.ts, where it originated) ahead of the Next.js migration:
  * a `"use server"` file may only export async functions, so this value export
  * would be a hard compile error there.
  */
 export const transactionFilterSchema = monthRangeSchema.extend({
-  category: z.string().optional(),
+  purpose: z.string().optional(),
+  fundingSource: z.string().optional(),
 });
 
 export type TransactionFilters = z.infer<typeof transactionFilterSchema>;
@@ -135,7 +157,10 @@ export const publicReportSchema = monthRangeSchema.extend({
   // never be a code, without imposing the 8-character write floor on links that
   // were handed out before that floor existed.
   code: z.string().regex(SHARE_CODE_SHAPE),
-  category: z.string().optional(),
+  // Purpose only. A share link's scope is one-dimensional by decision
+  // (ADR-0002), so there is deliberately no `fundingSource` here: readers see
+  // every Funding Source of the Purposes they were given.
+  purpose: z.string().optional(),
 });
 
 export type PublicReportSearch = Omit<

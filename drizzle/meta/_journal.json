@@ -29,6 +29,13 @@
       "when": 1785310767795,
       "tag": "0003_modern_jazinda",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788595471807,
+      "tag": "0004_many_imperial_guard",
+      "breakpoints": true
     }
   ]
 }

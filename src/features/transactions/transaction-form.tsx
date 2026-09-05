@@ -7,17 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { CurrencyInput } from "@/components/currency-input";
-import { CategoryPickerField } from "@/features/categories/category-picker";
+import { DimensionSelect } from "@/features/dimensions/dimension-select";
 import {
   createTransaction,
   updateTransaction,
 } from "@/server/transactions.actions";
 import { transactionSchema } from "@/lib/schemas";
-import { isLeaf } from "@/lib/category-tree";
-import { recentCategoriesQueryOptions } from "@/lib/query-options";
+import { recentPurposesQueryOptions } from "@/lib/query-options";
 import { formatRelativeDay, formatTime } from "@/lib/format";
 import { toastSuccess } from "@/lib/toast";
-import type { Category } from "@/lib/db/schema";
+import type { FundingSource, Purpose } from "@/lib/db/schema";
 
 function nowLocalString() {
   const now = new Date();
@@ -27,26 +26,29 @@ function nowLocalString() {
 }
 
 type TransactionFormProps = {
-  categories: Category[];
+  purposes: Purpose[];
+  fundingSources: FundingSource[];
   defaultValues?: {
     id: string;
     amount: number;
     note: string;
     date: string;
-    categoryId: string;
+    purposeId: string;
+    fundingSourceId: string;
   };
   onSuccess?: () => void;
 };
 
 /**
  * Ordered by what you know when you open this: the amount, then what it was
- * for. Time collapses to a line of text because it is "now" on almost every
+ * for, then where it came from. Time collapses to a line of text because it is "now" on almost every
  * entry — as a full field it cost a slot and pushed the save button down.
  *
  * The fast path is: type the amount, tap a chip, Save.
  */
 export function TransactionForm({
-  categories,
+  purposes,
+  fundingSources,
   defaultValues,
   onSuccess,
 }: TransactionFormProps) {
@@ -65,7 +67,7 @@ export function TransactionForm({
   // Deliberately not a suspense query — the chips are an accelerator, and the
   // form has to be usable the instant it opens rather than waiting on them.
   const { data: recent } = useQuery({
-    ...recentCategoriesQueryOptions(),
+    ...recentPurposesQueryOptions(),
     enabled: !isEdit,
   });
 
@@ -73,14 +75,15 @@ export function TransactionForm({
     amount: 0,
     note: "",
     date: nowLocalString(),
-    categoryId: "",
+    purposeId: "",
+    fundingSourceId: "",
   };
 
   const invalidate = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["transactions"] }),
       queryClient.invalidateQueries({ queryKey: ["overview"] }),
-      queryClient.invalidateQueries({ queryKey: ["recentCategories"] }),
+      queryClient.invalidateQueries({ queryKey: ["recentPurposes"] }),
     ]);
 
   const form = useForm({
@@ -88,7 +91,8 @@ export function TransactionForm({
       amount: defaultValues?.amount ?? 0,
       note: defaultValues?.note ?? "",
       date: defaultValues?.date?.slice(0, 16) ?? nowLocalString(),
-      categoryId: defaultValues?.categoryId ?? "",
+      purposeId: defaultValues?.purposeId ?? "",
+      fundingSourceId: defaultValues?.fundingSourceId ?? "",
     },
     validators: { onSubmit: transactionSchema },
     onSubmit: async ({ value }) => {
@@ -104,7 +108,8 @@ export function TransactionForm({
       await invalidate();
 
       if (keepOpen.current) {
-        // Keep category and time, clear what changes per entry, stay open.
+        // Keep both dimensions and the time, clear what changes per entry,
+        // and stay open.
         // Entering a run of receipts is one flow, not N.
         keepOpen.current = false;
         form.setFieldValue("amount", 0);
@@ -123,11 +128,22 @@ export function TransactionForm({
     void form.handleSubmit();
   };
 
-  // Transactions attach to leaves only, so a parent category that happens to be
-  // used recently must not become a chip that produces an invalid entry.
-  const recentLeafIds = (recent ?? [])
-    .filter((c) => isLeaf(c.id, categories))
-    .map((c) => c.id);
+  /**
+   * Every Purpose is attachable now, so the chips no longer have to be
+   * filtered down to the ones a transaction is *allowed* to sit on — the
+   * leaf-only rule went with the hierarchy (ADR-0001).
+   *
+   * They are still intersected with `purposes`, for a different reason: the
+   * two lists come from different caches. `recentPurposes` is refetched each
+   * time this form mounts, while `purposes` was seeded once by the page's RSC
+   * prefetch — so on a tab left open, a chip can name a Purpose the select
+   * below has never heard of. Tapping it would set a value the select cannot
+   * label, leaving a field that reads unselected while holding one.
+   */
+  const knownPurposeIds = new Set(purposes.map((p) => p.id));
+  const recentPurposes = (recent ?? []).filter((p) =>
+    knownPurposeIds.has(p.id)
+  );
 
   return (
     <form
@@ -175,41 +191,65 @@ export function TransactionForm({
         )}
       </form.Field>
 
-      <form.Field name="categoryId">
+      {/*
+       * Two independent choices, in the order they are usually known: what the
+       * money went on, then which pot it came out of. Neither constrains the
+       * other — that independence is the entire point of the model (ADR-0001).
+       */}
+      <form.Field name="purposeId">
         {(field) => (
           <div className="space-y-2">
-            <Label>Danh mục</Label>
+            <Label htmlFor="transaction-purpose">Mục đích chi</Label>
 
-            {recentLeafIds.length > 0 && (
+            {recentPurposes.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {recentLeafIds.map((id) => {
-                  const cat = categories.find((c) => c.id === id);
-                  if (!cat) return null;
-                  const active = field.state.value === id;
+                {recentPurposes.map((purpose) => {
+                  const active = field.state.value === purpose.id;
                   return (
                     <Button
-                      key={id}
+                      key={purpose.id}
                       type="button"
                       variant={active ? "default" : "outline"}
                       aria-pressed={active}
-                      onClick={() => field.handleChange(active ? "" : id)}
+                      onClick={() =>
+                        field.handleChange(active ? "" : purpose.id)
+                      }
                     >
-                      {cat.name}
+                      {purpose.name}
                     </Button>
                   );
                 })}
               </div>
             )}
 
-            <CategoryPickerField
-              categories={categories}
+            <DimensionSelect
+              id="transaction-purpose"
+              options={purposes}
               value={field.state.value || null}
               onChange={(id) => field.handleChange(id ?? "")}
-              selectable="leaf"
-              recentIds={recentLeafIds}
-              placeholder="Chọn danh mục khác…"
+              placeholder="Chọn mục đích chi…"
             />
 
+            {field.state.meta.errors[0] && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors[0].message}
+              </p>
+            )}
+          </div>
+        )}
+      </form.Field>
+
+      <form.Field name="fundingSourceId">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor="transaction-funding-source">Nguồn tiền</Label>
+            <DimensionSelect
+              id="transaction-funding-source"
+              options={fundingSources}
+              value={field.state.value || null}
+              onChange={(id) => field.handleChange(id ?? "")}
+              placeholder="Chọn nguồn tiền…"
+            />
             {field.state.meta.errors[0] && (
               <p className="text-sm text-destructive">
                 {field.state.meta.errors[0].message}

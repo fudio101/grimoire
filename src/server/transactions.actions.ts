@@ -6,11 +6,37 @@ import { db } from "@/lib/db";
 import { transactions } from "@/lib/db/schema";
 import { transactionSchema, type TransactionInput } from "@/lib/schemas";
 import { requireAuthForAction } from "@/server/auth-guard";
-import { categoryExists, categoryIsLeaf } from "@/server/transactions.server";
+import {
+  FUNDING_SOURCE_DIMENSION,
+  PURPOSE_DIMENSION,
+  dimensionExists,
+} from "@/server/dimensions.server";
 import type { ActionState } from "@/lib/types";
 
-const NOT_A_LEAF = "Vui lòng chọn danh mục cụ thể (không phải danh mục cha).";
-const CATEGORY_NOT_FOUND = "Không tìm thấy danh mục.";
+/**
+ * Both dimensions must name something that exists.
+ *
+ * This is the whole validation now. The rule that a transaction could only
+ * attach to a *leaf* is gone with the hierarchy (ADR-0001): every Purpose is
+ * attachable, which is the point — the tree's leaf level was the Purpose
+ * dimension all along, and its non-leaf level was the Funding Source.
+ *
+ * Checked here rather than left to the foreign keys so the caller gets an
+ * `ActionState` with a sentence in it instead of a raw SQLite throw.
+ */
+async function validateDimensions(
+  data: TransactionInput
+): Promise<ActionState | null> {
+  if (!(await dimensionExists(PURPOSE_DIMENSION, data.purposeId))) {
+    return { success: false, error: PURPOSE_DIMENSION.labels.notFound };
+  }
+  if (
+    !(await dimensionExists(FUNDING_SOURCE_DIMENSION, data.fundingSourceId))
+  ) {
+    return { success: false, error: FUNDING_SOURCE_DIMENSION.labels.notFound };
+  }
+  return null;
+}
 
 export async function createTransaction(
   input: TransactionInput
@@ -19,12 +45,8 @@ export async function createTransaction(
   if (authError) return authError;
 
   const data = transactionSchema.parse(input);
-  if (!(await categoryExists(data.categoryId))) {
-    return { success: false, error: CATEGORY_NOT_FOUND };
-  }
-  if (!(await categoryIsLeaf(data.categoryId))) {
-    return { success: false, error: NOT_A_LEAF };
-  }
+  const invalid = await validateDimensions(data);
+  if (invalid) return invalid;
 
   await db.insert(transactions).values(data);
   return { success: true };
@@ -39,12 +61,8 @@ export async function updateTransaction(
   z.string().min(1).parse(id);
 
   const data = transactionSchema.parse(input);
-  if (!(await categoryExists(data.categoryId))) {
-    return { success: false, error: CATEGORY_NOT_FOUND };
-  }
-  if (!(await categoryIsLeaf(data.categoryId))) {
-    return { success: false, error: NOT_A_LEAF };
-  }
+  const invalid = await validateDimensions(data);
+  if (invalid) return invalid;
 
   await db.update(transactions).set(data).where(eq(transactions.id, id));
   return { success: true };

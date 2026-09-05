@@ -15,7 +15,7 @@ import {
  * `sortFns` is registered because `column.getAutoSortFn()` picks a name from
  * the first ten values and then looks that name up here, only `console.warn`ing
  * (in development) before falling back when it is missing. It can ask for
- * `text` or `alphanumeric` — today's category names resolve to `text`, but they
+ * `text` or `alphanumeric` — today's dimension names resolve to `text`, but they
  * are user data, so both are registered. `datetime` is not: no column exposes a
  * `Date`. Numbers never reach this registry at all — the library returns its
  * own `sortFn_basic` directly, which is what the `amount` column sorts by.

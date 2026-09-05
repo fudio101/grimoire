@@ -3,11 +3,11 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { shareLinkCategories, shareLinks } from "@/lib/db/schema";
+import { shareLinkPurposes, shareLinks } from "@/lib/db/schema";
 import { shareLinkSchema, type ShareLinkFormValues } from "@/lib/schemas";
 import { requireAuthForAction } from "@/server/auth-guard";
 import {
-  allCategoriesExist,
+  allPurposesExist,
   codeTaken,
   generateCode,
 } from "@/server/share-links.server";
@@ -15,7 +15,7 @@ import type { ActionState } from "@/lib/types";
 
 const NOT_FOUND = "Không tìm thấy liên kết.";
 const CODE_TAKEN = "Mã này đã tồn tại.";
-const CATEGORY_NOT_FOUND = "Một hoặc nhiều danh mục không tồn tại.";
+const PURPOSE_NOT_FOUND = "Một hoặc nhiều mục đích chi không tồn tại.";
 
 export async function createShareLink(
   input: ShareLinkFormValues
@@ -30,9 +30,13 @@ export async function createShareLink(
   }
 
   const name = data.name?.trim() || null;
-  const { categoryIds } = data;
-  if (!(await allCategoriesExist(categoryIds))) {
-    return { success: false, error: CATEGORY_NOT_FOUND };
+  // De-duplicated because the junction's primary key is the pair: a form that
+  // submits the same Purpose twice would otherwise raise a raw constraint
+  // error out of the Server Action. `allPurposesExist` already compares
+  // against the distinct count, so the two now agree on what was asked for.
+  const purposeIds = [...new Set(data.purposeIds)];
+  if (!(await allPurposesExist(purposeIds))) {
+    return { success: false, error: PURPOSE_NOT_FOUND };
   }
 
   db.transaction((tx) => {
@@ -41,11 +45,11 @@ export async function createShareLink(
       .values({ code, name })
       .returning({ id: shareLinks.id })
       .all();
-    tx.insert(shareLinkCategories)
+    tx.insert(shareLinkPurposes)
       .values(
-        categoryIds.map((categoryId) => ({
+        purposeIds.map((purposeId) => ({
           shareLinkId: link.id,
-          categoryId,
+          purposeId,
         }))
       )
       .run();
@@ -76,9 +80,9 @@ export async function updateShareLink(
   }
 
   const name = data.name?.trim() || null;
-  const { categoryIds } = data;
-  if (!(await allCategoriesExist(categoryIds))) {
-    return { success: false, error: CATEGORY_NOT_FOUND };
+  const purposeIds = [...new Set(data.purposeIds)];
+  if (!(await allPurposesExist(purposeIds))) {
+    return { success: false, error: PURPOSE_NOT_FOUND };
   }
 
   db.transaction((tx) => {
@@ -86,13 +90,11 @@ export async function updateShareLink(
       .set({ code, name })
       .where(eq(shareLinks.id, id))
       .run();
-    tx.delete(shareLinkCategories)
-      .where(eq(shareLinkCategories.shareLinkId, id))
+    tx.delete(shareLinkPurposes)
+      .where(eq(shareLinkPurposes.shareLinkId, id))
       .run();
-    tx.insert(shareLinkCategories)
-      .values(
-        categoryIds.map((categoryId) => ({ shareLinkId: id, categoryId }))
-      )
+    tx.insert(shareLinkPurposes)
+      .values(purposeIds.map((purposeId) => ({ shareLinkId: id, purposeId })))
       .run();
   });
 
@@ -145,8 +147,8 @@ export async function deleteShareLink(id: string): Promise<ActionState> {
   z.string().min(1).parse(id);
 
   db.transaction((tx) => {
-    tx.delete(shareLinkCategories)
-      .where(eq(shareLinkCategories.shareLinkId, id))
+    tx.delete(shareLinkPurposes)
+      .where(eq(shareLinkPurposes.shareLinkId, id))
       .run();
     tx.delete(shareLinks).where(eq(shareLinks.id, id)).run();
   });
