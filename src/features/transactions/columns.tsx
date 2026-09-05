@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateTime, formatVND } from "@/lib/format";
+import type { TransactionTableFeatures } from "@/features/transactions/table-features";
 import type { TransactionTableRow } from "@/lib/types";
 
 /** Root → leaf, with the ancestors muted. Same rendering both routes used. */
@@ -34,7 +35,7 @@ type ActionHandlers = {
  */
 export function transactionColumns(
   handlers?: ActionHandlers
-): ColumnDef<TransactionTableRow>[] {
+): ColumnDef<TransactionTableFeatures, TransactionTableRow>[] {
   return [
     {
       id: "date",
@@ -46,7 +47,7 @@ export function transactionColumns(
         </span>
       ),
       // Matches the SQL ordering: date desc with createdAt as the tie-break.
-      sortingFn: (a, b) =>
+      sortFn: (a, b) =>
         a.original.date.localeCompare(b.original.date) ||
         a.original.createdAt.localeCompare(b.original.createdAt),
     },
